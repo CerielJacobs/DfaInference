@@ -1,0 +1,48 @@
+<project
+    name="DFA Inference"
+    default="build"
+    basedir=".">
+
+    <property environment="env"/>
+
+    <property name="ibis"        location="${env.IBIS_HOME}"/>
+    <property name="build"       value="build"/>
+
+    <!--
+    <property name="satinc-flags" value=""/>
+    -->
+
+    <property name="satinc-flags" value="-keep"/>
+
+    <property name="satin-main-class" value="DfaInference.SatinFolder DfaInference.BestBlue DfaInference.SatinFolder2"/>
+    <property name="satin-so-class" value="DfaInference.Samples"/>
+    <property name="main-class" value=""/>
+
+    <import file="${ibis}/build-files/apps/build-satin-app.xml"/>
+
+    <target name="test"
+	    depends="compile"
+	    description="Run Junit test">
+	<antcall target="runseq">
+		<param name="runjob" value="junit.textui.TestRunner main.Tests"/>
+	</antcall>
+    </target>
+
+    <target name="run"
+	    depends="compile"
+	    description="Run">
+	<antcall target="runseq">
+		<param name="runjob" value="main.Main -l train.1"/>
+	</antcall>
+    </target>
+
+    <target name="docs"
+        description="Build JavaDoc documentation in `docs' directory">
+	<!-- Create the javadoc directory -->
+	<delete dir="docs"/>
+	<mkdir dir="docs"/>
+	<javadoc destdir="docs" sourcepath="src" author="true" version="true" use="true" private="true" packagenames="DfaInference,AbbaDingo,generate" windowtitle="DFA Inference program documentation" doctitle="DFA Inference program Documentation" bottom="DFA INFERENCE">
+	    <classpath refid="default.classpath"/>
+	</javadoc>
+    </target>
+</project>

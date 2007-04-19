@@ -5,9 +5,6 @@ import abbadingo.AbbaDingoString;
 
 public class MDLFold extends RedBlue implements java.io.Serializable {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
 
     double getScore() {

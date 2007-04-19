@@ -6,9 +6,7 @@ package DfaInference;
  * by the default strategy.
  */
 public class FirstBlueStrategy implements PickBlueStrategy {
-    /**
-     * 
-     */
+
     private static final long serialVersionUID = 1L;
 
     /**

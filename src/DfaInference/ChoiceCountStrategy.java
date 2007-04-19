@@ -5,9 +5,7 @@ package DfaInference;
  * to be dealt with.
  */
 public class ChoiceCountStrategy implements PickBlueStrategy {
-    /**
-     * 
-     */
+
     private static final long serialVersionUID = 1L;
 
     /**

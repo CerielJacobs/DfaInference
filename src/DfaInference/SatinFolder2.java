@@ -23,9 +23,6 @@ import abbadingo.AbbaDingoString;
  */
 public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
 
     /** Log4j logger. */

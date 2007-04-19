@@ -13,9 +13,6 @@ import java.io.Writer;
  */
 public class ControlResultPair implements Comparable, java.io.Serializable {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
 
     /** The score resulting from this branch. */

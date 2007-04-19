@@ -21,9 +21,6 @@ import abbadingo.AbbaDingoString;
  */
 public class BestBlue extends SatinObject implements BestBlueInterface {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
 
     /** Log4j logger. */

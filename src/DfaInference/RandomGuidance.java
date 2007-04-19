@@ -8,9 +8,6 @@ import java.util.Random;
  */
 public class RandomGuidance extends Guidance {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
 
     /** The depth until which random choices are made. */

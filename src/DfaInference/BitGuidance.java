@@ -6,9 +6,6 @@ package DfaInference;
  */
 public class BitGuidance extends Guidance {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
 
     /** The guide. */

@@ -6,6 +6,11 @@ package DfaInference;
  */
 public class ChoiceCountStrategy implements PickBlueStrategy {
     /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
+    /**
      * Determines the next blue to be dealt with. The parameter specifies
      * the possibilities, both merges and promotions. From this list, this
      * method chooses a blue state, by determining the blue state which has

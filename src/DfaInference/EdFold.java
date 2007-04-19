@@ -1,10 +1,7 @@
 package DfaInference;
 
-import abbadingo.*;
-
-import java.util.*;
-
-import org.apache.log4j.Logger;
+import abbadingo.AbbaDingoReader;
+import abbadingo.AbbaDingoString;
 
 /**
  * This class implements an evidence-driven state folder.
@@ -14,6 +11,8 @@ import org.apache.log4j.Logger;
  * accepting.
  */
 public class EdFold extends RedBlue implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     boolean testMerge(State r, State b) {
         boolean foundMerge = false;
@@ -90,7 +89,7 @@ public class EdFold extends RedBlue implements java.io.Serializable {
 
         EdFold m = new EdFold();
         m.printInfo = true;
-        m.logger.info("Starting fold ...");
+        logger.info("Starting fold ...");
         DFA bestDFA = m.doFold(new Samples(learningSamples, null),
                 new Guidance(), 0);
 

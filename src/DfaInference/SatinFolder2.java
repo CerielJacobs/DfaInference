@@ -1,19 +1,16 @@
 package DfaInference;
 
-import abbadingo.*;
+import ibis.satin.SatinObject;
 
-import ibis.satin.*;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
+
+import abbadingo.AbbaDingoReader;
+import abbadingo.AbbaDingoString;
 
 /**
  * This class implements a search strategy that, up to a certain depth,
@@ -26,14 +23,16 @@ import org.apache.log4j.Logger;
  */
 public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
     /** Log4j logger. */
     private static Logger logger = Logger.getLogger(SatinFolder2.class.getName());
 
     /** The heuristic used. */
     private RedBlue folder;
-
-    /** Maximum depth of search. */
-    private transient int maxDepth;
 
     /** Minimum depth of search. */
     private transient int minDepth;
@@ -45,7 +44,7 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
     private transient DFA initialDFA;
 
     /** Job list. */
-    private transient final Vector jobList = new Vector();
+    private transient final Vector<ControlResultPair> jobList = new Vector<ControlResultPair>();
 
     /** Job list termination. */
     private transient int jobsDone = 0;
@@ -58,7 +57,7 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
     }
 
     /** Job results. */
-    private transient ArrayList results = new ArrayList();
+    private transient ArrayList<ResultContainer> results = new ArrayList<ResultContainer>();
 
     /**
      * Constructor.
@@ -69,7 +68,6 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
         this.folder = folder;
         this.folder.disableChoices = false;
         this.minDepth = minDepth;
-        this.maxDepth = maxDepth;
     }
 
     private void walk(ControlResultPair p, int depth, int targetDepth) {
@@ -125,7 +123,7 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
                 for (int i = 0; i < jobList.size(); i++) {
                     ResultContainer r = new ResultContainer();
                     results.add(r);
-                    ControlResultPair p = (ControlResultPair) jobList.get(i);
+                    ControlResultPair p = jobList.get(i);
                     r.result = buildPair(p, samples);
                 }
                 jobList.clear();
@@ -135,15 +133,6 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
         sync();
     }
 
-    private int getCount(Choice[] choices, int blue) {
-        int cnt = 0;
-        for (int i = 0; i < choices.length; i++) {
-            if (choices[i].s2 == blue) {
-                cnt++;
-            }
-        }
-        return cnt;
-    }
 
     /**
      * Extends the search list one more step by expanding the entries in
@@ -216,7 +205,7 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
 
         ControlResultPair[] result = new ControlResultPair[results.size()];
         for (int i = 0; i < result.length; i++) {
-            result[i] = ((ResultContainer) results.get(i)).result;
+            result[i] = results.get(i).result;
         }
         results.clear();
         Arrays.sort(result);

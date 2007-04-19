@@ -7,6 +7,11 @@ package DfaInference;
 public class Guidance implements java.io.Serializable {
 
     /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
+    /**
      * Returns a choice, represented by an integer.
      * @return the choice
      */

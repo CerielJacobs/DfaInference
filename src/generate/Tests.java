@@ -1,7 +1,7 @@
 package generate;
 
-import junit.framework.TestSuite;
 import junit.framework.Test;
+import junit.framework.TestSuite;
 
 public class Tests extends TestSuite {
 

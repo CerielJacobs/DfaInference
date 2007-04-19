@@ -1,11 +1,12 @@
 package generate;
 
-import org.apache.log4j.Logger;
-
-import DfaInference.*;
-import java.util.Random;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.Random;
+
+import org.apache.log4j.Logger;
+
+import DfaInference.DFA;
 
 /**
  * Utility to generate a DFA. Parameters are the number of symbols and

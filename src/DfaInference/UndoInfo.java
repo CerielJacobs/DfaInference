@@ -1,6 +1,5 @@
 package DfaInference;
 
-import java.util.*;
 
 /**
  * Collects information that allows for the undoing of a state merge.
@@ -161,7 +160,6 @@ public final class UndoInfo implements Configuration {
 
             do {
                 last = n;
-                State s = last.orig.children[last.sym];
                 last.orig.children[last.sym] = last.target;
                 n = last.next;
             } while (n != null);

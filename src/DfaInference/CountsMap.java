@@ -31,7 +31,6 @@ final class CountsMap {
 
     private static int[] hashCodes;
 
-    private static int numdim1;
     private static int numdim2;
 
     public CountsMap() {
@@ -79,7 +78,6 @@ final class CountsMap {
             for (int i = 0; i < numStates; i++) {
                 hashCodes[i] = getHashCode(i);
             }
-            numdim1 = numStates;
             numdim2 = nd2;
         }
     }

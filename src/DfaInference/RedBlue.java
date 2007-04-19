@@ -1,8 +1,11 @@
 package DfaInference;
 
-import java.util.*;
-
 import ibis.util.Stats;
+
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
@@ -45,7 +48,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * Set of blue states that have no merge possibilities anymore, so
      * must be promoted to red.
      */
-    protected transient HashSet toPromote;
+    protected transient HashSet<State> toPromote;
 
     /**
      * The merge candidates, with their score according to the search
@@ -61,7 +64,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * quick lookup. We do, however, also need them as an array, so that
      * there is a determined iteration order.
      */
-    private transient HashSet reds;
+    private transient HashSet<State> reds;
 
     /** The best DFA found sofar. */
     transient DFA bestDFA = null;
@@ -112,7 +115,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
         redStates = new State[numStates];
         redStates[0] = dfa.startState;
         numRedStates = 1;
-        reds = new HashSet();
+        reds = new HashSet<State>();
         reds.add(dfa.startState);
 
         // Initialize the blue states.
@@ -120,7 +123,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
         numBlueStates = 0;
         getBlueStates();
 
-        toPromote = new HashSet();
+        toPromote = new HashSet<State>();
 
         noMerges = new BitSet[numStates+1];
 
@@ -631,7 +634,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
                 // A promotion is always possible.
                 State s1 = dfa.getState(ch.s1);
                 State s2 = dfa.getState(ch.s2);
-                if (! doTestMerge(dfa.getState(ch.s1), dfa.getState(ch.s2))) {
+                if (! doTestMerge(s1, s2)) {
                     // Not possible anymore
                     if (printInfo && logger.isDebugEnabled()) {
                         logger.debug("No longer possible: " + ch.s1 + " "

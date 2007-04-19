@@ -1,12 +1,12 @@
 package abbadingo;
 
-import java.io.InputStream;
 import java.io.BufferedInputStream;
-import java.io.InputStreamReader;
 import java.io.FileInputStream;
-import java.io.StreamTokenizer;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StreamTokenizer;
 
 /**
  * Reads a file of strings in AbbaDingo format.
@@ -32,9 +32,6 @@ public class AbbaDingoReader {
 
     /** Number of sentences in the input. */
     private int numSentences;
-
-    /** Number of different tokens in the input. */
-    private int numTokens;
 
     /**
      * Constructor with a reader.
@@ -72,7 +69,7 @@ public class AbbaDingoReader {
      */
     private void readHeader() throws IOException {
         numSentences = readInteger();
-        numTokens = readInteger();
+        readInteger(); // numtokens, ignored. We'll find out along the way ...
 
         int t = d.nextToken();
 

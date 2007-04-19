@@ -1,6 +1,8 @@
 package DfaInference;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import org.apache.log4j.Logger;
 
 import abbadingo.AbbaDingoString;
@@ -16,10 +18,10 @@ public class Symbols {
     private static Logger logger = Logger.getLogger(Symbols.class.getName());
 
     /** Hashmap to store the symbols, and map them to integers. */
-    private static HashMap sym2int = new HashMap();
+    private static HashMap<String, Integer> sym2int = new HashMap<String, Integer>();
 
     /** ArrayList to map the integers back onto the symbols. */
-    private static ArrayList int2sym = new ArrayList();
+    private static ArrayList<String> int2sym = new ArrayList<String>();
 
     /** Constructor. Private so that it cannot be instantiated. */
     private Symbols() {
@@ -32,7 +34,7 @@ public class Symbols {
      * @return the corresponding integer.
      */
     public static int addSymbol(String s) {
-        Integer i = (Integer) sym2int.get(s);
+        Integer i = sym2int.get(s);
         if (i != null) {
             // Already added.
             return i.intValue();
@@ -58,7 +60,7 @@ public class Symbols {
      * @return the corresponding symbol.
      */
     public static String getSymbol(int n) {
-        return (String) int2sym.get(n);
+        return int2sym.get(n);
     }
 
     /**

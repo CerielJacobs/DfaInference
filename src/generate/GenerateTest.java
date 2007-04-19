@@ -2,11 +2,6 @@ package generate;
 
 import org.apache.log4j.Logger;
 
-import abbadingo.*;
-import DfaInference.*;
-import java.util.Random;
-import java.io.FileReader;
-
 /**
  * Utility to generate random test strings for a specified DFA.
  */
@@ -14,9 +9,6 @@ public class GenerateTest {
 
     /** Log4j logger. */
     private static Logger logger = Logger.getLogger(GenerateTest.class.getName());
-
-    /** Random number generator for generating strings. */
-    private static Random randomizer = new Random();
 
     public static void main(String[] args) {
 

@@ -1,8 +1,6 @@
 package DfaInference;
 
-import abbadingo.*;
-
-import ibis.satin.*;
+import ibis.satin.SatinObject;
 import ibis.util.TypedProperties;
 
 import java.io.BufferedReader;
@@ -11,10 +9,14 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-
-import java.util.*;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Random;
 
 import org.apache.log4j.Logger;
+
+import abbadingo.AbbaDingoReader;
+import abbadingo.AbbaDingoString;
 
 /**
  * This class implements a "top N" search strategy. The current best N
@@ -34,6 +36,10 @@ import org.apache.log4j.Logger;
  */
 public class SatinFolder extends SatinObject implements SatinFolderInterface {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
     /** Log4j logger. */
     private static Logger logger = Logger.getLogger(SatinFolder.class.getName());
     private static final int MAX_STEPS = TypedProperties.intProperty("MaxSteps", 0);

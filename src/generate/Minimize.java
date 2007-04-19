@@ -1,11 +1,10 @@
 package generate;
 
+import java.io.FileReader;
+
 import org.apache.log4j.Logger;
 
-import abbadingo.*;
-import DfaInference.*;
-import java.util.Random;
-import java.io.FileReader;
+import DfaInference.DFA;
 
 /**
  * Utility to minimize a DFA. 

@@ -1,14 +1,16 @@
 package DfaInference;
 
-import java.util.HashMap;
-import java.util.BitSet;
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
 
 /**
  * Representation of a state in a DFA.
  */
 public final class State implements java.io.Serializable, Configuration,
         Comparable {
+
+    private static final long serialVersionUID = 1L;
 
     /** The number of symbols used. */
     static int nsym = 0;
@@ -50,7 +52,7 @@ public final class State implements java.io.Serializable, Configuration,
     int maxLenComputed = Integer.MAX_VALUE;
 
     /** Set of parents. */
-    ArrayList parents;
+    ArrayList<State> parents;
 
     /** Parents, as an array. */
     State[] parentsArray;
@@ -82,7 +84,7 @@ public final class State implements java.io.Serializable, Configuration,
         }
         children = new State[nsym];
         if (USE_PARENT_SETS) {
-            parents = new ArrayList();
+            parents = new ArrayList<State>();
         }
     }
 
@@ -94,14 +96,14 @@ public final class State implements java.io.Serializable, Configuration,
      * @param parent the parent of the newly created state
      * @param h maps states to copies, so that cycles can be dealt with.
      */
-    private State(State s, State parent, HashMap h) {
+    private State(State s, State parent, HashMap<State, State> h) {
         productive = s.productive;
         accepting = s.accepting;
         depth = s.depth;
         id = s.id;
         weight = s.weight;
         if (USE_PARENT_SETS) {
-            parents = new ArrayList();
+            parents = new ArrayList<State>();
         }
         this.parent = parent;
         //        if (s.conflicting != null) {
@@ -223,7 +225,7 @@ public final class State implements java.io.Serializable, Configuration,
      * @return the copy.
      */
     public State copy() {
-        return new State(this, null, new HashMap());
+        return new State(this, null, new HashMap<State, State>());
     }
 
     /**
@@ -284,7 +286,7 @@ public final class State implements java.io.Serializable, Configuration,
      * @return an array containing the states in breadth-first order.
      */
     public State[] breadthFirst() {
-        ArrayList a = new ArrayList();
+        ArrayList<State> a = new ArrayList<State>();
         int idCounter = 0;
         int low = 0;
         int high = 1;
@@ -312,7 +314,7 @@ public final class State implements java.io.Serializable, Configuration,
             low = high;
             high = a.size();
         }
-        return (State[]) a.toArray(new State[0]);
+        return a.toArray(new State[a.size()]);
     }
 
     public int getNumEdges(byte mask) {

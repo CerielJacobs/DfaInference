@@ -1,12 +1,16 @@
 package DfaInference;
 
-import abbadingo.*;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 import org.apache.log4j.Logger;
 
+import abbadingo.AbbaDingoReader;
+import abbadingo.AbbaDingoString;
+
 public class ExhSearch implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /** Log4j logger. */
     private static Logger logger = Logger.getLogger(ExhSearch.class.getName());
@@ -21,11 +25,9 @@ public class ExhSearch implements java.io.Serializable {
         bestScore = dfa.getMDLComplexity();
     }
 
-    private ArrayList getBlueStates(HashSet redStates) {
-        Iterator i = redStates.iterator();
-        ArrayList l = new ArrayList();
-        while (i.hasNext()) {
-            State red = (State) i.next();
+    private ArrayList<State> getBlueStates(HashSet<State> redStates) {
+        ArrayList<State> l = new ArrayList<State>();
+        for (State red : redStates) {
             for (int j = 0; j < red.children.length; j++) {
                 State s = red.children[j];
                 if (s != null && ! redStates.contains(s)) {
@@ -44,28 +46,26 @@ public class ExhSearch implements java.io.Serializable {
      * @param redStates the list of red states
      * @return the blue state selected.
      */
-    private State pickBlueState(ArrayList blueStates, HashSet redStates) {
+    private State pickBlueState(ArrayList<State> blueStates, HashSet<State> redStates) {
         if (logger.isInfoEnabled()) {
             logger.info("pickBlueStates: blue size = " + blueStates.size()
                     + ", red size = " + redStates.size());
         }
 
         if (blueStates.size() == 1) {
-            return (State) blueStates.get(0);
+            return blueStates.get(0);
         }
 
         // int score = dfa.getMDLComplexity();
 
         State bestBlue = null;
         int bestCount = Integer.MAX_VALUE;
-        State[] reds = (State[]) redStates.toArray(new State[0]);
+        State[] reds = redStates.toArray(new State[redStates.size()]);
 
         for (int i = 0; i < blueStates.size(); i++) {
-            State blue = (State) blueStates.get(i);
-            Iterator it = redStates.iterator();
+            State blue = blueStates.get(i);
             int count = 1;      // promoting blue to red is one possibility
-            while (it.hasNext()) {
-                State red = (State) it.next();
+            for (State red : redStates) {
                 UndoInfo u = dfa.treeMerge(red, blue, true, reds, reds.length);
                 if (! dfa.conflict) {
                     double sc = dfa.getMDLComplexity();
@@ -93,26 +93,22 @@ public class ExhSearch implements java.io.Serializable {
         return bestBlue;
     }
 
-    public boolean doSearch(HashSet redStates, int max) {
+    public boolean doSearch(HashSet<State> redStates, int max) {
         // double score = dfa.getMDLComplexity();
-        ArrayList blueStates = getBlueStates(redStates);
-        State[] reds = (State[]) redStates.toArray(new State[0]);
+        ArrayList<State> blueStates = getBlueStates(redStates);
+        State[] reds = redStates.toArray(new State[redStates.size()]);
         while (blueStates.size() > 0) {
             if (redStates.size() > max) {
                 return false;
             }
-            Iterator it = redStates.iterator();
-            while (it.hasNext()) {
-                State red = (State) it.next();
+            for (State red : redStates) {
                 if (red.conflicting != null) {
                     red.conflicting.clear();
                 }
             }
             State blue = pickBlueState(blueStates, redStates);
             // Try all possible merges between a red state and blue.
-            it = redStates.iterator();
-            while (it.hasNext()) {
-                State red = (State) it.next();
+            for (State red : redStates) {
                 UndoInfo u = dfa.treeMerge(red, blue, true, reds, reds.length);
                 if (! dfa.conflict) {
                     double sc = dfa.getMDLComplexity();
@@ -126,7 +122,7 @@ public class ExhSearch implements java.io.Serializable {
                         }
                         logger.info("Intermediate DFA with MDL score " + sc
                                 + " and DFA score " + dfasc);
-                        if (doSearch((HashSet) redStates.clone(), max)) {
+                        if (doSearch(new HashSet<State>(redStates), max)) {
                             return true;
                         }
                     }
@@ -224,7 +220,7 @@ public class ExhSearch implements java.io.Serializable {
                     + dfa.getMDLComplexity());
         }
         ExhSearch m = new ExhSearch(dfa);
-        HashSet redStates = new HashSet();
+        HashSet<State> redStates = new HashSet<State>();
         redStates.add(dfa.startState);
         m.doSearch(redStates, max);
         m.bestDFA.write(outputfile);

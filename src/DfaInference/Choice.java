@@ -9,6 +9,11 @@ import java.io.IOException;
  */
 public class Choice implements Comparable, java.io.Serializable {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
     /** The red state of the merge pair. */
     int s1;
 

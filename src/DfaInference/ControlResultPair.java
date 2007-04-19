@@ -1,7 +1,7 @@
 package DfaInference;
 
-import java.io.IOException;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.Writer;
 
 /**
@@ -12,6 +12,11 @@ import java.io.Writer;
  * used.
  */
 public class ControlResultPair implements Comparable, java.io.Serializable {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
 
     /** The score resulting from this branch. */
     double score;

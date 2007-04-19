@@ -1,11 +1,13 @@
 package generate;
 
+import java.io.FileReader;
+import java.util.Random;
+
 import org.apache.log4j.Logger;
 
-import abbadingo.*;
-import DfaInference.*;
-import java.util.Random;
-import java.io.FileReader;
+import DfaInference.DFA;
+import DfaInference.Symbols;
+import abbadingo.AbbaDingoString;
 
 /**
  * Utility to generate random strings for a specified DFA.

@@ -1,11 +1,11 @@
 package abbadingo;
 
-import junit.framework.TestCase;
-import junit.framework.Test;
-import junit.framework.TestSuite;
-
 import java.io.IOException;
 import java.io.StringReader;
+
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 
 public class Tests extends TestCase {
     final static String input = 

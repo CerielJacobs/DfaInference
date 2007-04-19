@@ -1,14 +1,16 @@
 package DfaInference;
 
-import java.util.*;
-
-import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import org.apache.log4j.Logger;
 
@@ -16,6 +18,8 @@ import org.apache.log4j.Logger;
  * This class represents a DFA and offers various operations on it.
  */
 public final class DFA implements java.io.Serializable, Configuration {
+
+    private static final long serialVersionUID = 1L;
 
     /** Precompute log(2). */
     private static final double LOG2 = Math.log(2);
@@ -256,7 +260,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @param r reader from which to read the dfa.
      */
     public DFA(Reader r) {
-        HashMap nodes = new HashMap();
+        HashMap<Integer, State> nodes = new HashMap<Integer, State>();
 
         try {
             String line;
@@ -622,7 +626,7 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     private State[] computeParentClosure(State[] states, int count) {
-        ArrayList mods = new ArrayList();
+        ArrayList<State> mods = new ArrayList<State>();
         int mark = getMark();
         for (int i = 0; i < count; i++) {
             mods.add(states[i]);
@@ -632,7 +636,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         int startIndex = 0;
 
         do {
-            states = (State[]) mods.toArray(new State[0]);
+            states = mods.toArray(new State[mods.size()]);
             for (int i = startIndex; i < states.length; i++) {
                 State s = states[i];
                 if (s.parentsArray == null) {
@@ -1091,22 +1095,6 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Computes the first number x such that 2^x is larger than the
-     * parameter. This is, in fact the first integer that is larger than
-     * the 2log of the parameter. This is the number of bits required to
-     * represent any number ranging from 0..n.
-     * @param n a value
-     * @return the first number x such that 2^x is larger than n.
-     */
-    private int highBit(int n) {
-        for (int i = 0; ; i++) {
-            if ((1 << i) > n) {
-                return i;
-            }
-        }
-    }
-
-    /**
      * Precomputes the sum of logs. Approximates if c > 2^16
      * @param c logs up until this number are needed, but we may compute more.
      */
@@ -1384,7 +1372,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         startState.computeProductive(ACCEPTING);
         State[] l = startState.breadthFirst();
-        HashMap h = new HashMap();
+        HashMap<State, Integer> h = new HashMap<State, Integer>();
         int cnt = 0;
         for (int i = 0; i < l.length; i++) {
             State s = l[i];
@@ -1411,7 +1399,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 // Print the node definition
                 int index = s.id;
                 if (! allStates) {
-                    index = ((Integer) h.get(s)).intValue();
+                    index = h.get(s).intValue();
                 }
                 w.write("N" + index);
                 if (allStates) {
@@ -1568,7 +1556,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      */
     private State[] reachCount() {
         int c1, c2;
-        HashSet h = new HashSet();
+        HashSet<State> h = new HashSet<State>();
         if (l1 == null) {
             l1 = new State[idMap.length];
             l2 = new State[idMap.length];
@@ -1619,7 +1607,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             l1 = l2;
             l2 = temp;
         }
-        return (State[]) h.toArray(new State[0]);
+        return h.toArray(new State[h.size()]);
     }
 
     /**

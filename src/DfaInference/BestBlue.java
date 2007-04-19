@@ -1,19 +1,14 @@
 package DfaInference;
 
-import abbadingo.*;
+import ibis.satin.SatinObject;
 
-import ibis.satin.*;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-
-import java.util.*;
+import java.util.Arrays;
+import java.util.BitSet;
 
 import org.apache.log4j.Logger;
+
+import abbadingo.AbbaDingoReader;
+import abbadingo.AbbaDingoString;
 
 /**
  * This class implements a search strategy that, up to a certain depth,
@@ -25,6 +20,11 @@ import org.apache.log4j.Logger;
  * This version is suitable for Satin, random-job-stealing.
  */
 public class BestBlue extends SatinObject implements BestBlueInterface {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
 
     /** Log4j logger. */
     private static Logger logger = Logger.getLogger(BestBlue.class.getName());
@@ -56,16 +56,6 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             return p;
         }
         return tryExtending(p, depth, learningSamples);
-    }
-
-    private int getCount(Choice[] choices, int blue) {
-        int cnt = 0;
-        for (int i = 0; i < choices.length; i++) {
-            if (choices[i].s2 == blue) {
-                cnt++;
-            }
-        }
-        return cnt;
     }
 
     /**

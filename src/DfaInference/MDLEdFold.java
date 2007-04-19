@@ -1,12 +1,14 @@
 package DfaInference;
 
-import abbadingo.*;
-
-import java.util.*;
-
-import org.apache.log4j.Logger;
+import abbadingo.AbbaDingoReader;
+import abbadingo.AbbaDingoString;
 
 public class MDLEdFold extends RedBlue implements java.io.Serializable {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
 
     double getScore() {
         return dfa.getMDLComplexity();

@@ -1,10 +1,13 @@
 package test;
 
+import java.io.FileReader;
+
 import org.apache.log4j.Logger;
 
-import abbadingo.*;
-import DfaInference.*;
-import java.io.FileReader;
+import DfaInference.DFA;
+import DfaInference.Symbols;
+import abbadingo.AbbaDingoReader;
+import abbadingo.AbbaDingoString;
 
 /**
  * Utility to run a test sample through a specified DFA, and produce a single

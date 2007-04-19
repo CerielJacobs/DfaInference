@@ -1,16 +1,18 @@
 package DfaInference;
 
-import abbadingo.*;
-
-import java.util.*;
-
-import org.apache.log4j.Logger;
+import abbadingo.AbbaDingoReader;
+import abbadingo.AbbaDingoString;
 
 /**
  * This state folder implements a search strategy that first selects the merge
  * that gives the largest reduction in number of states.
  */
 public class StateFold extends RedBlue implements java.io.Serializable {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
 
     boolean testMerge(State r, State b) {
         boolean foundMerge = false;

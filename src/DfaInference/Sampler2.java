@@ -1,19 +1,24 @@
 package DfaInference;
 
-import abbadingo.*;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import abbadingo.AbbaDingoReader;
+import abbadingo.AbbaDingoString;
+
 public class Sampler2 extends EdFold {
+
+    private static final long serialVersionUID = 1L;
 
     /** Log4j logger. */
     protected static Logger logger = Logger.getLogger(Sampler2.class.getName());
 
     static Random random = new Random(1);
 
-    ArrayList choices;
+    ArrayList<Choice> choices;
     private Choice[] initial;
 
     Sampler2(int[][] learningSamples, Choice[] initial) {
@@ -41,7 +46,7 @@ public class Sampler2 extends EdFold {
     }
 
     public void fold(int depth) {
-        choices = new ArrayList();
+        choices = new ArrayList<Choice>();
         getCandidates();
         for (int i = 0; i < depth; i++) {
             if (numBlueStates == 0) {
@@ -292,9 +297,6 @@ public class Sampler2 extends EdFold {
         }
 
         int[][] learningSamples = Symbols.convert2learn(samples);
-        DFA bestDFA = null;
-        int bestScore = Integer.MAX_VALUE;
-        ArrayList choices = null;
 
         Choice[] bestChoice = compete(learningSamples, depth, randomDepth,
                 populationRoot, diversityThreshold);

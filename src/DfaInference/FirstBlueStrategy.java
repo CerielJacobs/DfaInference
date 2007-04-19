@@ -7,6 +7,11 @@ package DfaInference;
  */
 public class FirstBlueStrategy implements PickBlueStrategy {
     /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
+    /**
      * Determines the next blue to be dealt with. The parameter specifies
      * the possibilities, both merges and promotions. From this list, this
      * method picks the first blue.

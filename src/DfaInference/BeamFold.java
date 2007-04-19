@@ -1,10 +1,12 @@
 package DfaInference;
 
-import abbadingo.*;
-
-import java.util.*;
+import java.util.Arrays;
+import java.util.BitSet;
 
 import org.apache.log4j.Logger;
+
+import abbadingo.AbbaDingoReader;
+import abbadingo.AbbaDingoString;
 
 public class BeamFold {
 

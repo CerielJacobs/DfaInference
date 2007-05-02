@@ -1,0 +1,28 @@
+		Abbdingo One: DFA Learing Competition
+
+			       DATASETS
+
+The files train.?.gz are sample strings labeled by the sixteen
+languages in the contest.  You should use them to infer the languages.
+You can test your answers using test.?.gz, which are strings you can
+classify and then test via the oracle.
+
+Data sets A, B, C, and D are just for practice.
+
+The problem data sets (1, 2, 3, R, 4, 5, 6, S, 7, 8, 9, and T) vary in
+both target DFA size and the relative amount of data provided.
+
+The first line of each file tells how many strings it contains, and
+how many symbols are in the input alphabet (always 2 for this
+competition).  Each succeeding line specifies one string.  The first
+number on the line is the label for the string (or -1 if the file is
+for testing).  The second number is the length of the string.  The
+remaining numbers are the symbols comprising the string.
+
+You must have an error rate on the test set of 1% or less to solve
+that problem.  The only way to tell for sure if you have satisfied
+this criterion is to ask the Abbadingo Oracle.
+
+Visit http://abbadingo.cs.unm.edu/ for further details.
+
+Good luck, and may the best algorithm win!

@@ -1,0 +1,15 @@
+ARGS=
+# ARGS="$ARGS -DIncrementalCounts"
+# ARGS="$ARGS -DCompensateRedundancy"
+# ARGS="$ARGS -DMissingEdges"
+# ARGS="$ARGS -DUseProductive"
+
+prun CLASSPATH=../../build:. -t 0:40:0 -v -o learn-7.out \
+    $IBIS_HOME/bin/ibis-prun 32 \
+    -server -Xmx256M \
+    -Dsatin.closed \
+    -Dibis.name=tcp \
+    -Dsatin.alg=MW \
+    $ARGS \
+    DfaInference.SatinFolder \
+    -input ../train.7 -depth 5 -window 192 -dump DfaDump7

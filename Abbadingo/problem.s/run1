@@ -1,0 +1,28 @@
+ARGS=
+# ARGS="$ARGS -DUseParentSets"
+ARGS="$ARGS -DIncrementalCounts"
+# ARGS="$ARGS -DNegatives"
+# ARGS="$ARGS -DRefinedMDL"
+ARGS="$ARGS -DCompensateRedundancy"
+# ARGS="$ARGS -DMissingEdges"
+ARGS="$ARGS -DUseProductive"
+# ARGS="$ARGS -DNewImpl"
+# ARGS="$ARGS -DComplement"
+
+if [ -z "$DOARGS" ]; then
+    :
+else
+    ARGS="$DOARGS"
+fi
+
+prun CLASSPATH=../../build:. -v -o run1.out \
+    -t 4:00:0 \
+    ~/ibis/bin/ibis-prun 1 \
+    -server -Xmx512M \
+    -Dsatin.so=true \
+    -Dibis.worldmodel=closed \
+    -Dibis.name=tcp \
+    $ARGS \
+    DfaInference.SatinFolder \
+    -satin-alg MW \
+    -input train.s -output run1learned -depth 0 -window 16 -printInfo -dump run1dump -folder DfaInference.MDLFold

@@ -6,9 +6,12 @@ import ibis.util.TypedProperties;
  * Some configuration parameters.
  */
 public interface Configuration {
-    /** The complement language must participate in the MDL score. */
+
+    static final TypedProperties tp = new TypedProperties(System.getProperties());
+
+    /** The complement language must participate in the MDL score. */   
     static final boolean MDL_COMPLEMENT
-        = TypedProperties.booleanProperty("Complement", false);
+        = tp.booleanProperty("Complement", false);
 
     /**
      * The negative examples must participate in the MDL score.
@@ -16,33 +19,33 @@ public interface Configuration {
      * tries to build a rejecting DFA independently.
      */
     static final boolean MDL_NEGATIVES
-        = TypedProperties.booleanProperty("Negatives", false);
+        = tp.booleanProperty("Negatives", false);
 
     static final boolean NEW_IMPL
-        = TypedProperties.booleanProperty("NewImpl", false);
+        = tp.booleanProperty("NewImpl", false);
 
     /** Parent sets are used for computing the (improved) MDL scores. */
     static final boolean USE_PARENT_SETS
-        = TypedProperties.booleanProperty("UseParentSets", false);
+        = tp.booleanProperty("UseParentSets", false);
 
     /** Use counts of productive states for DFA complexity. */
     static final boolean USE_PRODUCTIVE
-        = TypedProperties.booleanProperty("UseProductive", false);
+        = tp.booleanProperty("UseProductive", false);
 
     static final boolean REFINED_MDL
-        = TypedProperties.booleanProperty("RefinedMDL", false);
+        = tp.booleanProperty("RefinedMDL", false);
 
     /** Use incremental computation of counts. */
     static final boolean INCREMENTAL_COUNTS =
-        TypedProperties.booleanProperty("IncrementalCounts", false);
+        tp.booleanProperty("IncrementalCounts", false);
 
     /** Include number of missing edges in DFA complexity computation. */
     static final boolean MISSING_EDGES =
-        TypedProperties.booleanProperty("MissingEdges", false);
+        tp.booleanProperty("MissingEdges", false);
 
     /** Compensate for supposed redundancy in DFA complexity. */
     static final boolean COMPENSATE_REDUNDANCY =
-        TypedProperties.booleanProperty("CompensateRedundancy", false);
+        tp.booleanProperty("CompensateRedundancy", false);
 
     /**
      * Bit that indicates accepting state or state of DFA that recognizes

@@ -45,8 +45,23 @@ public class GenerateSample {
      */
     static int[] generateString(int maxl, int nsym) {
         // Uniform distribution over the total string space.
-        // There are maxl^nsym + (maxl-1)^nsym + .... + nsym + 1 such strings.
+        // There are nsym^maxl + nsym^(maxl-1) + .... + nsym + 1 such strings.
+        double[] nStrings = new double[maxl+1];
+        double[] sums = new double[maxl+1];
+        nStrings[0] = 1.0;
+        sums[0] = 1.0;
+        for (int i = 1; i <= maxl; i++) {
+            nStrings[i] = nsym * nStrings[i-1];
+            sums[i]= sums[i-1] + nStrings[i];
+        }
         int len = maxl;
+        double rand = sums[maxl] * randomizer.nextDouble();
+        for (int i = 0; i <= maxl; i++) {
+            if (sums[i] >= rand) {
+                len = i;
+                break;
+            }
+        }
         while (len > 0) {
             if (randomizer.nextInt(nsym) == 0) {
                 len--;
@@ -66,6 +81,7 @@ public class GenerateSample {
         String  machinefile = "machine";
         int maxl = 15;
         int count = 1000;
+        boolean negativeSamples = true;
 
         for (int i = 0; i < args.length; i++) {
             if (false) {
@@ -90,6 +106,10 @@ public class GenerateSample {
                     System.exit(1);
                 }
                 count = new Integer(args[i]).intValue();
+            } else if (args.equals("-no-negatives")) {
+                negativeSamples = false;
+            } else if (args.equals("-negatives")) {
+                negativeSamples = true;
             }
         }
 
@@ -113,13 +133,15 @@ public class GenerateSample {
         // Generate count acceptable strings
         for (int i = 0; i < count; i++) {
             int[] attempt;
+            boolean recognize;
             // Generate while not recognized.
             do {
                 attempt = generateString(maxl, nsym);
-            } while (! dfa.recognize(attempt));
+                recognize = dfa.recognize(attempt);
+            } while (! recognize && ! negativeSamples);
             samples[i] = attempt;
             // Print the string.
-            System.out.println(cvt2AbbaDingo(attempt, 1));
+            System.out.println(cvt2AbbaDingo(attempt, recognize ? 1 : 0));
         }
 
         // Run the sample set through the DFA, print the scores.

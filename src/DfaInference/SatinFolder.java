@@ -1,8 +1,6 @@
 package DfaInference;
 
 import ibis.satin.SatinObject;
-import ibis.util.TypedProperties;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -34,15 +32,13 @@ import abbadingo.AbbaDingoString;
  * sample is thin the simple heuristics don't do much to discriminate between
  * "bad" choices and "good" choices.
  */
-public class SatinFolder extends SatinObject implements SatinFolderInterface {
+public class SatinFolder extends SatinObject implements SatinFolderInterface, Configuration {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
     /** Log4j logger. */
     private static Logger logger = Logger.getLogger(SatinFolder.class.getName());
-    private static final int MAX_STEPS = TypedProperties.intProperty("MaxSteps", 0);
+    
+    private static final int MAX_STEPS = Configuration.tp.getIntProperty("MaxSteps", 0);
 
     /** The heuristic used. */
     private RedBlue folder;

@@ -27,40 +27,47 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Precomputed sums of logs. */
     private static double[] sumLogs;
 
+    /** Log4j logger. */
+    static Logger logger = Logger.getLogger(DFA.class.getName());
+
     static {
-        System.out.print("DFA inference configuration:");
-        if (INCREMENTAL_COUNTS) {
-            System.out.print(" Incremental");
+        if (logger.isInfoEnabled()) {
+            String str = "DFA inference configuration:";
+            if (INCREMENTAL_COUNTS) {
+                str += " Incremental";
+            }
+            if (USE_PARENT_SETS) {
+                str += " ParentSets";
+            }
+            if (NEW_IMPL) {
+                str += " NewImpl";
+            }
+            logger.info(str);
+
+            str = "MDL score configuration:";
+            if (MDL_COMPLEMENT) {
+                str += " Complement";
+            }
+            if (MDL_NEGATIVES) {
+                str += " Negatives";
+            }
+            if (REFINED_MDL) {
+                str += " PerEndState";
+            }
+            logger.info(str);
+
+            str = "DFA score configuration:";
+            if (USE_PRODUCTIVE) {
+                str += " ProductiveCounts";
+            }
+            if (MISSING_EDGES) {
+                str += " MissingEdges";
+            }
+            if (COMPENSATE_REDUNDANCY) {
+                str += " CompensateRedundancy";
+            }
+            logger.info(str);
         }
-        if (USE_PARENT_SETS) {
-            System.out.print(" ParentSets");
-        }
-        if (NEW_IMPL) {
-            System.out.print(" NewImpl");
-        }
-        System.out.println();
-        System.out.print("MDL score configuration:");
-        if (MDL_COMPLEMENT) {
-            System.out.print(" Complement");
-        }
-        if (MDL_NEGATIVES) {
-            System.out.print(" Negatives");
-        }
-        if (REFINED_MDL) {
-            System.out.print(" PerEndState");
-        }
-        System.out.println();
-        System.out.print("DFA score configuration:");
-        if (USE_PRODUCTIVE) {
-            System.out.print(" ProductiveCounts");
-        }
-        if (MISSING_EDGES) {
-            System.out.print(" MissingEdges");
-        }
-        if (COMPENSATE_REDUNDANCY) {
-            System.out.print(" CompensateRedundancy");
-        }
-        System.out.println();
     };
 
     /** The learning samples. */
@@ -91,8 +98,6 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Set when counts are initialized. Used for incremental computations. */
     private boolean counts_done = false;
 
-    /** Log4j logger. */
-    static Logger logger = Logger.getLogger(DFA.class.getName());
 
     /** The start state of this DFA. */
     State startState;
@@ -466,9 +471,14 @@ public final class DFA implements java.io.Serializable, Configuration {
      * symbols[0] tells whether this is an accept or reject.
      * @param symbols        the given symbol string.
      */
-    private void addString(int[] symbols) {
+    public void addString(int[] symbols) {
         State n = startState;
         boolean reject = symbols[0] != 1;
+
+        if (accepts == null) {
+            accepts = new int[256];
+            rejects = new int[256];
+        }
 
         for (int i = 1; i < symbols.length; i++) {
             State target = n.traverseEdge(symbols[i]);
@@ -521,8 +531,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         maxlen = 0;
         MDLScore = 0;
         DFAScore = 0;
-        accepts = new int[256];
-        rejects = new int[256];
 
         for (int i = 0; i < samples.length; i++) {
             if (samples[i].length > maxlen+1) {
@@ -1350,7 +1358,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         return w.toString();
     }
 
-    private String dumpDFA() {
+    public String dumpDFA() {
         StringWriter w = new StringWriter();
         try {
             write(w, true);

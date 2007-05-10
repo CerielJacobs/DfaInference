@@ -11,7 +11,7 @@ public interface Configuration {
 
     /** The complement language must participate in the MDL score. */   
     static final boolean MDL_COMPLEMENT
-        = tp.booleanProperty("Complement", false);
+        = tp.getBooleanProperty("Complement", false);
 
     /**
      * The negative examples must participate in the MDL score.
@@ -19,33 +19,33 @@ public interface Configuration {
      * tries to build a rejecting DFA independently.
      */
     static final boolean MDL_NEGATIVES
-        = tp.booleanProperty("Negatives", false);
+        = tp.getBooleanProperty("Negatives", false);
 
     static final boolean NEW_IMPL
-        = tp.booleanProperty("NewImpl", false);
+        = tp.getBooleanProperty("NewImpl", false);
 
     /** Parent sets are used for computing the (improved) MDL scores. */
     static final boolean USE_PARENT_SETS
-        = tp.booleanProperty("UseParentSets", false);
+        = tp.getBooleanProperty("UseParentSets", false);
 
     /** Use counts of productive states for DFA complexity. */
     static final boolean USE_PRODUCTIVE
-        = tp.booleanProperty("UseProductive", false);
+        = tp.getBooleanProperty("UseProductive", false);
 
     static final boolean REFINED_MDL
-        = tp.booleanProperty("RefinedMDL", false);
+        = tp.getBooleanProperty("RefinedMDL", false);
 
     /** Use incremental computation of counts. */
     static final boolean INCREMENTAL_COUNTS =
-        tp.booleanProperty("IncrementalCounts", false);
+        tp.getBooleanProperty("IncrementalCounts", false);
 
     /** Include number of missing edges in DFA complexity computation. */
     static final boolean MISSING_EDGES =
-        tp.booleanProperty("MissingEdges", false);
+        tp.getBooleanProperty("MissingEdges", false);
 
     /** Compensate for supposed redundancy in DFA complexity. */
     static final boolean COMPENSATE_REDUNDANCY =
-        tp.booleanProperty("CompensateRedundancy", false);
+        tp.getBooleanProperty("CompensateRedundancy", false);
 
     /**
      * Bit that indicates accepting state or state of DFA that recognizes

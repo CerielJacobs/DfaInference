@@ -58,6 +58,8 @@ public class TestSample {
 
         DFA dfa = new DFA(fr);
 
+        System.out.println(dfa.dumpDFA());
+
         AbbaDingoString[] samples = null;
         try {
             samples = AbbaDingoReader.getStrings(testInput);

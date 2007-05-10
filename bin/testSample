@@ -1,0 +1,6 @@
+#! /bin/sh
+ 
+# testSample <DFA> <sample>
+# Runs the sample through the DFA and prints 1 bit per sentence, accept or no.
+
+$IBIS_HOME/bin/ibis-run -Xmx256M test.TestSample -m $1 -s $2

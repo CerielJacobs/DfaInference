@@ -4,7 +4,6 @@ import java.io.FileReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-
 import java.util.Random;
 
 import org.apache.log4j.Logger;
@@ -24,7 +23,83 @@ public class GenerateSampleAndTest {
 
     private static BufferedWriter learn;
     private static BufferedWriter test;
-    private static BufferedWriter testresult;
+
+    /** Random number generator for generating strings. */
+    private static Random randomizer = new Random();
+
+    /**
+     * Generates a random string with the specified maximum length and
+     * the specified number of symbols. The strings are selected
+     * according to uniform distribution over the total string space.
+     * @param maxl the maximum length
+     * @param nsym the number of symbols
+     * @return the string as an array of token numbers.
+     */
+    private static int[] generateString(int maxl, int nsym) {
+        // Uniform distribution over the total string space.
+        // There are nsym^maxl + nsym^(maxl-1) + .... + nsym + 1 such strings.
+        double[] nStrings = new double[maxl+1];
+        double[] sums = new double[maxl+1];
+        nStrings[0] = 1.0;
+        sums[0] = 1.0;
+        for (int i = 1; i <= maxl; i++) {
+            nStrings[i] = nsym * nStrings[i-1];
+            sums[i]= sums[i-1] + nStrings[i];
+        }
+        // First pick a random length, in accordance with the number of 
+        // strings of each length.
+        int len = maxl;
+        double rand = sums[maxl] * randomizer.nextDouble();
+        for (int i = 0; i <= maxl; i++) {
+            if (sums[i] > rand) {
+                len = i;
+                break;
+            }
+        }
+
+        int[] str = new int[len];
+        for (int i = 0; i < len; i++) {
+            str[i] = randomizer.nextInt(nsym);
+        }
+        return str;
+    }
+
+    /**
+     * Generates the specified number of random strings with the specified
+     * maximum length and the specified number of symbols.
+     * The strings are selected according to uniform distribution over the
+     * total string space. The strings are printed on standard output
+     * @param count the number of strings to generate
+     * @param maxl the maximum length
+     * @param nsym the number of symbols
+     * @return the generated strings.
+     */
+    private static int[][] generateStrings(int count, int maxl, int nsym) {
+        int[][] samples = new int[count][];
+
+        DFA sampleDFA = new DFA(nsym);
+        int nStates = sampleDFA.getNumStates();
+        // Generate count strings
+        for (int i = 0; i < count; i++) {
+            int[] attempt;
+            do {
+                attempt = generateString(maxl, nsym);
+                int[] adds = new int[attempt.length+1];
+                System.arraycopy(attempt, 0, adds, 1, attempt.length);
+                adds[0] = 1;
+                sampleDFA.addString(adds);
+                int ns = sampleDFA.getNumStates();
+                if (ns != nStates) {
+                    nStates = ns;
+                    break;
+                }
+                // no new states means sentence has already been added.
+                // Generate another one.
+            } while (true);
+            samples[i] = attempt;
+        }
+        return samples;
+    }
 
     /**
      * Converts a string consisting of token numbers to an AbbaDingoString.
@@ -32,7 +107,7 @@ public class GenerateSampleAndTest {
      * @param flag the flag.
      * @return the AbbaDingoString.
      */
-    static AbbaDingoString cvt2AbbaDingo(int[] str, int flag) {
+    private static AbbaDingoString cvt2AbbaDingo(int[] str, int flag) {
         AbbaDingoString s = new AbbaDingoString(str.length, flag);
 
         for (int i = 0; i < str.length; i++) {
@@ -113,7 +188,6 @@ public class GenerateSampleAndTest {
         try {
             learn = new BufferedWriter(new FileWriter(prefix + ".learn"));
             test = new BufferedWriter(new FileWriter(prefix + ".test"));
-            testresult = new BufferedWriter(new FileWriter(prefix + ".result"));
         } catch(IOException e) {
             logger.fatal("Could not open output", e);
             System.exit(1);
@@ -125,8 +199,7 @@ public class GenerateSampleAndTest {
         // sample, we don't know what is enough ...
         int numSentences = (! negativeSamples ? 5 * count : count )
                 + testcount;
-        int[][] sentences = GenerateSentences.generateStrings(
-                numSentences, maxl, nsym);
+        int[][] sentences = generateStrings(numSentences, maxl, nsym);
         int sentenceIndex = 0;
 
         for (int i = 0; i < count; i++) {
@@ -182,24 +255,6 @@ public class GenerateSampleAndTest {
             test.close();
         } catch(IOException e) {
             logger.fatal("Could not write test-set", e);
-            System.exit(1);
-        }
-
-        try {
-            for (int i = 0; i < testcount; i++) {
-                int[] s = new int[tests[i].length+1];
-                System.arraycopy(tests[i], 0, s, 1, s.length-1);
-                s[0] = -1;
-                boolean recognize = dfa.recognize(s);
-                testresult.write(recognize ? "1" : "0");
-                if (i % 72 == 71) {
-                    testresult.newLine();
-                }
-            }
-            testresult.newLine();
-            testresult.close();
-        } catch(IOException e) {
-            logger.fatal("Could not write test-result", e);
             System.exit(1);
         }
     }

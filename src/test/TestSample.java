@@ -107,8 +107,11 @@ public class TestSample {
                     okCount++;
                 }
             }
+            System.out.println("notOkCount = " + notOkCount);
+            System.out.println("okCount = " + okCount);
             int total = notOkCount + okCount;
-            System.out.println((double) okCount / total);
+            System.out.println("generalization rate = "
+                    + (double) okCount / total);
         }
     }
 }

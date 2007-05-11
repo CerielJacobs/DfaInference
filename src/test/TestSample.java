@@ -23,6 +23,7 @@ public class TestSample {
 
         String machinefile = "LearnedDFA";
         String testInput = "TestSample";
+        String baseDFAFile = null;
 
         for (int i = 0; i < args.length; i++) {
             if (false) {
@@ -36,10 +37,17 @@ public class TestSample {
             } else if (args[i].equals("-s")) {
                 i++;
                 if (i >= args.length) {
-                    logger.fatal("-s option requires sample filename");
+                    logger.fatal("-s option requires testSample filename");
                     System.exit(1);
                 }
                 testInput = args[i];
+            } else if (args[i].equals("-base")) {
+                i++;
+                if (i >= args.length) {
+                    logger.fatal("-base option requires DFA filename");
+                    System.exit(1);
+                }
+                baseDFAFile = args[i];
             } else {
                 logger.fatal("Unrecognized option: " + args[i]);
                 System.exit(1);
@@ -52,13 +60,23 @@ public class TestSample {
         try {
             fr = new FileReader(machinefile);
         } catch(Exception e) {
-            logger.fatal("Could not open input file");
+            logger.fatal("Could not open input file " + machinefile);
             System.exit(1);
         }
 
         DFA dfa = new DFA(fr);
 
-        System.out.println(dfa.dumpDFA());
+        DFA baseDFA = null;
+
+        if (baseDFAFile != null) {
+            try {
+                fr = new FileReader(baseDFAFile);
+            } catch(Exception e) {
+                logger.fatal("Could not open input file " + baseDFAFile);
+                System.exit(1);
+            }
+            baseDFA = new DFA(fr);
+        }
 
         AbbaDingoString[] samples = null;
         try {
@@ -70,12 +88,27 @@ public class TestSample {
 
         int[][] testSamples = Symbols.convert2learn(samples);
 
-        for (int i = 0; i < testSamples.length; i++) {
-            System.out.print(dfa.recognize(testSamples[i]) ? "1" : "0");
-            if (i % 72 == 71) {
-                System.out.println("");
+        if (baseDFA == null) {
+            for (int i = 0; i < testSamples.length; i++) {
+                System.out.print(dfa.recognize(testSamples[i]) ? "1" : "0");
+                if (i % 72 == 71) {
+                    System.out.println("");
+                }
             }
+            System.out.println("");
+        } else {
+            int okCount = 0;
+            int notOkCount = 0;
+            for (int i = 0; i < testSamples.length; i++) {
+                if (dfa.recognize(testSamples[i])
+                        != baseDFA.recognize(testSamples[i])) {
+                    notOkCount++;
+                } else {
+                    okCount++;
+                }
+            }
+            int total = notOkCount + okCount;
+            System.out.println((double) okCount / total);
         }
-        System.out.println("");
     }
 }

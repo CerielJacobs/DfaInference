@@ -1,6 +1,7 @@
 #! /bin/sh
  
-# testSample <DFA> <sample>
-# Runs the sample through the DFA and prints 1 bit per sentence, accept or no.
+# testSample <LearnedDFA> <sample> <RefDFA>
+# Runs the sample through the LearnedDFA and the GeneratingDFA, and prints
+# the correctness ratio.
 
-$IBIS_HOME/bin/ibis-run -Xmx256M test.TestSample -m $1 -s $2
+$IBIS_HOME/bin/ibis-run -Xmx256M test.TestSample -m $1 -s $2 -base $3

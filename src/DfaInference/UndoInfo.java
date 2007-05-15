@@ -295,9 +295,6 @@ public final class UndoInfo implements Configuration {
     /** Set when counts field is initialized. */
     boolean countsInitialized;
 
-    /** The stateCounts for the object to be saved. */
-    CountsMap stateCounts;
-
     /** DFA for which stuff was saved. */
     DFA dfa;
 
@@ -320,9 +317,6 @@ public final class UndoInfo implements Configuration {
         si.DFAScore = dfa.DFAScore;
         si.nProductive = dfa.nProductive;
         si.nXProductive = dfa.nXProductive;
-        if (dfa.stateCounts != null) {
-            si.stateCounts = dfa.stateCounts[dfa.startState.id];
-        }
         si.countsInitialized = false;
         si.savedStates = null;
         si.savedEdges = null;
@@ -412,9 +406,6 @@ public final class UndoInfo implements Configuration {
         dfa.nStates = nStates;
         dfa.nProductive = nProductive;
         dfa.nXProductive = nXProductive;
-        if (dfa.stateCounts != null) {
-            dfa.stateCounts[dfa.startState.id] = stateCounts;
-        }
 
         next = freeList;
         freeList = this;

@@ -39,9 +39,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (USE_PARENT_SETS) {
                 str += " ParentSets";
             }
-            if (NEW_IMPL) {
-                str += " NewImpl";
-            }
             logger.info(str);
 
             str = "MDL score configuration:";
@@ -83,11 +80,6 @@ public final class DFA implements java.io.Serializable, Configuration {
      * Temporary for counts, for computing updates.
      */
     private int [][] tempCounts;
-
-    /**
-     * Some more temporary storage, for refined MDL.
-     */
-    CountsMap[] stateCounts;
 
     /** Set when counts are initialized. Used for incremental computations. */
     private boolean counts_done = false;
@@ -691,9 +683,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if (undoNeeded) {
             if (INCREMENTAL_COUNTS && ! counts_done) {
-                // if (stateCounts != null || counts != null) {
-                    getMDLComplexity();
-                // }
+                getMDLComplexity();
             }
             undo = UndoInfo.getUndoInfo(this);
             undo.addData(parent);
@@ -715,7 +705,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             MDLScore = 0;
 
             if (mustRecomputeProductive ||
-                (INCREMENTAL_COUNTS && (counts != null || stateCounts != null))) {
+                (INCREMENTAL_COUNTS && (counts != null))) {
                 State[] states;
 
                 if (USE_PARENT_SETS) {
@@ -762,38 +752,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                                 xCounts[i][startState.id] = tempCounts[startStateIndex][i];
                             }
                         }
-                    } else {
-                        // Fully recompute the counts.
-                        counts_done = false;
-                    }
-
-                } else if (INCREMENTAL_COUNTS && stateCounts != null) {
-                    if (undo != null) {
-
-                        int mark = getMark();
-                        int startStateIndex = -1;
-
-                        markCounter += states.length;
-
-                        CountsMap[] tempStateCounts
-                            = new CountsMap[states.length];
-
-                        for (int i = 0; i < states.length; i++) {
-                            states[i].maxLenComputed = 0;
-                            states[i].mark = mark+i;
-                            if (states[i] == startState) {
-                                startStateIndex = i;
-                            }
-                            tempStateCounts[i] = new CountsMap();
-                            if (states[i].weight != 0) {
-                                tempStateCounts[i].put(states[i], 0, 1);
-                            }
-                        }
-
-                        startState.computeStateCountsUpdate(maxlen, stateCounts,
-                                tempStateCounts, mark);
-                        stateCounts[startState.id]
-                                = tempStateCounts[startStateIndex];
                     } else {
                         // Fully recompute the counts.
                         counts_done = false;
@@ -1026,45 +984,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         return (sumLog(n) - sumLog(k) - sumLog(n-k))/LOG2;
     }
 
-    private void computeCounts(State[] states) {
-        if (stateCounts == null) {
-            stateCounts = new CountsMap[idMap.length];
-            CountsMap.initHash(idMap.length, maxlen+1);
-        }
-
-        for (int i = 0; i < stateCounts.length; i++) {
-            stateCounts[i] = null;
-        }
-
-        for (int i = 0; i < states.length; i++) {
-            State s = states[i];
-            stateCounts[s.id] = new CountsMap();
-            if (s.weight != 0) {
-                stateCounts[s.id].put(s, 0, 1);
-            }
-        }
-
-        for (int k = 1; k <= maxlen; k++) {
-            for (int i = 0; i < states.length; i++) {
-                State s = states[i];
-                CountsMap hs = stateCounts[s.id];
-                for (int j = 0; j < s.children.length; j++) {
-                    State sj = s.children[j];
-                    if (sj != null) {
-                        CountsMap hsj = stateCounts[sj.id];
-                        int sz = hsj.size();
-                        for (int l = 0; l < sz; l++) {
-                            int cnt = hsj.getCount(l, k-1);
-                            if (cnt != 0) {
-                                hs.add(hsj.getState(l), k, cnt);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     /**
      * Calculates the Minimum Description Length complexity, relative to
      * the complete learning set.
@@ -1075,14 +994,14 @@ public final class DFA implements java.io.Serializable, Configuration {
             return Double.MAX_VALUE;
         }
         if (MDLScore == 0) {
-            if (counts == null && (! REFINED_MDL || ! NEW_IMPL)) {
+            if (counts == null) {
                 counts = new int[maxlen+1][];
                 for (int i = 0; i < counts.length; i++) {
                     counts[i] = new int[idMap.length];
                 }
             }
             if (MDL_NEGATIVES) {
-                if (xCounts == null && (! REFINED_MDL || ! NEW_IMPL)) {
+                if (xCounts == null) {
                     xCounts = new int[maxlen+1][];
                     for (int i = 0; i < xCounts.length; i++) {
                         xCounts[i] = new int[idMap.length];
@@ -1091,61 +1010,36 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
             if (REFINED_MDL) {
                 double score = 0;
-                if (NEW_IMPL) {
-                    if (! INCREMENTAL_COUNTS || ! counts_done) {
-                        State[] myStates = startState.breadthFirst();
-                        computeCounts(myStates);
-                    }
-                    /*
-                    int mark = getMark();
-                    for (int i = 0; i < myStates.length; i++) {
-                        myStates[i].mark = mark;
-                    }
-                    */
-                    CountsMap startStateMap = stateCounts[startState.id];
-                    int sz = startStateMap.size();
-                    for (int i = 0; i < sz; i++) {
-                        State e = startStateMap.getState(i);
-                        // if (e.mark == mark) {
-                            int cnt = 0;
-                            for (int j = 0; j <= maxlen; j++) {
-                                cnt += startStateMap.getCount(i, j);
-                            }
-                            score += approximate2LogNoverK(cnt, e.weight);
-                        // }
-                    }
-                } else {
-                    /*
-                    State[] myStates = startState.breadthFirst();
-                    for (int i = 0; i < myStates.length; i++) {
-                        if (myStates[i].weight != 0) {
-                            int id = myStates[i].id;
-                            for (int j = 0; j <= maxlen; j++) {
-                                counts[j][id] = 0;
-                            }
-                        }
-                    }
-                    */
-                    State[] myStates = reachCount();
-                    int totalCount = 0;
-                    for (int i = 0; i < myStates.length; i++) {
-                        int cnt = 0;
+                /*
+                State[] myStates = startState.breadthFirst();
+                for (int i = 0; i < myStates.length; i++) {
+                    if (myStates[i].weight != 0) {
                         int id = myStates[i].id;
                         for (int j = 0; j <= maxlen; j++) {
-                            cnt += counts[j][id];
+                            counts[j][id] = 0;
                         }
-                        double sc = approximate2LogNoverK(cnt,
-                                myStates[i].weight);
-                        if (logger.isDebugEnabled()) {
-                            totalCount += cnt;
-                            logger.debug("State " + id + ", weight = "
-                                    + myStates[i].weight + ", cnt = " + cnt
-                                    + ", sc  = " + sc);
-                        }
-                        score += sc;
                     }
-                    logger.debug("totalCount = " + totalCount);
                 }
+                */
+                State[] myStates = reachCount();
+                int totalCount = 0;
+                for (int i = 0; i < myStates.length; i++) {
+                    int cnt = 0;
+                    int id = myStates[i].id;
+                    for (int j = 0; j <= maxlen; j++) {
+                        cnt += counts[j][id];
+                    }
+                    double sc = approximate2LogNoverK(cnt,
+                            myStates[i].weight);
+                    if (logger.isDebugEnabled()) {
+                        totalCount += cnt;
+                        logger.debug("State " + id + ", weight = "
+                                + myStates[i].weight + ", cnt = " + cnt
+                                + ", sc  = " + sc);
+                    }
+                    score += sc;
+                }
+                logger.debug("totalCount = " + totalCount);
                 MDLScore = score;
                 counts_done = true;
                 double DFAScore = getDFAComplexity();

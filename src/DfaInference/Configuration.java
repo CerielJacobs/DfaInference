@@ -21,9 +21,6 @@ public interface Configuration {
     static final boolean MDL_NEGATIVES
         = tp.getBooleanProperty("Negatives", false);
 
-    static final boolean NEW_IMPL
-        = tp.getBooleanProperty("NewImpl", false);
-
     /** Parent sets are used for computing the (improved) MDL scores. */
     static final boolean USE_PARENT_SETS
         = tp.getBooleanProperty("UseParentSets", false);

@@ -460,44 +460,6 @@ public final class State implements java.io.Serializable, Configuration,
         }
     }
 
-    public void computeStateCountsUpdate(int maxlen, CountsMap[] counts, CountsMap[] temps, int mrk) {
-        if (maxlen > maxLenComputed) {
-            if (maxlen > 1) {
-                for (int i = 0; i < children.length; i++) {
-                    State s = children[i];
-                    if (s != null && s.mark >= mrk) {
-                        // Note: this may affect the value of maxLenComputed of the
-                        // current state: we may recurse into the same state,
-                        // but with a lower maxlen.
-                        s.computeStateCountsUpdate(maxlen-1, counts, temps, mrk);
-                    }
-                }
-            }
-
-            CountsMap thisMap = temps[this.mark - mrk];
-            for (int j = maxLenComputed; j < maxlen; j++) {
-                for (int i = 0; i < children.length; i++) {
-                    State s = children[i];
-                    if (s != null) {
-                        CountsMap m = null;
-                        if (s.mark >= mrk) {
-                            m = temps[s.mark - mrk];
-                        } else {
-                            m = counts[s.id];
-                        }
-                        for (int l = 0; l < m.size(); l++) {
-                            int cnt = m.getCount(l, j);
-                            if (cnt != 0) {
-                                thisMap.add(m.getState(l), j+1, cnt);
-                            }
-                        }
-                    }
-                }
-            }
-            maxLenComputed = maxlen;
-        }
-    }
-
     /**
      * Returns a string representation of this state.
      * @return a string representation.

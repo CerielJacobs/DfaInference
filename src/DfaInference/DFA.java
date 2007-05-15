@@ -60,12 +60,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (USE_PRODUCTIVE) {
                 str += " ProductiveCounts";
             }
-            if (MISSING_EDGES) {
-                str += " MissingEdges";
-            }
-            if (COMPENSATE_REDUNDANCY) {
-                str += " CompensateRedundancy";
-            }
             logger.info(str);
         }
     };
@@ -132,12 +126,6 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Number of productive states in the complement DFA. */
     int nXProductive = -1;
 
-    /** Edges missing in DFA. */
-    int missingEdges = 0;
-
-    /** Edges missing in complement DFA. */
-    int missingXEdges = 0;
-
     /** Conflict: an accepting state is merged with a rejecting state. */
     boolean conflict = false;
 
@@ -180,13 +168,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         runSample(samples);
         idMap = startState.breadthFirst();
         saved = new State[nStates];
-
-        if (MISSING_EDGES) {
-            missingEdges = computeMissingEdges(ACCEPTING);
-            if (MDL_COMPLEMENT || MDL_NEGATIVES) {
-                missingXEdges = computeMissingEdges(REJECTING);
-            }
-        }
 
         if (logger.isDebugEnabled()) {
             if (! checkDFA()) {
@@ -393,41 +374,12 @@ public final class DFA implements java.io.Serializable, Configuration {
             nXProductive = startState.computeProductive(REJECTING);
         }
 
-        if (MISSING_EDGES) {
-            missingEdges = computeMissingEdges(ACCEPTING);
-            if (MDL_COMPLEMENT || MDL_NEGATIVES) {
-                missingXEdges = computeMissingEdges(REJECTING);
-            }
-        }
-
         if (logger.isDebugEnabled()) {
             if (! checkDFA()) {
                 logger.error("From dfa reader constructor: exit");
                 System.exit(1);
             }
         }
-    }
-
-    /**
-     * Computes the number of edges that are needed to make the DFA
-     * functionally complete (every state has an outgoing edge on all
-     * symbols). We don't actually make the DFA functionally complete,
-     * but we could compute scores as if it is.
-     * Every edge computed here would then account for one extra state,
-     * with edges to itself on all symbols.
-     * @param flag either <code>ACCEPTING</code> or <code>REJECTING</code>,
-     * deciding if the accepting or rejecting DFA is used.
-     * @return the number of additional edges needed.
-     */
-    private int computeMissingEdges(byte flag) {
-
-        int sum = 0;
-
-        // Assume idMap is just computed.
-        for (int i = 0; i < idMap.length; i++) {
-	    sum += idMap[i].missingEdges(flag);
-        }
-        return sum;
     }
 
     /**
@@ -687,9 +639,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                             if ((s.productive & ACCEPTING) == 0) {
 				s.productive |= ACCEPTING;
                                 nProductive++;
-                                if (MISSING_EDGES) {
-                                    missingEdges += s.missingEdges(ACCEPTING);
-                                }
                             }
                         }
                         if ((MDL_COMPLEMENT || MDL_NEGATIVES)
@@ -697,9 +646,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                             if ((s.productive & REJECTING) == 0) {
 				s.productive |= REJECTING;
                                 nXProductive++;
-                                if (MISSING_EDGES) {
-                                    missingXEdges += s.missingEdges(REJECTING);
-                                }
                             }
                         }
 			s.productive |= prod;
@@ -932,15 +878,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         n1.weight += n2.weight;
 
         if ((n2.productive & ACCEPTING) != 0) {
-            if (MISSING_EDGES) {
-                missingEdges -= n2.missingEdges(ACCEPTING);
-            }
             if ((n1.productive & ACCEPTING) == 0) {
                 n1.productive |= ACCEPTING;
                 mustRecomputeProductive = true;
-                if (MISSING_EDGES) {
-                    missingEdges += n1.missingEdges(ACCEPTING);
-                }
             } else {
                 nProductive--;
             }
@@ -948,15 +888,9 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if ((MDL_COMPLEMENT || MDL_NEGATIVES)
                 && (n2.productive & REJECTING) != 0) {
-            if (MISSING_EDGES) {
-                missingXEdges -= n2.missingEdges(REJECTING);
-            }
             if ((n1.productive & REJECTING) == 0) {
                 n1.productive |= REJECTING;
                 mustRecomputeProductive = true;
-                if (MISSING_EDGES) {
-                    missingXEdges += n1.missingEdges(REJECTING);
-                }
             } else {
                 nXProductive--;
             }
@@ -976,18 +910,6 @@ public final class DFA implements java.io.Serializable, Configuration {
 		State v1 = n1.children[i];
                 if (v1 != null) {
                     // System.out.println("    v1 = " + v1.id + ", v2 = " + v2.id);
-                    if (MISSING_EDGES) {
-                        if ((n1.productive & ACCEPTING) != 0 &&
-                            (v1.productive & ACCEPTING) == 0 &&
-                            (v2.productive & ACCEPTING) != 0) {
-                            missingEdges--;
-                        }
-                        if ((n1.productive & REJECTING) != 0 &&
-                            (v1.productive & REJECTING) == 0 &&
-                            (v2.productive & REJECTING) != 0) {
-                            missingXEdges--;
-                        }
-                    }
                     labelscore += walkTreeMerge(v1, v2, undo);
                     if (conflict) {
                         return 0;
@@ -1017,19 +939,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (USE_PARENT_SETS) {
                 if (! dest.parents.contains(parent)) {
                     undo.addParentAddition(dest, parent);
-                }
-            }
-        }
-        if (MISSING_EDGES) {
-            State olddest = parent.children[i];
-            if ((parent.productive & ACCEPTING & dest.productive) != 0) {
-                if (olddest == null || (olddest.productive & ACCEPTING) == 0) {
-                    missingEdges--;
-                }
-            }
-            if ((parent.productive & REJECTING & dest.productive) != 0) {
-                if (olddest == null || (olddest.productive & REJECTING) == 0) {
-                    missingXEdges--;
                 }
             }
         }
@@ -1075,26 +984,19 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (DFAScore == 0) {
             if (USE_PRODUCTIVE) {
                 if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductive > 0) {
-                    int nXs = nXProductive + missingXEdges;
+                    int nXs = nXProductive+1;
                     DFAScore = nXs * (1 + nsym * log2(nXs));
-                    if (COMPENSATE_REDUNDANCY) {
-                        DFAScore -= sumLog(nXs-1)/LOG2;
-                    }
+                    DFAScore -= sumLog(nXs-1)/LOG2;
                     // DFAScore = nXs * (1.5 + log2(nXs)); ???
                 }
-                {
-                    int ns = nProductive + missingEdges;
-                    DFAScore += ns * (1 + nsym * log2(ns));
-                    if (COMPENSATE_REDUNDANCY) {
-                        DFAScore -= sumLog(ns-1)/LOG2;
-                    }
-                    // DFAScore += ns * (1.5 + log2(ns)); ???
-                }
+                int ns = nProductive+1;
+                DFAScore += ns * (1 + nsym * log2(ns));
+                DFAScore -= sumLog(ns-1)/LOG2;
+                // DFAScore += ns * (1.5 + log2(ns)); ???
             } else {
-                DFAScore = nStates * (1 + nsym * log2(nStates));
-                if (COMPENSATE_REDUNDANCY) {
-                    DFAScore -= sumLog(nStates-1)/LOG2;
-                }
+                int ns = nStates+1;
+                DFAScore = ns * (1 + nsym * log2(ns));
+                DFAScore -= sumLog(nStates-1)/LOG2;
                 // DFAScore = nStates * (1.5 + log2(nStates)); ???
             }
         }

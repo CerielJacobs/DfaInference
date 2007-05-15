@@ -277,12 +277,6 @@ public final class UndoInfo implements Configuration {
     /** Saved number of productive states in rejecting DFA. */
     int nXProductive;
 
-    /** Missing edges in DFA. */
-    int missingEdges;
-
-    /** Missing edges in rejecting DFA. */
-    int missingXEdges;
-
     /** Collects all Undo info. */
     private StateInfo savedStates;
 
@@ -323,10 +317,6 @@ public final class UndoInfo implements Configuration {
         si.DFAScore = dfa.DFAScore;
         si.nProductive = dfa.nProductive;
         si.nXProductive = dfa.nXProductive;
-        if (MISSING_EDGES) {
-            si.missingEdges = dfa.missingEdges;
-            si.missingXEdges = dfa.missingXEdges;
-        }
         if (dfa.stateCounts != null) {
             si.stateCounts = dfa.stateCounts[dfa.startState.id];
         }
@@ -414,10 +404,6 @@ public final class UndoInfo implements Configuration {
         dfa.nStates = nStates;
         dfa.nProductive = nProductive;
         dfa.nXProductive = nXProductive;
-        if (MISSING_EDGES) {
-            dfa.missingEdges = missingEdges;
-            dfa.missingXEdges = missingXEdges;
-        }
         if (dfa.stateCounts != null) {
             dfa.stateCounts[dfa.startState.id] = stateCounts;
         }

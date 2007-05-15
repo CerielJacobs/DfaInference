@@ -499,24 +499,6 @@ public final class State implements java.io.Serializable, Configuration,
     }
 
     /**
-     * Returns the number of missing edges for this state.
-     * @param flag either <code>ACCEPTING</code> or <code>REJECTING</code>.
-     * @return the number of missing edges.
-     */
-    public int missingEdges(byte flag) {
-	if ((productive & flag) == 0) {
-	    return 0;
-        }
-	int cnt = 0;
-	for (int i = 0; i < children.length; i++) {
-	    if (children[i] == null || (children[i].productive & flag) == 0) {
-		cnt++;
-	    }
-        }
-	return cnt;
-    }
-
-    /**
      * Returns a string representation of this state.
      * @return a string representation.
      */

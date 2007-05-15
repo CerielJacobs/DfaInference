@@ -39,14 +39,6 @@ public interface Configuration {
     static final boolean INCREMENTAL_COUNTS =
         tp.getBooleanProperty("IncrementalCounts", false);
 
-    /** Include number of missing edges in DFA complexity computation. */
-    static final boolean MISSING_EDGES =
-        tp.getBooleanProperty("MissingEdges", false);
-
-    /** Compensate for supposed redundancy in DFA complexity. */
-    static final boolean COMPENSATE_REDUNDANCY =
-        tp.getBooleanProperty("CompensateRedundancy", false);
-
     /**
      * Bit that indicates accepting state or state of DFA that recognizes
      * positive samples.

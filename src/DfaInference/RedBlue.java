@@ -373,15 +373,9 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
                 if (USE_PRODUCTIVE) {
                     str += ", nProductive = " + dfa.nProductive;
                 }
-                if (MISSING_EDGES) {
-		    str += ", missing edges = " + dfa.missingEdges;
-                }
                 if (MDL_COMPLEMENT || MDL_NEGATIVES) {
                     if (USE_PRODUCTIVE) {
                         str += ", nXProductive = " + dfa.nXProductive;
-                    }
-                    if (MISSING_EDGES) {
-                        str += ", missing Xedges = " + dfa.missingXEdges;
                     }
                 }
                 // str += ", MDL score = " + dfa.getMDLComplexity();

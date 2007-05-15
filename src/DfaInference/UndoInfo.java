@@ -73,13 +73,16 @@ public final class UndoInfo implements Configuration {
                 last = n;
                 State orig = last.orig;
                 orig.accepting = last.accepting;
-                if (! REFINED_MDL && dfa.counts != null) {
-                    dfa.counts[0][orig.id]
+
+                if (! REFINED_MDL) {
+                    if (dfa.counts != null) {
+                        dfa.counts[0][orig.id]
                             = ((orig.accepting & ACCEPTING) != 0) ? 1 : 0;
-                }
-                if (dfa.xCounts != null) {
-                    dfa.xCounts[0][orig.id]
-                            = ((orig.accepting & REJECTING) != 0) ? 1 : 0;
+                    }
+                    if (dfa.xCounts != null) {
+                        dfa.xCounts[0][orig.id]
+                                = ((orig.accepting & REJECTING) != 0) ? 1 : 0;
+                    }
                 }
 
                 orig.productive = last.productive;
@@ -329,6 +332,8 @@ public final class UndoInfo implements Configuration {
 
     public void saveCounts() {
         if (! REFINED_MDL) {
+            // Only saves the counts from the start symbol, as these are
+            // the only ones that are modified when there is Undo info.
             if (counts == null) {
                 counts = new int[2*(dfa.maxlen + 1)];
             }
@@ -336,10 +341,11 @@ public final class UndoInfo implements Configuration {
                 for (int i = 0; i <= dfa.maxlen; i++) {
                     counts[i] = dfa.counts[i][dfa.startState.id];
                 }
-                if (dfa.xCounts != null) {
-                    for (int i = 0; i <= dfa.maxlen; i++) {
-                        counts[i+dfa.maxlen+1] = dfa.xCounts[i][dfa.startState.id];
-                    }
+                countsInitialized = true;
+            }
+            if (dfa.xCounts != null) {
+                for (int i = 0; i <= dfa.maxlen; i++) {
+                    counts[i+dfa.maxlen+1] = dfa.xCounts[i][dfa.startState.id];
                 }
                 countsInitialized = true;
             }
@@ -348,8 +354,10 @@ public final class UndoInfo implements Configuration {
 
     private void restoreCounts() {
         if (countsInitialized) {
-            for (int i = 0; i <= dfa.maxlen; i++) {
-                dfa.counts[i][dfa.startState.id] = counts[i];
+            if (dfa.counts != null) {
+                for (int i = 0; i <= dfa.maxlen; i++) {
+                    dfa.counts[i][dfa.startState.id] = counts[i];
+                }
             }
             if (dfa.xCounts != null) {
                 for (int i = 0; i <= dfa.maxlen; i++) {

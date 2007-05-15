@@ -182,7 +182,7 @@ public class GenerateSampleAndTest {
         int nsym = Symbols.nSymbols();
 
         try {
-            learn = new BufferedWriter(new FileWriter(prefix + ".learn"));
+            learn = new BufferedWriter(new FileWriter(prefix + "." + count));
             test = new BufferedWriter(new FileWriter(prefix + ".test"));
         } catch(IOException e) {
             logger.fatal("Could not open output", e);

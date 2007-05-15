@@ -4,9 +4,7 @@
 
 ARGS=
 ARGS="$ARGS -DIncrementalCounts"
-ARGS="$ARGS -DCompensateRedundancy"
-ARGS="$ARGS -DMissingEdges"
 ARGS="$ARGS -DUseProductive"
-ARGS="-server"
+ARGS="$ARGS -server"
 
 $IBIS_HOME/bin/ibis-run -Xmx512M $ARGS DfaInference.EdFold -input $1 -output $2

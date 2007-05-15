@@ -682,9 +682,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             mustRecomputeProductive =
                 (parent.productive | red.productive) != parent.productive;
         }
-        if (undoNeeded) {
-            undo = UndoInfo.getUndoInfo(this);
-        }
 
         // Make the blue node's parent indicate the red node.
         savedIndex = 1;
@@ -692,13 +689,14 @@ public final class DFA implements java.io.Serializable, Configuration {
         saved[0] = parent;
         parent.savedIndex = 0;
 
-        if (undo != null) {
-            undo.addData(parent);
+        if (undoNeeded) {
             if (INCREMENTAL_COUNTS && ! counts_done) {
-                if (stateCounts != null || counts != null) {
+                // if (stateCounts != null || counts != null) {
                     getMDLComplexity();
-                }
+                // }
             }
+            undo = UndoInfo.getUndoInfo(this);
+            undo.addData(parent);
         }
 
         State[] pch = parent.children;
@@ -863,14 +861,14 @@ public final class DFA implements java.io.Serializable, Configuration {
             return 0;
         } else {
             n1.accepting |= n2.accepting;
-            if (! REFINED_MDL && n1.accepting != 0) {
-                if (counts != null && (n1.accepting & ACCEPTING) != 0) {
-                    counts[0][n1.id] = 1;
-                } 
-                if (MDL_NEGATIVES) {
+            if (! REFINED_MDL) {
+                if (n1.accepting != 0) {
+                    if (counts != null && (n1.accepting & ACCEPTING) != 0) {
+                        counts[0][n1.id] = 1;
+                    } 
                     if (xCounts != null && (n1.accepting & REJECTING) != 0) {
                         xCounts[0][n1.id] = 1;
-                    } 
+                    }
                 }
             }
         }
@@ -987,17 +985,18 @@ public final class DFA implements java.io.Serializable, Configuration {
                     int nXs = nXProductive+1;
                     DFAScore = nXs * (1 + nsym * log2(nXs));
                     DFAScore -= sumLog(nXs-1)/LOG2;
-                    // DFAScore = nXs * (1.5 + log2(nXs)); ???
+                    // From a paper by Domaratzky, Kisman, Shallit
+                    // DFAScore = nXs * (1.5 + log2(nXs));
                 }
                 int ns = nProductive+1;
                 DFAScore += ns * (1 + nsym * log2(ns));
                 DFAScore -= sumLog(ns-1)/LOG2;
-                // DFAScore += ns * (1.5 + log2(ns)); ???
+                // DFAScore += ns * (1.5 + log2(ns));
             } else {
                 int ns = nStates+1;
                 DFAScore = ns * (1 + nsym * log2(ns));
-                DFAScore -= sumLog(nStates-1)/LOG2;
-                // DFAScore = nStates * (1.5 + log2(nStates)); ???
+                DFAScore -= sumLog(ns-1)/LOG2;
+                // DFAScore = ns * (1.5 + log2(ns));
             }
         }
 
@@ -1083,7 +1082,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
             }
             if (MDL_NEGATIVES) {
-                if (xCounts == null) {
+                if (xCounts == null && (! REFINED_MDL || ! NEW_IMPL)) {
                     xCounts = new int[maxlen+1][];
                     for (int i = 0; i < xCounts.length; i++) {
                         xCounts[i] = new int[idMap.length];
@@ -1128,19 +1127,35 @@ public final class DFA implements java.io.Serializable, Configuration {
                     }
                     */
                     State[] myStates = reachCount();
+                    int totalCount = 0;
                     for (int i = 0; i < myStates.length; i++) {
                         int cnt = 0;
                         int id = myStates[i].id;
                         for (int j = 0; j <= maxlen; j++) {
                             cnt += counts[j][id];
                         }
-                        score += approximate2LogNoverK(cnt,
+                        double sc = approximate2LogNoverK(cnt,
                                 myStates[i].weight);
+                        if (logger.isDebugEnabled()) {
+                            totalCount += cnt;
+                            logger.debug("State " + id + ", weight = "
+                                    + myStates[i].weight + ", cnt = " + cnt
+                                    + ", sc  = " + sc);
+                        }
+                        score += sc;
                     }
+                    logger.debug("totalCount = " + totalCount);
                 }
                 MDLScore = score;
                 counts_done = true;
-                return MDLScore + getDFAComplexity();
+                double DFAScore = getDFAComplexity();
+                score += DFAScore;
+                if (logger.isDebugEnabled()) {
+                    logger.debug("getMDLComplexity: MDLscore = "
+                            + MDLScore + ", DFAscore = " + DFAScore
+                            + ", total = " + score);
+                }
+                return score;
             }
 
             int n = computeNStrings(maxlen, counts, ACCEPTING);
@@ -1162,6 +1177,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
             counts_done = true;
         }
+
         double score = MDLScore + getDFAComplexity();
 
         if (logger.isDebugEnabled()) {
@@ -1547,14 +1563,12 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
             }
             if ((s.accepting & ACCEPTING) != 0) {
-                if (! REFINED_MDL) {
-                    if (counts != null) {
-                        counts[0][s.id] = 1;
-                    }
+                if (! REFINED_MDL && counts != null) {
+                    counts[0][s.id] = 1;
                 }
                 partition1.set(s.id);
             } else if ((s.accepting & REJECTING) != 0) {
-                if (MDL_NEGATIVES && xCounts != null) {
+                if (! REFINED_MDL && xCounts != null) {
                     xCounts[0][s.id] = 1;
                 }
                 partition2.set(s.id);

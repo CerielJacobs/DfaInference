@@ -7,6 +7,7 @@ import java.util.Random;
 import org.apache.log4j.Logger;
 
 import DfaInference.DFA;
+import DfaInference.State;
 
 /**
  * Utility to generate a DFA. Parameters are the number of symbols and
@@ -105,35 +106,6 @@ public class GenerateDFA {
             return null;
         }
 
-        // Determine depth.
-        int[] depths = new int[nStates];
-        for (int i = 0; i < nStates; i++) {
-            depths[i] = Integer.MAX_VALUE;
-        }
-        depths[startState] = 0;
-        changes = true;
-        while (changes) {
-            changes = false;
-            for (int i = 0; i < nStates; i++) {
-                if (reachable[i] && productive[i] && depths[i] != Integer.MAX_VALUE) {
-                    int d = depths[i]+1;
-                    for (int j = 0; j < nSyms; j++) {
-                        int dest = states[i][j];
-                        if (productive[dest] && d < depths[dest]) {
-                            changes = true;
-                            depths[dest] = d;
-                        }
-                    }
-                }
-            }
-        }
-        int maxDepth = -1;
-        for (int i = 0; i < nStates; i++) {
-            if (reachable[i] && productive[i] && depths[i] > maxDepth) {
-                maxDepth = depths[i];
-            }
-        }
-
         // Determine 2log, rounded to the next integer.
         int bit = -n & n;
         if (bit != n) {
@@ -145,17 +117,6 @@ public class GenerateDFA {
             bit >>= 1;
         }
         int requiredDepth = 2 * log - 2;
-
-        if (logger.isInfoEnabled()) {
-            logger.info("Generated DFA of depth " + maxDepth + ", required "
-                    + requiredDepth);
-        }
-
-        // Abbadingo rejects if the depth is not exactly 2 * log(n) - 2.
-
-        if (maxDepth != requiredDepth) {
-            return null;
-        }
 
         StringWriter w = new StringWriter();
         w.write("T" + nSyms + "\n");
@@ -178,7 +139,21 @@ public class GenerateDFA {
 
         StringReader rdr = new StringReader(s);
         DFA dfa = new DFA(rdr);
-        // dfa.minimize(); Should we? Abbadingo does not mention this.
+        dfa.minimize(); // Should we? Abbadingo does not mention this.
+
+        State[] l = dfa.getStartState().breadthFirst();
+        int depth = l[l.length-1].depth();
+
+        if (logger.isInfoEnabled()) {
+            logger.info("Generated DFA of depth " + depth + ", required "
+                    + requiredDepth);
+        }
+
+        // Abbadingo rejects if the depth is not exactly 2 * log(n) - 2.
+ 
+        if (depth != requiredDepth) {
+            return null;
+        }
 
         return dfa;
     }

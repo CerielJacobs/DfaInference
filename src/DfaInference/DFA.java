@@ -118,6 +118,12 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Number of productive states in the complement DFA. */
     int nXProductive = -1;
 
+    /** Edges missing in DFA. */
+    int missingEdges = 0;
+
+    /** Edges missing in complement DFA. */
+    int missingXEdges = 0;
+
     /** Conflict: an accepting state is merged with a rejecting state. */
     boolean conflict = false;
 
@@ -161,6 +167,10 @@ public final class DFA implements java.io.Serializable, Configuration {
         idMap = startState.breadthFirst();
         saved = new State[nStates];
 
+        missingEdges = computeMissingEdges(ACCEPTING);
+        if (MDL_COMPLEMENT || MDL_NEGATIVES) {
+            missingXEdges = computeMissingEdges(REJECTING);
+        }
         if (logger.isDebugEnabled()) {
             if (! checkDFA()) {
                 logger.error("From dfa constructor: exit");
@@ -362,8 +372,13 @@ public final class DFA implements java.io.Serializable, Configuration {
         startState.computeDepths();
         saved = new State[nStates];
         nProductive = startState.computeProductive(ACCEPTING);
-        if (MDL_COMPLEMENT || MDL_NEGATIVES) {
+        if (MDL_NEGATIVES || MDL_COMPLEMENT) {
             nXProductive = startState.computeProductive(REJECTING);
+        }
+
+        missingEdges = computeMissingEdges(ACCEPTING);
+        if (MDL_COMPLEMENT || MDL_NEGATIVES) {
+            missingXEdges = computeMissingEdges(REJECTING);
         }
 
         if (logger.isDebugEnabled()) {
@@ -372,6 +387,28 @@ public final class DFA implements java.io.Serializable, Configuration {
                 System.exit(1);
             }
         }
+    }
+
+    /**
+     * Computes the number of edges that are needed to make the DFA
+     * functionally complete (every state has an outgoing edge on all
+     * symbols). We don't actually make the DFA functionally complete,
+     * but we could compute scores as if it is.
+     * Every edge computed here would then account for one extra state,
+     * with edges to itself on all symbols.
+     * @param flag either <code>ACCEPTING</code> or <code>REJECTING</code>,
+     * deciding if the accepting or rejecting DFA is used.
+     * @return the number of additional edges needed.
+     */
+    private int computeMissingEdges(byte flag) {
+
+        int sum = 0;
+
+        // Assume idMap is just computed.
+        for (int i = 0; i < idMap.length; i++) {
+            sum += idMap[i].missingEdges(flag);
+        }
+        return sum;
     }
 
     /**
@@ -437,7 +474,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             numRejected++;
             rejects[symbols.length-1]++;
             n.accepting = REJECTING;
-            if (MDL_COMPLEMENT || MDL_NEGATIVES) {
+            if (MDL_NEGATIVES || MDL_COMPLEMENT) {
                 n.weight = 1;
             }
         } else {
@@ -485,7 +522,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             addString(samples[i]);
         }
         nProductive = startState.computeProductive(ACCEPTING);
-        if (MDL_COMPLEMENT || MDL_NEGATIVES) {
+        if (MDL_NEGATIVES || MDL_COMPLEMENT) {
             nXProductive = startState.computeProductive(REJECTING);
         }
     }
@@ -615,7 +652,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             change = false;
             for (int i = 0; i < states.length; i++) {
                 State s = states[i];
-                if (s.productive != ((MDL_COMPLEMENT || MDL_NEGATIVES)
+                if (s.productive != ((MDL_NEGATIVES || MDL_COMPLEMENT)
                             ? MASK : ACCEPTING)) {
                     byte prod = s.accepting;
                     for (int j = 0; j < s.children.length; j++) {
@@ -629,18 +666,20 @@ public final class DFA implements java.io.Serializable, Configuration {
                         change = true;
                         if ((prod & ACCEPTING) != 0) {
                             if ((s.productive & ACCEPTING) == 0) {
-				s.productive |= ACCEPTING;
+                                s.productive |= ACCEPTING;
                                 nProductive++;
+                                 missingEdges += s.missingEdges(ACCEPTING);
                             }
                         }
-                        if ((MDL_COMPLEMENT || MDL_NEGATIVES)
-                                && (prod & REJECTING) != 0) {
+                        if ((MDL_NEGATIVES || MDL_COMPLEMENT)
+                            && (prod & REJECTING) != 0) {
                             if ((s.productive & REJECTING) == 0) {
-				s.productive |= REJECTING;
+                                s.productive |= REJECTING;
                                 nXProductive++;
+                                missingXEdges += s.missingEdges(REJECTING);
                             }
                         }
-			s.productive |= prod;
+                        s.productive |= prod;
                     }
                 }
             }
@@ -834,18 +873,22 @@ public final class DFA implements java.io.Serializable, Configuration {
         n1.weight += n2.weight;
 
         if ((n2.productive & ACCEPTING) != 0) {
+            missingEdges -= n2.missingEdges(ACCEPTING);
             if ((n1.productive & ACCEPTING) == 0) {
                 n1.productive |= ACCEPTING;
                 mustRecomputeProductive = true;
+                missingEdges += n1.missingEdges(ACCEPTING);
             } else {
                 nProductive--;
             }
         }
 
-        if ((MDL_COMPLEMENT || MDL_NEGATIVES)
+        if ((MDL_NEGATIVES || MDL_COMPLEMENT)
                 && (n2.productive & REJECTING) != 0) {
+            missingXEdges -= n2.missingEdges(REJECTING);
             if ((n1.productive & REJECTING) == 0) {
                 n1.productive |= REJECTING;
+                missingXEdges += n1.missingEdges(REJECTING);
                 mustRecomputeProductive = true;
             } else {
                 nXProductive--;
@@ -863,9 +906,19 @@ public final class DFA implements java.io.Serializable, Configuration {
         for (int i = 0; i < nsym; i++) {
             State v2 = n2.children[i];
             if (v2 != null) {
-		State v1 = n1.children[i];
+                State v1 = n1.children[i];
                 if (v1 != null) {
                     // System.out.println("    v1 = " + v1.id + ", v2 = " + v2.id);
+                    if ((n1.productive & ACCEPTING) != 0 &&
+                        (v1.productive & ACCEPTING) == 0 &&
+                        (v2.productive & ACCEPTING) != 0) {
+                        missingEdges--;
+                    }
+                    if ((n1.productive & REJECTING) != 0 &&
+                        (v1.productive & REJECTING) == 0 &&
+                        (v2.productive & REJECTING) != 0) {
+                        missingXEdges--;
+                    }
                     labelscore += walkTreeMerge(v1, v2, undo);
                     if (conflict) {
                         return 0;
@@ -896,6 +949,17 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if (! dest.parents.contains(parent)) {
                     undo.addParentAddition(dest, parent);
                 }
+            }
+        }
+        State olddest = parent.children[i];
+        if ((parent.productive & ACCEPTING & dest.productive) != 0) {
+            if (olddest == null || (olddest.productive & ACCEPTING) == 0) {
+                missingEdges--;
+            }
+        }
+        if ((parent.productive & REJECTING & dest.productive) != 0) {
+            if (olddest == null || (olddest.productive & REJECTING) == 0) {
+                missingXEdges--;
             }
         }
         parent.addEdge(dest, i);
@@ -940,13 +1004,13 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (DFAScore == 0) {
             if (USE_PRODUCTIVE) {
                 if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductive > 0) {
-                    int nXs = nXProductive+1;
+                    int nXs = nXProductive+missingXEdges;
                     DFAScore = nXs * (1 + nsym * log2(nXs));
                     DFAScore -= sumLog(nXs-1)/LOG2;
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs));
                 }
-                int ns = nProductive+1;
+                int ns = nProductive+missingEdges;
                 DFAScore += ns * (1 + nsym * log2(ns));
                 DFAScore -= sumLog(ns-1)/LOG2;
                 // DFAScore += ns * (1.5 + log2(ns));
@@ -1053,7 +1117,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
 
             int n = computeNStrings(maxlen, counts, ACCEPTING);
-	    MDLScore = approximate2LogNoverK(n, numRecognized);
+            MDLScore = approximate2LogNoverK(n, numRecognized);
 
             if (MDL_NEGATIVES && numRejected > 0) {
                 n = computeNStrings(maxlen, xCounts, REJECTING);
@@ -1573,7 +1637,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         nStates = npartitions;
 
         nProductive = startState.computeProductive(ACCEPTING);
-        if (MDL_COMPLEMENT || MDL_NEGATIVES) {
+        if (MDL_NEGATIVES || MDL_COMPLEMENT) {
             nXProductive = startState.computeProductive(REJECTING);
         }
         MDLScore = 0;

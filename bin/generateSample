@@ -1,0 +1,13 @@
+#! /bin/sh
+
+# generateSample <DFA> <count> <maxlength> [ <testcount> ]
+# Generates a sample from <DFA>, with <count> sentences, of maximum length
+# <maxlength>.
+
+TESTCOUNT=0
+case $# in
+4)  TESTCOUNT=$4
+    ;;
+esac
+
+$IBIS_HOME/bin/ibis-run -Xmx256M generate.GenerateSampleAndTest -m $1 -count $2 -maxl $3 -prefix $1 -testcount $TESTCOUNT

@@ -107,15 +107,8 @@ public class GenerateDFA {
         }
 
         // Determine 2log, rounded to the next integer.
-        int bit = -n & n;
-        if (bit != n) {
-            bit <<= 1;
-        }
-        int log = -1;
-        while (bit != 0) {
-            log++;
-            bit >>= 1;
-        }
+        int log = 0;
+        while ((1 << log) < n) log++;
         int requiredDepth = 2 * log - 2;
 
         StringWriter w = new StringWriter();

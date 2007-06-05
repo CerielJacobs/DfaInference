@@ -116,7 +116,7 @@ public class GenerateSampleAndTest {
         String  machinefile = "machine";
         int maxl = 15;
         int count = 2000;
-        int testcount = 1800;
+        int testcount = 0;
         boolean negativeSamples = true;
         String prefix = "data";
 
@@ -237,21 +237,23 @@ public class GenerateSampleAndTest {
             System.exit(1);
         }
 
-        int[][] tests = new int[testcount][];
-        System.arraycopy(sentences, sentenceIndex, tests, 0, testcount);
+        if (testcount > 0) {
+            int[][] tests = new int[testcount][];
+            System.arraycopy(sentences, sentenceIndex, tests, 0, testcount);
 
-        try {
-            // Print number of strings and number of symbols.
-            test.write("" + testcount + " " + nsym);
-            test.newLine();
-            for (int i = 0; i < testcount; i++) {
-                test.write("" + cvt2AbbaDingo(tests[i], -1));
+            try {
+                // Print number of strings and number of symbols.
+                test.write("" + testcount + " " + nsym);
                 test.newLine();
+                for (int i = 0; i < testcount; i++) {
+                    test.write("" + cvt2AbbaDingo(tests[i], -1));
+                    test.newLine();
+                }
+                test.close();
+            } catch(IOException e) {
+                logger.fatal("Could not write test-set", e);
+                System.exit(1);
             }
-            test.close();
-        } catch(IOException e) {
-            logger.fatal("Could not write test-set", e);
-            System.exit(1);
         }
     }
 }

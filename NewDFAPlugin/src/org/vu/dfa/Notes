@@ -1,0 +1,9 @@
+on MDL complexity:
+- when merging states, the DFA measure decreases, and the sample measure
+  increases. Now suppose that the current best DFA has score BS and a proposed
+  DFA has DFA measure D and sample measure S. Then, if S >= BS, the proposed
+  DFA can never lead to an improvement of the current best DFA, because the
+  sample measure will only increase when merging states.
+  
+on weights:
+- maybe administer them per link, rather than per state?

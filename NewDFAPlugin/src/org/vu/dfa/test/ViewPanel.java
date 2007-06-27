@@ -16,7 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
+import java.util.HashMap;
 
 import javax.swing.JPanel;
 
@@ -76,7 +76,7 @@ public class ViewPanel extends JPanel {
 	 */
 	protected int minSepY = 0;
 
-	protected Map<State, Point> positions = new TreeMap<State, Point>();
+	protected Map<State, Point> positions = new HashMap<State, Point>();
 
 	public ViewPanel(DFA dfa, int minSepX, int minSepY) {
 		super(null, true); // no layout manager, double-buffered
@@ -115,6 +115,7 @@ public class ViewPanel extends JPanel {
 			for (State state : positions.keySet()) {
 				Point p = getNodeCenter(state);
 				paintNode(g2d, state, p);
+                                System.out.println("State printed: " + state);
 			}
 			for (State state : positions.keySet()) {
 				paintEdges(g2d, state);
@@ -143,7 +144,7 @@ public class ViewPanel extends JPanel {
 	 *            <code>List</code> of <code>Edge</code> objects)
 	 */
 	protected void paintEdges(Graphics2D g, State n) {
-		Map<State, String> labels = new TreeMap<State, String>();
+		Map<State, String> labels = new HashMap<State, String>();
 		for (int i = 0; i < n.getNsym(); i++) {
 			State child = n.traverseLink(i);
 			if (child != null) {
@@ -275,7 +276,7 @@ public class ViewPanel extends JPanel {
 	 */
 	private void layoutChildren(State n, int row, int col, ArrayList lastRows, Set<State> checked) {
 		for (State child : n.getChildren()) {
-			if (child != null && (!checked.contains(child))) {
+ 			if (child != null && (!checked.contains(child))) {
 				layoutNode(child, row, col + 1, lastRows, checked);
 			}
 		}
@@ -324,7 +325,7 @@ public class ViewPanel extends JPanel {
 
 	private Point getNodePosition(State n) {
 		if (positions.containsKey(n)) {
-			return (Point) positions.get(n);
+			return positions.get(n);
 		} else {
 			return null;
 		}

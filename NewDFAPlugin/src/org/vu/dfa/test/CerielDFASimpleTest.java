@@ -9,7 +9,6 @@ import org.vu.dfa.DFA;
 import org.vu.dfa.Guidance;
 import org.vu.dfa.MDLEdFold;
 import org.vu.dfa.MDLFold;
-import org.vu.dfa.RedBlue;
 import org.vu.dfa.Samples;
 import org.vu.dfa.Symbols;
 import org.vu.dfa.abbadingo.AbbaDingoString;
@@ -21,10 +20,18 @@ public class CerielDFASimpleTest extends JFrame {
 	public CerielDFASimpleTest() {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+		
 		positivestrings.add("aaab");
 		positivestrings.add("aaaaab");
 		positivestrings.add("aaabc");
+		
+		
+	/*	positivestrings.add("12345");
+		positivestrings.add("12678");
+		*/
+		
 
+		
 		int accept = 1;
 		int reject = 0;
 
@@ -34,9 +41,9 @@ public class CerielDFASimpleTest extends JFrame {
 		int t = 0;
 		for (String s : positivestrings) {
 			AbbaDingoString abbadingostring = new AbbaDingoString(s.length(), accept);
-                        for (int i = 0; i < s.length(); i++) {
-                            abbadingostring.addToken("" + s.charAt(i));
-                        }
+			for (int i=0;i<s.length();i++){
+				abbadingostring.addToken(""+s.charAt(i));
+			}
 			samples[t++] = abbadingostring;
 		}
 		
@@ -45,25 +52,21 @@ public class CerielDFASimpleTest extends JFrame {
 
 		DFA dfa = new DFA(symbols);
 
-		//System.out.println("MDL Complexity:" + dfa.getMDLComplexity());
-		//System.out.println(dfa);
+		System.out.println("MDL Complexity:" + dfa.getMDLComplexity());
+		System.out.println(dfa);
 
-		RedBlue m = new MDLFold();
+		
+/*		MDLFold m = new MDLFold();
 		m.printInfo = true;
 		DFA done = m.doFold(dfa, new Guidance(), 0);
-                System.out.println(done);
-
-		// DFA bestDFA = m.doFold(dfa,new Guidance(), 0);
-
-
-		// /
-
-		ViewPanel viewpanel = new ViewPanel(done, 20, 20);
+*/
+		
+		ViewPanel viewpanel = new ViewPanel(dfa, 20, 20);
 		this.getContentPane().add(viewpanel);
 		viewpanel.layoutNodes();
 		viewpanel.repaint();
 		Dimension d=viewpanel.getPreferredSize();
-		setSize(d.width+100, d.height);
+		setSize(d.width+100, 400);
 		setVisible(true);
 
 	}

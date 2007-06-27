@@ -3,6 +3,7 @@ package org.vu.dfa.test;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -10,13 +11,10 @@ import java.awt.RenderingHints;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.QuadCurve2D;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashMap;
 
 import javax.swing.JPanel;
 
@@ -32,9 +30,9 @@ public class ViewPanel extends JPanel {
 
 	protected int maxRow = 1;
 
-	public static final int X_SPACE_DFLT = 40;
+	public static final int X_SPACE_DFLT = 100;
 
-	public static final int Y_SPACE_DFLT = 300;
+	public static final int Y_SPACE_DFLT = 100;
 
 	public int xSpace = X_SPACE_DFLT;
 
@@ -50,7 +48,7 @@ public class ViewPanel extends JPanel {
 
 	protected Color linkColor = Color.black;
 
-	protected int linkThickness = 2;
+	protected int linkThickness = 1;
 
 	protected Color arrowColor = Color.black;
 
@@ -58,7 +56,7 @@ public class ViewPanel extends JPanel {
 
 	protected boolean paintLabels = true;
 
-	protected int nodeSize = 20;
+	protected int nodeSize = 30;
 
 	protected int arrowLength = 12;
 
@@ -113,9 +111,9 @@ public class ViewPanel extends JPanel {
 		g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		if (dfa != null) {
 			for (State state : positions.keySet()) {
+
 				Point p = getNodeCenter(state);
 				paintNode(g2d, state, p);
-                                System.out.println("State printed: " + state);
 			}
 			for (State state : positions.keySet()) {
 				paintEdges(g2d, state);
@@ -144,23 +142,24 @@ public class ViewPanel extends JPanel {
 	 *            <code>List</code> of <code>Edge</code> objects)
 	 */
 	protected void paintEdges(Graphics2D g, State n) {
-		Map<State, String> labels = new HashMap<State, String>();
+		Map<String, String> labels = new HashMap<String, String>();
 		for (int i = 0; i < n.getNsym(); i++) {
 			State child = n.traverseLink(i);
 			if (child != null) {
-				String label = labels.get(child);
+				String label = labels.get(""+n+child);
 				if (label != null) {
 					label = label + "," + Symbols.getSymbol(i);
 				} else
 					label = Symbols.getSymbol(i);
-				labels.put(child, label);
+				labels.put(""+n+child, label);
 			}
 		}
 
 		for (int i = 0; i < n.getNsym(); i++) {
 			State child = n.traverseLink(i);
 			if (child != null) {
-				paintEdge(g, getNodeCenter(n), getNodeCenter(child), labels.get(child));
+				String label=labels.get(""+n+child);
+				paintEdge(g, getNodeCenter(n), getNodeCenter(child), label);
 			}
 		}
 	}
@@ -193,8 +192,9 @@ public class ViewPanel extends JPanel {
 		g.fill(arrow);
 
 		if (paintLabels) {
-			g.setColor(textColor);
 
+			g.setColor(textColor);
+			g.setFont(new Font("times",Font.PLAIN,16));
 			g.drawString(label.toString(), arcMid.x + (int) (arrowLength * Math.cos(theta)), arcMid.y + (int) (arrowLength * Math.sin(theta)));
 		}
 	}
@@ -207,12 +207,14 @@ public class ViewPanel extends JPanel {
 		}
 	}
 
+	
 	protected void layoutNodes() {
 		// System.out.println("layout nodes called");
-
+		ArrayList list=new ArrayList();
+		HashSet <State>checked=new HashSet<State>();
 		maxRow = maxCol = 0;
 		positions.put(dfa.getStartState(), new Point(1, 1));
-		layoutNode(dfa.getStartState(), 1, 1, new ArrayList(), new HashSet());
+		layoutNode(dfa.getStartState(), 1, 1,list ,checked);
 
 		// This removed because it interacts badly with scroll
 		// panel. Need to query the Viewport for its size, but cannot
@@ -276,7 +278,7 @@ public class ViewPanel extends JPanel {
 	 */
 	private void layoutChildren(State n, int row, int col, ArrayList lastRows, Set<State> checked) {
 		for (State child : n.getChildren()) {
- 			if (child != null && (!checked.contains(child))) {
+			if (child != null && (!checked.contains(child))) {
 				layoutNode(child, row, col + 1, lastRows, checked);
 			}
 		}
@@ -325,7 +327,7 @@ public class ViewPanel extends JPanel {
 
 	private Point getNodePosition(State n) {
 		if (positions.containsKey(n)) {
-			return positions.get(n);
+			return (Point) positions.get(n);
 		} else {
 			return null;
 		}

@@ -130,6 +130,9 @@ public final class State implements java.io.Serializable, Configuration,
 
     public int compareTo(Object o) {
         State s = (State) o;
+        if (s.depth == depth) {
+            return s.id - id;
+        }
         return s.depth - depth;
     }
 

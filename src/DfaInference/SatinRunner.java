@@ -1,17 +1,8 @@
 package DfaInference;
 
 import ibis.satin.SatinObject;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 
 import org.apache.log4j.Logger;
-
-import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 public class SatinRunner extends SatinObject implements SatinRunnerInterface {
 

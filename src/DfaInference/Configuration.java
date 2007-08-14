@@ -36,6 +36,10 @@ public interface Configuration {
     static final boolean INCREMENTAL_COUNTS =
         tp.getBooleanProperty("IncrementalCounts", false);
 
+    /** Factor between PTAScore and trivialDFAScore. */
+    static final double FACTOR =
+        tp.getIntProperty("Factor", 0);
+
     /**
      * Bit that indicates accepting state or state of DFA that recognizes
      * positive samples.

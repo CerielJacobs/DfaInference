@@ -146,6 +146,10 @@ public final class DFA implements java.io.Serializable, Configuration {
     int[] accepts;
     int[] rejects;
 
+    double trivialDFAScore = 0.0;
+
+    double PTAScore = 0.0;
+
     /**
      * Basic constructor, creates an empty DFA.
      * @param nsym the number of symbols used.
@@ -181,6 +185,20 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (logger.isInfoEnabled()) {
             logger.info("Created initial DFA, #states " + nStates);
         }
+
+        double nsentences;
+
+        if (nsym <= 1) {
+            nsentences = maxlen + 1;
+        } else {
+            nsentences = (Math.pow(nsym, maxlen+1) -1) / (nsym - 1);
+        }
+
+        PTAScore = getMDLComplexity();
+        trivialDFAScore = FACTOR * approximate2LogNoverK(nsentences, samples.length);
+
+        logger.debug("PTAScore = " + PTAScore);
+        logger.debug("trivialScore = " + trivialDFAScore);
     }
 
     /**
@@ -199,6 +217,8 @@ public final class DFA implements java.io.Serializable, Configuration {
         DFAScore = dfa.DFAScore;
         nProductive = dfa.nProductive;
         nXProductive = dfa.nXProductive;
+        trivialDFAScore = dfa.trivialDFAScore;
+        PTAScore = dfa.PTAScore;
 
         startState = dfa.startState.copy();
         idMap = startState.breadthFirst();
@@ -513,6 +533,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         MDLScore = 0;
         DFAScore = 0;
 
+
         for (int i = 0; i < samples.length; i++) {
             if (samples[i].length > maxlen+1) {
                 maxlen = samples[i].length-1;
@@ -525,6 +546,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (MDL_NEGATIVES || MDL_COMPLEMENT) {
             nXProductive = startState.computeProductive(REJECTING);
         }
+        
     }
 
     /**
@@ -1021,6 +1043,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 // DFAScore = ns * (1.5 + log2(ns));
             }
         }
+        logger.debug("DFAScore = " + DFAScore + ", nStates = " + nStates);
 
         return DFAScore;
     }
@@ -1030,6 +1053,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @param c logs up until this number are needed, but we may compute more.
      */
     private static final double sumLog(double c) {
+        double retval;
         if (sumLogs == null) {
             sumLogs = new double[65536];
             sumLogs[0] = 0.0;
@@ -1039,9 +1063,12 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         if (c >= sumLogs.length) {
             // Uses the approximation ln(n!) ~ n.ln(n) - n.
-            return c * Math.log(c) - c;
+            retval = c * Math.log(c) - c;
+        } else {
+            retval = sumLogs[(int)c];
         }
-        return sumLogs[(int)c];
+        logger.debug("sumlog(" + c + ") = " + retval);
+        return retval;
     }
 
     private double approximate2LogNoverK(double n, int k) {
@@ -1057,6 +1084,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (conflict) {
             return Double.MAX_VALUE;
         }
+
+        double DFAScore = getDFAComplexity();
+
         if (MDLScore == 0) {
             if (counts == null) {
                 counts = new int[maxlen+1][];
@@ -1105,43 +1135,35 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
                 logger.debug("totalCount = " + totalCount);
                 MDLScore = score;
-                counts_done = true;
-                double DFAScore = getDFAComplexity();
-                score += DFAScore;
-                if (logger.isDebugEnabled()) {
-                    logger.debug("getMDLComplexity: MDLscore = "
-                            + MDLScore + ", DFAscore = " + DFAScore
-                            + ", total = " + score);
+            } else {
+                int n = computeNStrings(maxlen, counts, ACCEPTING);
+                MDLScore = approximate2LogNoverK(n, numRecognized);
+
+                if (MDL_NEGATIVES && numRejected > 0) {
+                    n = computeNStrings(maxlen, xCounts, REJECTING);
+                    MDLScore += approximate2LogNoverK(n, numRejected);
                 }
-                return score;
-            }
 
-            int n = computeNStrings(maxlen, counts, ACCEPTING);
-            MDLScore = approximate2LogNoverK(n, numRecognized);
-
-            if (MDL_NEGATIVES && numRejected > 0) {
-                n = computeNStrings(maxlen, xCounts, REJECTING);
-                MDLScore += approximate2LogNoverK(n, numRejected);
-            }
-
-            if (MDL_COMPLEMENT && numRejected > 0) {
-                double cn = Math.pow(2, maxlen+1) - n - 1;
-                double score = approximate2LogNoverK(cn, numRejected);
-                MDLScore += score;
-            }
-            if (logger.isDebugEnabled()) {
-                logger.debug("getMDLComplexity: score = "
-                        + MDLScore);
+                if (MDL_COMPLEMENT && numRejected > 0) {
+                    double cn = Math.pow(2, maxlen+1) - n - 1;
+                    double score = approximate2LogNoverK(cn, numRejected);
+                    MDLScore += score;
+                }
             }
             counts_done = true;
         }
 
-        double score = MDLScore + getDFAComplexity();
-
-        if (logger.isDebugEnabled()) {
-            logger.debug("getMDLComplexity: total score = " + score);
+        double score = DFAScore;
+        if (trivialDFAScore != 0) {
+            score += MDLScore + MDLScore * (PTAScore / trivialDFAScore);
+        } else {
+            score += MDLScore;
         }
-
+        if (logger.isDebugEnabled()) {
+            logger.debug("getMDLComplexity: MDLscore = "
+                    + MDLScore + ", DFAscore = " + DFAScore
+                    + ", total = " + score);
+        }
         return score;
     }
 

@@ -115,7 +115,7 @@ public final class State implements java.io.Serializable, Configuration,
             if (s.children[i] != null) {
                 State cp = (State) h.get(s.children[i]);
                 if (cp == null) {
-                    children[i] = new State(s.children[i], this, h);
+                    cp = new State(s.children[i], this, h);
                 }
                 children[i] = cp;
                 if (USE_PARENT_SETS) {

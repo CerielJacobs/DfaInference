@@ -21,12 +21,12 @@ import abbadingo.AbbaDingoString;
  *
  * This version is suitable for Satin, Master-Worker.
  */
-public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
+public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
 
     private static final long serialVersionUID = 1L;
 
     /** Log4j logger. */
-    private static Logger logger = Logger.getLogger(SatinFolder2.class.getName());
+    private static Logger logger = Logger.getLogger(BestBlueMW.class.getName());
 
     /** The heuristic used. */
     private RedBlue folder;
@@ -61,7 +61,7 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
      * @param folder the heuristic to be used for folding.
      * @param maxDepth the search depth.
      */
-    public SatinFolder2(RedBlue folder, int minDepth, int maxDepth) {
+    public BestBlueMW(RedBlue folder, int minDepth, int maxDepth) {
         this.folder = folder;
         this.folder.disableChoices = false;
         this.minDepth = minDepth;
@@ -166,12 +166,12 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
     }
 
     private static class JobBuilder extends Thread {
-        SatinFolder2 satinFolder;
+        BestBlueMW folder;
         int[] control;
         int targetDepth;
 
-        JobBuilder(SatinFolder2 satinFolder, int[] control, int targetDepth) {
-            this.satinFolder = satinFolder;
+        JobBuilder(BestBlueMW folder, int[] control, int targetDepth) {
+            this.folder = folder;
             this.control = new int[control.length];
             this.targetDepth = targetDepth;
             System.arraycopy(control, 0, this.control, 0, control.length);
@@ -180,10 +180,10 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
         public void run() {
             ControlResultPair pop;
             pop = new ControlResultPair(Integer.MAX_VALUE, control, 0, 0);
-            satinFolder.tryExtending(pop, control.length, targetDepth);
-            synchronized(satinFolder) {
-                satinFolder.jobsDone++;
-                satinFolder.notify();
+            folder.tryExtending(pop, control.length, targetDepth);
+            synchronized(folder) {
+                folder.jobsDone++;
+                folder.notify();
             }
         }
     }
@@ -210,7 +210,7 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
     }
 
     /**
-     * Main program of the Satin "SatinFolder2" searcher.
+     * Main program of the Satin "BestBlueMW" searcher.
      * @param args the program arguments.
      */
     public static void main(String[] args) {
@@ -325,7 +325,7 @@ public class SatinFolder2 extends SatinObject implements SatinFolder2Interface {
         initialDFA.setConflicts(conflicts);
         Samples learningSamples = new Samples(iSamples, conflicts);
 
-        SatinFolder2 b = new SatinFolder2(f, minDepth, maxDepth);
+        BestBlueMW b = new BestBlueMW(f, minDepth, maxDepth);
 
         long initializationTime = System.currentTimeMillis();
 

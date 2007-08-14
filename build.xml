@@ -1,6 +1,6 @@
 <project
     name="DFA Inference"
-    default="build"
+    default="jar"
     basedir=".">
 
     <property environment="env"/>
@@ -14,7 +14,7 @@
 
     <property name="satinc-flags" value="-keep"/>
 
-    <property name="satin-main-class" value="DfaInference.SatinFolder DfaInference.BestBlue DfaInference.SatinFolder2, DfaInference.SatinRunner"/>
+    <property name="satin-main-class" value="DfaInference.SatinFolder DfaInference.BestBlue DfaInference.BestBlueMW, DfaInference.SatinRunner"/>
     <property name="satin-so-class" value="DfaInference.Samples"/>
     <property name="main-class" value=""/>
 

@@ -15,7 +15,7 @@ else
     ARGS="$DOARGS"
 fi
 
-prun CLASSPATH=../../build:. -v -o learn-6.out \
+prun CLASSPATH=../../DfaInference.jar:. -v -o learn-6.out \
     -t 2:00:0 \
     $IBIS_HOME/bin/ibis-prun 1 \
     -server -Xmx512M \

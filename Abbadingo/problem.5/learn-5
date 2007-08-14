@@ -4,7 +4,7 @@ ARGS=
 # ARGS="$ARGS -DMissingEdges"
 # ARGS="$ARGS -DUseProductive"
 
-prun CLASSPATH=../../build:. -v -o learn-5.out \
+prun CLASSPATH=../../DfaInference.jar:. -v -o learn-5.out \
     $IBIS_HOME/bin/ibis-prun 8 \
     -server -Xmx256M \
     -Dsatin.closed \

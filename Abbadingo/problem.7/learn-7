@@ -4,7 +4,7 @@ ARGS=
 # ARGS="$ARGS -DMissingEdges"
 # ARGS="$ARGS -DUseProductive"
 
-prun CLASSPATH=../../build:. -t 0:40:0 -v -o learn-7.out \
+prun CLASSPATH=../../DfaInference.jar:. -t 0:40:0 -v -o learn-7.out \
     $IBIS_HOME/bin/ibis-prun 32 \
     -server -Xmx256M \
     -Dsatin.closed \
@@ -12,4 +12,4 @@ prun CLASSPATH=../../build:. -t 0:40:0 -v -o learn-7.out \
     -Dsatin.alg=MW \
     $ARGS \
     DfaInference.SatinFolder \
-    -input ../train.7 -depth 5 -window 192 -dump DfaDump7
+    -input ../train.7 -depth 5 -mw -window 192 -dump DfaDump7

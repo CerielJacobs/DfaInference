@@ -59,14 +59,18 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
     /** Current depth in the search. */
     private transient int currentDepth;
 
+    private transient boolean masterWorker;
+
     /**
      * Constructor.
      * @param f the heuristic to be used.
      * @param dump name of a dump file.
      * @param random whether to use random branches.
      * @param bestf which part not to use for random branches.
+     * @param mw master-worker?
      */
-    public SatinFolder(RedBlue f, String dump, boolean random, int bestf) {
+    public SatinFolder(RedBlue f, String dump, boolean random, int bestf,
+            boolean mw) {
         folder = f;
         if (random) {
             this.random = new Random(1);
@@ -75,6 +79,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
             dumpfile = new File(dump);
         }
         this.bestf = bestf;
+        this.masterWorker = mw;
     }
 
     public double buildPair(ControlResultPair p, Samples learningSamples) {
@@ -82,6 +87,34 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
             logger.debug("buildPair: " + p);
         }
         return tryControl(p.control, learningSamples, MAX_STEPS);
+    }
+
+    public ControlResultPair[] examineChoice(int[] pcontrol, int windex,
+            int percentage, Samples learningSamples) {
+
+        DFA dfa = new DFA(learningSamples.learningSamples);
+        dfa.setConflicts(learningSamples.conflicts);
+        Guidance g = new IntGuidance(pcontrol);
+        Choice[] choice = folder.getOptions(dfa, g, percentage);
+
+        logger.info("choice length = " + choice.length);
+
+        ControlResultPair[] result = new ControlResultPair[choice.length];
+
+        for (int k = 0; k < choice.length; k++) {
+            int[] control = new int[pcontrol.length+1];
+
+            for (int j = 0; j < pcontrol.length; j++) {
+                control[j] = pcontrol[j];
+            }
+            control[pcontrol.length] = k;
+            result[k] = new ControlResultPair(-1, control, windex,
+                    control[pcontrol.length]);
+            logger.debug("Spawning " + result[k]);
+            result[k].score = buildPair(result[k], learningSamples);
+        }
+        sync();
+        return result;
     }
 
     /**
@@ -96,29 +129,35 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
     ControlResultPair[] tryExtending(ControlResultPair[] l, int percentage,
             int scorePercentage, int window, Samples learningSamples) {
         ControlResultPair[][] pairs = new ControlResultPair[l.length][];
+
         for (int i = 0; i < l.length; i++) {
-            DFA dfa = new DFA(learningSamples.learningSamples);
-            dfa.setConflicts(learningSamples.conflicts);
-            ControlResultPair p = l[i];
-            Guidance g;
-            g = new IntGuidance(p.control);
-            Choice[] choice = folder.getOptions(dfa, g, percentage);
-            logger.info("choice length = " + choice.length);
+            if (! masterWorker) {
+                pairs[i] = examineChoice(l[i].control, i, percentage,
+                        learningSamples);
+            }
+            else {
+                DFA dfa = new DFA(learningSamples.learningSamples);
+                dfa.setConflicts(learningSamples.conflicts);
+                ControlResultPair p = l[i];
+                Guidance g = new IntGuidance(p.control);
+                Choice[] choice = folder.getOptions(dfa, g, percentage);
+                logger.info("choice length = " + choice.length);
 
-            int count = choice.length;
+                int count = choice.length;
 
-            pairs[i] = new ControlResultPair[count];
+                pairs[i] = new ControlResultPair[count];
 
-            for (int k = 0; k < count; k++) {
-                int[] control = new int[p.control.length+1];
+                for (int k = 0; k < count; k++) {
+                    int[] control = new int[p.control.length+1];
 
-                for (int j = 0; j < p.control.length; j++) {
-                    control[j] = p.control[j];
+                    for (int j = 0; j < p.control.length; j++) {
+                        control[j] = p.control[j];
+                    }
+                    control[p.control.length] = k;
+                    pairs[i][k] = new ControlResultPair(-1, control, i, control[p.control.length]);
+                    logger.debug("Spawning " + pairs[i][k]);
+                    pairs[i][k].score = buildPair(pairs[i][k], learningSamples);
                 }
-                control[p.control.length] = k;
-                pairs[i][k] = new ControlResultPair(-1, control, i, control[p.control.length]);
-                logger.debug("Spawning " + pairs[i][k]);
-                pairs[i][k].score = buildPair(pairs[i][k], learningSamples);
             }
         }
         sync(); // wait for all spawned jobs.
@@ -322,6 +361,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
         boolean random = false;
         boolean doFold = true;
         boolean printInfo = false;
+        boolean mw = true;
 
         long startTime = System.currentTimeMillis();
 
@@ -395,6 +435,10 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
                 folder = args[i];
             } else if (args[i].equals("-random")) {
                 random = true;
+            } else if (args[i].equals("-mw")) {
+                mw = true;
+            } else if (args[i].equals("-no-mw")) {
+                mw = false;
             } else if (args[i].equals("-no-fold")) {
                 doFold = false;
             } else if (args[i].equals("-printInfo")) {
@@ -436,7 +480,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
 
         int[][] iSamples = Symbols.convert2learn(samples);
 
-        SatinFolder b = new SatinFolder(f, dump, random, bestf);
+        SatinFolder b = new SatinFolder(f, dump, random, bestf, mw);
 
         long initializationTime = System.currentTimeMillis();
 

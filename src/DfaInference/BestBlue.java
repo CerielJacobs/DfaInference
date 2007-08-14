@@ -114,7 +114,8 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
     ControlResultPair doSearch(Samples samples, int minD, int maxD) {
 
         ControlResultPair pop = null;
-        // samples.exportObject();
+
+        samples.exportObject();
 
         for (int i = minD; i <= maxD; i++) {
             int fixD = i - minD;
@@ -203,6 +204,11 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
                 logger.fatal("Unrecognized option: " + args[i]);
                 System.exit(1);
             }
+        }
+
+        if (maxdepth < mindepth) {
+            logger.warn("maxdepth < mindepth, setting to mindepth");
+            maxdepth = mindepth;
         }
 
         Class cl;

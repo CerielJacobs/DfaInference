@@ -15,9 +15,7 @@ public class MDLFold extends RedBlue implements java.io.Serializable {
         boolean foundMerge = false;
 
         if (r == null) {
-            mergeCandidates[numCandidates++]
-                = Choice.getChoice(-1, b.id, dfa.getNumStates(),
-                        getScore());
+            addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(), getScore()));
             return true;
         }
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
@@ -28,8 +26,7 @@ public class MDLFold extends RedBlue implements java.io.Serializable {
             // As long as the sample part of the score is less than the best
             // score found sofar, there is hope ...
             if (sc-dfascore < bestScore) {
-                mergeCandidates[numCandidates++]
-                    = Choice.getChoice(r.id, b.id, dfa.getNumStates(), sc);
+                addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(), sc));
                 foundMerge = true;
             }
         }

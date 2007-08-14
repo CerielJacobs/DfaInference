@@ -132,6 +132,15 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
         numCandidates = 0;
     }
 
+    protected void addChoice(Choice c) {
+        if (numCandidates >= mergeCandidates.length) {
+            Choice[] n = new Choice[2*numCandidates];
+            System.arraycopy(mergeCandidates, 0, n, 0, numCandidates);
+            mergeCandidates = n;
+        }
+        mergeCandidates[numCandidates++] = c;
+    }
+
     /**
      * Evaluates and adds the proposed merge to <code>mergeCandidates</code>,
      * together with a score, unless the proposed merge results in a conflict.

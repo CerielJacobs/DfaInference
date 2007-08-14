@@ -18,16 +18,14 @@ public class EdFold extends RedBlue implements java.io.Serializable {
         boolean foundMerge = false;
 
         if (r == null) {
-            mergeCandidates[numCandidates++]
-                = Choice.getChoice(-1, b.id, dfa.getNumStates(), 0);
+            addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(), 0));
             return true;
         }
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
         if (! dfa.conflict) {
-            mergeCandidates[numCandidates++]
-                = Choice.getChoice(r.id, b.id, dfa.getNumStates(),
-                        -dfa.labelScore);
+            addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
+                        -dfa.labelScore));
             foundMerge = true;
         }
         dfa.undoMerge(u);

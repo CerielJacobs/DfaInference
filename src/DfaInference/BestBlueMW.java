@@ -31,9 +31,6 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
     /** The heuristic used. */
     private RedBlue folder;
 
-    /** Minimum depth of search. */
-    private transient int minDepth;
-
     /** Learning samples. */
     private transient Samples samples;
 
@@ -59,12 +56,11 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
     /**
      * Constructor.
      * @param folder the heuristic to be used for folding.
-     * @param maxDepth the search depth.
      */
-    public BestBlueMW(RedBlue folder, int minDepth, int maxDepth) {
+    public BestBlueMW(DFA initialDFA, RedBlue folder) {
+        this.initialDFA = initialDFA;
         this.folder = folder;
         this.folder.disableChoices = false;
-        this.minDepth = minDepth;
     }
 
     private void walk(ControlResultPair p, int depth, int targetDepth) {
@@ -192,21 +188,38 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
      * Overall search process driver.
      * @param samples the samples to learn from.
      */
-    ControlResultPair doSearch(DFA initialDFA, Samples samples) {
-        this.initialDFA = initialDFA;
+    ControlResultPair doSearch(Samples samples, int minD, int maxD) {
+
+        ControlResultPair pop = null;
+
         samples.exportObject();
+
         this.samples = samples;
 
-        (new JobBuilder(this, new int[0], minDepth)).start();
-        spawnJobs(1);
+        for (int i = minD; i <= maxD; i++) {
+            int fixD = i - minD;
+            int[] control = new int[fixD];
+            if (pop != null) {
+                System.out.print("Fixing up until depth " + fixD + ":");
+                for (int j = 0; j < fixD; j++) {
+                    control[j] = pop.control[j];
+                    System.out.print(" " + control[j]);
+                }
+                System.out.println("");
+            }
+            (new JobBuilder(this, control, i)).start();
+            spawnJobs(1);
+            jobsDone = 0;
 
-        ControlResultPair[] result = new ControlResultPair[results.size()];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = results.get(i).result;
+            ControlResultPair[] result = new ControlResultPair[results.size()];
+            for (int j = 0; j < result.length; j++) {
+                result[j] = results.get(j).result;
+            }
+            results.clear();
+            Arrays.sort(result);
+            pop = result[0];
         }
-        results.clear();
-        Arrays.sort(result);
-        return result[0];
+        return pop;
     }
 
     /**
@@ -325,11 +338,11 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
         initialDFA.setConflicts(conflicts);
         Samples learningSamples = new Samples(iSamples, conflicts);
 
-        BestBlueMW b = new BestBlueMW(f, minDepth, maxDepth);
+        BestBlueMW b = new BestBlueMW(initialDFA, f);
 
         long initializationTime = System.currentTimeMillis();
 
-        ControlResultPair p = b.doSearch(initialDFA, learningSamples);
+        ControlResultPair p = b.doSearch(learningSamples, minDepth, maxDepth);
 
         long searchTime = System.currentTimeMillis();
 

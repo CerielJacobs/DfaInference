@@ -183,7 +183,6 @@ public class GenerateSampleAndTest {
 
         try {
             learn = new BufferedWriter(new FileWriter(prefix + "." + count));
-            test = new BufferedWriter(new FileWriter(prefix + ".test"));
         } catch(IOException e) {
             logger.fatal("Could not open output", e);
             System.exit(1);
@@ -243,6 +242,7 @@ public class GenerateSampleAndTest {
 
             try {
                 // Print number of strings and number of symbols.
+                test = new BufferedWriter(new FileWriter(prefix + ".test"));
                 test.write("" + testcount + " " + nsym);
                 test.newLine();
                 for (int i = 0; i < testcount; i++) {

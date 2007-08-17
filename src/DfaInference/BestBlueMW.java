@@ -97,31 +97,37 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
         return p;
     }
 
-    private synchronized void spawnJobs(int targetCount) {
-        while (jobsDone < targetCount || jobList.size() != 0) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("spawnJobs: waiting ...");
-            }
-            if (jobList.size() == 0) {
-                try {
-                    wait();
-                } catch(Exception e) {
-                    // ignored
+    private void spawnJobs(int targetCount) {
+        logger.warn("Starting spawns");
+        for (;;) {
+            ControlResultPair[] jobs;
+            synchronized(this) {
+                while (jobList.size() == 0) {
+                    if (jobsDone >= targetCount) {
+                        break;
+                    }
+                    try {
+                        wait();
+                    } catch(Exception e) {
+                    }
                 }
-            }
-            if (jobList.size() != 0) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("spawnJobs: spawning ...");
+                if (jobList.size() == 0) {
+                    break;
                 }
-                for (int i = 0; i < jobList.size(); i++) {
-                    ResultContainer r = new ResultContainer();
-                    results.add(r);
-                    ControlResultPair p = jobList.get(i);
-                    r.result = buildPair(p, samples);
-                }
+                jobs = jobList.toArray(new ControlResultPair[jobList.size()]);
                 jobList.clear();
             }
+            if (logger.isDebugEnabled()) {
+                logger.debug("spawnJobs: spawning ...");
+            }
+            for (int i = 0; i < jobs.length; i++) {
+                ResultContainer r = new ResultContainer();
+                results.add(r);
+                ControlResultPair p = jobs[i];
+                r.result = buildPair(p, samples);
+            }
         }
+        logger.warn("Spawns done");
 
         sync();
     }
@@ -136,6 +142,8 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
      * @return the new control/result pair.
      */
     void tryExtending(ControlResultPair p, int depth, int targetDepth) {
+        // DFA dfa = new DFA(samples.learningSamples);
+        // dfa.setConflicts(samples.conflicts);
         DFA dfa = new DFA(initialDFA);
         Guidance g;
         g = new IntGuidance(p.control);

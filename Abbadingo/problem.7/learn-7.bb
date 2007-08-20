@@ -4,10 +4,12 @@ ARGS=
 # ARGS="$ARGS -DMissingEdges"
 # ARGS="$ARGS -DUseProductive"
 
-prun CLASSPATH=../../DfaInference.jar:. -v -o learn-7.bb.out \
-    $IBIS_HOME/bin/ibis-prun 64 \
-    -server -Xmx256M \
+prun -4  CLASSPATH=../../DfaInference.jar:. -v -o learn-7.bb.out \
+    -rsh ssh \
+    $IBIS_HOME/bin/ibis-prun $1 \
+    -server -Xms512M -Xmx512M \
     -Dibis.name=tcp \
+    -Dsatin.closed \
     $ARGS \
     DfaInference.BestBlue \
     -strategy DfaInference.ChoiceCountStrategy \

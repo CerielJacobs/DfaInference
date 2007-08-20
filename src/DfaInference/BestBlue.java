@@ -2,6 +2,12 @@ package DfaInference;
 
 import ibis.satin.SatinObject;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
 
@@ -111,26 +117,54 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
      * Overall search process driver.
      * @param samples the samples to learn from.
      */
-    ControlResultPair doSearch(Samples samples, int minD, int maxD) {
+    ControlResultPair doSearch(Samples samples, int minD, int maxD,
+            File dumpfile) {
 
         ControlResultPair pop = null;
 
         samples.exportObject();
+
+        if (dumpfile != null) {
+            try {
+                BufferedReader br = new BufferedReader(new FileReader(dumpfile));
+                pop = new ControlResultPair(br);
+            } catch(Exception e) {
+                // ignored
+            }
+        }
 
         for (int i = minD; i <= maxD; i++) {
             int fixD = i - minD;
             maxDepth = i;
             int[] control = new int[fixD];
             if (pop != null) {
+                if (pop.control.length > i) {
+                    continue;
+                }
                 System.out.print("Fixing up until depth " + fixD + ":");
                 for (int j = 0; j < fixD; j++) {
                     control[j] = pop.control[j];
                     System.out.print(" " + control[j]);
                 }
                 System.out.println("");
+                System.out.println("Score: " + pop.score);
             }
             pop = tryExtending(new ControlResultPair(Integer.MAX_VALUE, control, 0, 0),
                     fixD, samples);
+
+            if (dumpfile != null) {
+                try {
+                    File temp = File.createTempFile("dfa", "dmp", new File("."));
+                    BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
+                    pop.write(bw);
+                    bw.close();
+                    if (! temp.renameTo(dumpfile)) {
+                        throw new IOException("rename failed");
+                    }
+                } catch(IOException e) {
+                    logger.warn("Could not write dump ...", e);
+                }
+            }
         }
         return pop;
     }
@@ -148,6 +182,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         int mindepth = 5;
         int maxdepth = 5;
         PickBlueStrategy strategy;
+        File dumpfile = null;
 
         long startTime = System.currentTimeMillis();
 
@@ -190,6 +225,13 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
                     System.exit(1);
                 }
                 folder = args[i];
+            } else if (args[i].equals("-dump")) {
+                i++;
+                if (i >= args.length) {
+                    logger.fatal("-dump option requires filename");
+                    System.exit(1);
+                }
+                dumpfile = new File(args[i]);
             } else if (args[i].equals("-output")) {
                 i++;
                 if (i >= args.length) {
@@ -266,7 +308,8 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
 
         long initializationTime = System.currentTimeMillis();
 
-        ControlResultPair p = b.doSearch(learningSamples, mindepth, maxdepth);
+        ControlResultPair p = b.doSearch(learningSamples, mindepth, maxdepth,
+                dumpfile);
 
         long searchTime = System.currentTimeMillis();
 

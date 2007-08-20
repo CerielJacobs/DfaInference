@@ -138,7 +138,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             maxDepth = i;
             int[] control = new int[fixD];
             if (pop != null) {
-                if (pop.control.length > i) {
+                if (pop.control.length >= i) {
                     continue;
                 }
                 System.out.print("Fixing up until depth " + fixD + ":");

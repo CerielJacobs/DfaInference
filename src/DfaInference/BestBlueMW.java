@@ -224,7 +224,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
             int fixD = i - minD;
             int[] control = new int[fixD];
             if (pop != null) {
-                if (pop.control.length > i) {
+                if (pop.control.length >= i) {
                     continue;
                 }
                 System.out.print("Fixing up until depth " + fixD + ":");

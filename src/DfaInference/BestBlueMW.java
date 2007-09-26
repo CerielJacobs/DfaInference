@@ -273,8 +273,9 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
         String outputfile = "LearnedDFA";
         String folder = "DfaInference.EdFold";
         String blueStrategy = "DfaInference.ChoiceCountStrategy";
-        int minDepth = 0;
-        int maxDepth = 0;
+        int minDepth = 5;
+        int maxDepth = -1;
+        boolean maxDepthSpecified = false;
         PickBlueStrategy strategy;
         File dumpfile = null;
 
@@ -298,6 +299,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
                     System.exit(1);
                 }
                 maxDepth = (new Integer(args[i])).intValue();
+                maxDepthSpecified = true;
             } else if (args[i].equals("-strategy")) {
                 i++;
                 if (i >= args.length) {
@@ -337,6 +339,13 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
                 logger.fatal("Unrecognized option: " + args[i]);
                 System.exit(1);
             }
+        }
+
+        if (maxDepth < minDepth) {
+            if (maxDepthSpecified) {
+                logger.warn("maxdepth < mindepth, setting to mindepth");
+            }
+            maxDepth = minDepth;
         }
 
         Class cl;

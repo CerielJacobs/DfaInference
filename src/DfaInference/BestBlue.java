@@ -180,9 +180,10 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         String blueStrategy = "DfaInference.ChoiceCountStrategy";
         boolean printInfo = false;
         int mindepth = 5;
-        int maxdepth = 5;
+        int maxdepth = -1;
         PickBlueStrategy strategy;
         File dumpfile = null;
+        boolean maxDepthSpecified = false;
 
         long startTime = System.currentTimeMillis();
 
@@ -204,6 +205,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
                     System.exit(1);
                 }
                 maxdepth = (new Integer(args[i])).intValue();
+                maxDepthSpecified = true;
             } else if (args[i].equals("-strategy")) {
                 i++;
                 if (i >= args.length) {
@@ -249,7 +251,9 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         }
 
         if (maxdepth < mindepth) {
-            logger.warn("maxdepth < mindepth, setting to mindepth");
+            if (maxDepthSpecified) {
+                logger.warn("maxdepth < mindepth, setting to mindepth");
+            }
             maxdepth = mindepth;
         }
 

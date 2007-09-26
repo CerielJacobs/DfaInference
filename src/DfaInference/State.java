@@ -399,7 +399,7 @@ public final class State implements java.io.Serializable, Configuration,
     }
 
     /**
-     * Initializes for another run of {@link #doCount(int, int[][])}.
+     * Initializes for another run of {@link #doCount(int, double[][])}.
      */
     public void initCount() {
         maxLenComputed = 0;
@@ -419,7 +419,7 @@ public final class State implements java.io.Serializable, Configuration,
      * @param counts the counts array, first index is length, second index is
      *   state number.
      */
-    public void doCount(int maxlen, int[][] counts) {
+    public void doCount(int maxlen, double[][] counts) {
         if (maxlen > maxLenComputed) {
             for (int i = 0; i < children.length; i++) {
                 State s = children[i];
@@ -431,7 +431,7 @@ public final class State implements java.io.Serializable, Configuration,
             }
 
             for (int j = maxLenComputed; j < maxlen; j++) {
-                int cnt = 0;
+                double cnt = 0;
                 for (int i = 0; i < children.length; i++) {
                     State s = children[i];
                     if (s != null) {
@@ -453,7 +453,7 @@ public final class State implements java.io.Serializable, Configuration,
      *   state number.
      * @param mrk mark of the states for which we must recompute.
      */
-    public void computeUpdate(int maxlen, int[][] counts, int[][] temps, int mrk) {
+    public void computeUpdate(int maxlen, double[][] counts, double[][] temps, int mrk) {
         if (maxlen > maxLenComputed) {
             if (maxlen > 1) {
                 for (int i = 0; i < children.length; i++) {
@@ -468,7 +468,7 @@ public final class State implements java.io.Serializable, Configuration,
             }
 
             for (int j = maxLenComputed; j < maxlen; j++) {
-                int cnt = 0;
+                double cnt = 0;
                 for (int i = 0; i < children.length; i++) {
                     State s = children[i];
                     if (s != null) {

@@ -7,4 +7,4 @@ ARGS="$ARGS -DIncrementalCounts"
 ARGS="$ARGS -DUseProductive"
 ARGS="$ARGS -server"
 
-$IBIS_HOME/bin/ibis-run -Xmx512M $ARGS DfaInference.EdFold -input $1 -output $2
+$SATIN_HOME/bin/ibis-satin-run -Xmx512M $ARGS DfaInference.EdFold -input $1 -output $2

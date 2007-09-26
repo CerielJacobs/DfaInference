@@ -68,18 +68,18 @@ public final class DFA implements java.io.Serializable, Configuration {
      * Counts for number of strings recognized by each state, for
      * all lengths from 0 to maxlen.
      */
-    int [][] counts;
+    double [][] counts;
 
     /**
      * Counts for number of strings recognized by each state of the rejecting
      * dfa, for all lengths from 0 to maxlen.
      */
-    int [][] xCounts;
+    double [][] xCounts;
 
     /**
      * Temporary for counts, for computing updates.
      */
-    private int [][] tempCounts;
+    private double [][] tempCounts;
 
     /** Set when counts are initialized. Used for incremental computations. */
     private boolean counts_done = false;
@@ -795,7 +795,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         }
 
                         if (tempCounts == null || tempCounts.length < states.length) {
-                            tempCounts = new int[states.length][maxlen+1];
+                            tempCounts = new double[states.length][maxlen+1];
                         }
 
                         undo.saveCounts();
@@ -1026,13 +1026,16 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (DFAScore == 0) {
             if (USE_PRODUCTIVE) {
                 if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductive > 0) {
-                    int nXs = nXProductive+missingXEdges;
+                    // int nXs = nXProductive+missingXEdges;
+                    int nXs = nXProductive+1;
                     DFAScore = nXs * (1 + nsym * log2(nXs));
                     DFAScore -= sumLog(nXs-1)/LOG2;
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs));
                 }
-                int ns = nProductive+missingEdges;
+                System.out.println("nProductive = " + nProductive + ", nStates = " + nStates);
+                // int ns = nProductive+missingEdges;
+                int ns = nProductive+1;
                 DFAScore += ns * (1 + nsym * log2(ns));
                 DFAScore -= sumLog(ns-1)/LOG2;
                 // DFAScore += ns * (1.5 + log2(ns));
@@ -1089,16 +1092,16 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if (MDLScore == 0) {
             if (counts == null) {
-                counts = new int[maxlen+1][];
+                counts = new double[maxlen+1][];
                 for (int i = 0; i < counts.length; i++) {
-                    counts[i] = new int[idMap.length];
+                    counts[i] = new double[idMap.length];
                 }
             }
             if (MDL_NEGATIVES) {
                 if (xCounts == null) {
-                    xCounts = new int[maxlen+1][];
+                    xCounts = new double[maxlen+1][];
                     for (int i = 0; i < xCounts.length; i++) {
-                        xCounts[i] = new int[idMap.length];
+                        xCounts[i] = new double[idMap.length];
                     }
                 }
             }
@@ -1118,7 +1121,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 State[] myStates = reachCount();
                 int totalCount = 0;
                 for (int i = 0; i < myStates.length; i++) {
-                    int cnt = 0;
+                    double cnt = 0;
                     int id = myStates[i].id;
                     for (int j = 0; j <= maxlen; j++) {
                         cnt += counts[j][id];
@@ -1136,7 +1139,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 logger.debug("totalCount = " + totalCount);
                 MDLScore = score;
             } else {
-                int n = computeNStrings(maxlen, counts, ACCEPTING);
+                double n = computeNStrings(maxlen, counts, ACCEPTING);
                 MDLScore = approximate2LogNoverK(n, numRecognized);
 
                 if (MDL_NEGATIVES && numRejected > 0) {
@@ -1356,12 +1359,12 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
     }
 
-    private void computeCounts(State[] states, int[][] counts) {
+    private void computeCounts(State[] states, double[][] counts) {
         for (int j = 1; j <= maxlen; j++) {
-            int[] countjm1 = counts[j-1];
+            double[] countjm1 = counts[j-1];
             for (int i = 0; i < states.length; i++) {
                 State s = states[i];
-                int cnt = 0;
+                double cnt = 0;
                 for (int k = 0; k < nsym; k++) {
                     State sk = s.children[k];
                     if (sk != null) {
@@ -1382,7 +1385,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      * the accepting DFA.
      * @return the number of strings recognized.
      */
-    private int computeNStrings(int l, int[][] count, int acceptOrReject) {
+    private double computeNStrings(int l, double[][] count, int acceptOrReject) {
         BitSet h = null;
         if (! INCREMENTAL_COUNTS || ! counts_done) {
             State[] myStates = startState.breadthFirst();
@@ -1439,7 +1442,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             startState.doCount(l, count);
         }
 
-        int n = 0;
+        double n = 0;
         for (int i = 0; i <= l; i++) {
             n += count[i][startState.id];
         }
@@ -1483,11 +1486,11 @@ public final class DFA implements java.io.Serializable, Configuration {
         for (int k = 1; k <= maxlen; k++) {
             int mark = getMark();
             c2 = 0;
-            int[] countk = counts[k];
-            int[] countkm1 = counts[k-1];
+            double[] countk = counts[k];
+            double[] countkm1 = counts[k-1];
             for (int i = 0; i < c1; i++) {
                 State s = l1[i];
-                int km1 = countkm1[s.id];
+                double km1 = countkm1[s.id];
                 for (int j = 0; j < s.children.length; j++) {
                     State sj = s.children[j];
                     if (sj != null) {

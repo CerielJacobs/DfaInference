@@ -4,4 +4,4 @@
 # Generates a DFA with about <nstates> states and <nsyms> different tokens,
 # and writes the result to file <file>.
 
-$IBIS_HOME/bin/ibis-run -Xmx256M generate.GenerateDFA -states $1 -syms $2 -f $3
+$SATIN_HOME/bin/ibis-satin-run -Xmx256M generate.GenerateDFA -states $1 -syms $2 -f $3

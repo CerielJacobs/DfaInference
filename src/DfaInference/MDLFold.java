@@ -25,7 +25,7 @@ public class MDLFold extends RedBlue implements java.io.Serializable {
 
             // As long as the sample part of the score is less than the best
             // score found sofar, there is hope ...
-            if (sc-dfascore < bestScore) {
+            if (pickBlueStrategy != null || sc-dfascore < bestScore) {
                 addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(), sc));
                 foundMerge = true;
             }

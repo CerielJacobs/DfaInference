@@ -88,7 +88,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
     public boolean printInfo = false;
 
     /** Optional strategy for picking blue states to deal with first. */
-    private PickBlueStrategy pickBlueStrategy = null;
+    protected PickBlueStrategy pickBlueStrategy = null;
 
     /**
      * Initializes from a sample.

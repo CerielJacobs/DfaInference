@@ -56,6 +56,15 @@ public final class DFA implements java.io.Serializable, Configuration {
             str = "DFA score configuration:";
             if (USE_PRODUCTIVE) {
                 str += " ProductiveCounts";
+                if (NEW_DFA_COUNT) {
+                    logger.fatal("NewDFACount not supported in combination "
+                            + "with Productive");
+                    System.exit(1);
+                }
+            }
+
+            if (NEW_DFA_COUNT) {
+                str += " NewDFACount";
             }
             logger.info(str);
         }
@@ -1033,29 +1042,35 @@ public final class DFA implements java.io.Serializable, Configuration {
             return Double.MAX_VALUE;
         }
         if (DFAScore == 0) {
-            if (NEW_DFA_COUNT) {
-                // N*(1+2log(S+1)) + E*(2log(S)+2log(N)) - 2log((N-1)!)
-                System.out.println("nEdges = " + nEdges + ", nStates = " + nStates);
-                DFAScore = nStates * (1+log2(nsym+1))
-                    + nEdges * (log2(nsym) + log2(nStates))
-                    - sumLog(nStates-1)/LOG2;
-            } else if (USE_PRODUCTIVE) {
+            if (USE_PRODUCTIVE) {
                 if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductive > 0) {
                     // int nXs = nXProductive+missingXEdges;
-                    int nXs = nXProductive+1;
-                    DFAScore = nXs * (1 + nsym * log2(nXs));
+                    int nXs = nXProductive;
+                    DFAScore = nXs * (1 + nsym * log2(nXs+1));
                     DFAScore -= sumLog(nXs-1)/LOG2;
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs));
                 }
                 // int ns = nProductive+missingEdges;
-                int ns = nProductive+1;
-                DFAScore += ns * (1 + nsym * log2(ns));
+                int ns = nProductive;
+                DFAScore += ns * (1 + nsym * log2(ns+1));
                 DFAScore -= sumLog(ns-1)/LOG2;
                 // DFAScore += ns * (1.5 + log2(ns));
             } else {
-                int ns = nStates+1;
-                DFAScore = ns * (1 + nsym * log2(ns));
+                int ns = nStates;
+                if (NEW_DFA_COUNT) {
+                    // Different encoding: For each state:
+                    // number of outgoing edges + 1 bit for accepting,
+                    // for each edge the symbol + the destination state.
+                    // With redundancy compensation.
+                    // N*(1+2log(S+1)) + E*(2log(S)+2log(N)) - 2log((N-1)!)
+                    // This encoding is much much better for sparse DFAs (like
+                    // Prefix Tree Acceptors :-)
+                    DFAScore += ns * (1+log2(nsym+1))
+                        + nEdges * (log2(nsym) + log2(ns));
+                } else {
+                    DFAScore = ns * (1 + nsym * log2(ns+1));
+                }
                 DFAScore -= sumLog(ns-1)/LOG2;
                 // DFAScore = ns * (1.5 + log2(ns));
             }

@@ -158,10 +158,6 @@ public final class DFA implements java.io.Serializable, Configuration {
     int[] accepts;
     int[] rejects;
 
-    double trivialDFAScore = 0.0;
-
-    double PTAScore = 0.0;
-
     /**
      * Basic constructor, creates an empty DFA.
      * @param nsym the number of symbols used.
@@ -207,11 +203,11 @@ public final class DFA implements java.io.Serializable, Configuration {
             nsentences = (Math.pow(nsym, maxlen+1) -1) / (nsym - 1);
         }
 
-        PTAScore = getMDLComplexity();
-        trivialDFAScore = FACTOR * approximate2LogNoverK(nsentences, samples.length);
-
-        logger.debug("PTAScore = " + PTAScore);
-        logger.debug("trivialScore = " + trivialDFAScore);
+        if (logger.isInfoEnabled()) {
+            logger.info("PTAScore = " + getMDLComplexity());
+            logger.info("trivialScore = "
+                    + approximate2LogNoverK(nsentences, samples.length));
+        }
     }
 
     /**
@@ -231,8 +227,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         DFAScore = dfa.DFAScore;
         nProductive = dfa.nProductive;
         nXProductive = dfa.nXProductive;
-        trivialDFAScore = dfa.trivialDFAScore;
-        PTAScore = dfa.PTAScore;
 
         startState = dfa.startState.copy();
         idMap = startState.breadthFirst();
@@ -1185,12 +1179,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             counts_done = true;
         }
 
-        double score = DFAScore;
-        if (trivialDFAScore != 0) {
-            score += MDLScore + MDLScore * (PTAScore / trivialDFAScore);
-        } else {
-            score += MDLScore;
-        }
+        double score = DFAScore + MDLScore;
         if (logger.isDebugEnabled()) {
             logger.debug("getMDLComplexity: MDLscore = "
                     + MDLScore + ", DFAscore = " + DFAScore

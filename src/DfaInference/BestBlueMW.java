@@ -73,7 +73,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
         if (logger.isDebugEnabled()) {
             logger.debug("walk: " + p);
         }
-        if (depth == targetDepth) {
+        if (depth >= targetDepth) {
             synchronized(this) {
                 jobList.add(p);
                 notify();

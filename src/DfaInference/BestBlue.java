@@ -54,7 +54,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         if (logger.isDebugEnabled()) {
             logger.debug("buildPair: " + p);
         }
-        if (depth == maxDepth) {
+        if (depth >= maxDepth) {
             p.score = tryControl(p.control, learningSamples);
             return p;
         }

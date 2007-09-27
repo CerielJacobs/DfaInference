@@ -268,6 +268,9 @@ public final class UndoInfo implements Configuration {
     /** Saved number of states. */
     int nStates;
 
+    /** Saved number of edges. */
+    int nEdges;
+
     /** Saved MDL score. */
     double MDLScore;
 
@@ -319,6 +322,7 @@ public final class UndoInfo implements Configuration {
         }
         si.dfa = dfa;
         si.nStates = dfa.nStates;
+        si.nEdges = dfa.nEdges;
         si.MDLScore = dfa.MDLScore;
         si.DFAScore = dfa.DFAScore;
         si.nProductive = dfa.nProductive;
@@ -412,6 +416,7 @@ public final class UndoInfo implements Configuration {
         dfa.MDLScore = MDLScore;
         dfa.DFAScore = DFAScore;
         dfa.nStates = nStates;
+        dfa.nEdges = nEdges;
         dfa.nProductive = nProductive;
         dfa.nXProductive = nXProductive;
         dfa.missingEdges = missingEdges;

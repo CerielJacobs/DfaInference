@@ -100,6 +100,9 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Number of states in this DFA. */
     int nStates;
 
+    /** Number of edges in this DFA. */
+    int nEdges;
+
     /** MDL Score of sample. */
     double MDLScore = 0;
 
@@ -156,6 +159,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      */
     public DFA(int nsym) {
         nStates = 1;
+        nEdges = 0;
         this.nsym = nsym;
         startState = new State(nsym);
     }
@@ -208,6 +212,7 @@ public final class DFA implements java.io.Serializable, Configuration {
     public DFA(DFA dfa) {
 
         nStates = dfa.nStates;
+        nEdges = dfa.nEdges;
         samples = dfa.samples;
         maxlen = dfa.maxlen;
         numRecognized = dfa.numRecognized;
@@ -297,6 +302,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     startState = new State(nsym);
                     nodes.put(startNodeId, startState);
                     nStates = 1;
+                    nEdges = 0;
                     break;
 
                 case 'N':
@@ -360,6 +366,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         } else {
                             s.addEdge(d, label);
                         }
+                        nEdges++;
                         break;
                     }
 
@@ -486,6 +493,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (target == null) {
                 target = n.addDestination(symbols[i]);
                 nStates++;
+                nEdges++;
             }
             n = target;
         }
@@ -931,6 +939,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 State v1 = n1.children[i];
                 if (v1 != null) {
                     // System.out.println("    v1 = " + v1.id + ", v2 = " + v2.id);
+                    nEdges--;
                     if ((n1.productive & ACCEPTING) != 0 &&
                         (v1.productive & ACCEPTING) == 0 &&
                         (v2.productive & ACCEPTING) != 0) {
@@ -1024,7 +1033,13 @@ public final class DFA implements java.io.Serializable, Configuration {
             return Double.MAX_VALUE;
         }
         if (DFAScore == 0) {
-            if (USE_PRODUCTIVE) {
+            if (NEW_DFA_COUNT) {
+                // N*(1+2log(S+1)) + E*(2log(S)+2log(N)) - 2log((N-1)!)
+                System.out.println("nEdges = " + nEdges + ", nStates = " + nStates);
+                DFAScore = nStates * (1+log2(nsym+1))
+                    + nEdges * (log2(nsym) + log2(nStates))
+                    - sumLog(nStates-1)/LOG2;
+            } else if (USE_PRODUCTIVE) {
                 if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductive > 0) {
                     // int nXs = nXProductive+missingXEdges;
                     int nXs = nXProductive+1;
@@ -1033,7 +1048,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs));
                 }
-                System.out.println("nProductive = " + nProductive + ", nStates = " + nStates);
                 // int ns = nProductive+missingEdges;
                 int ns = nProductive+1;
                 DFAScore += ns * (1 + nsym * log2(ns));

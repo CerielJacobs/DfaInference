@@ -137,7 +137,7 @@ public class Sampler2 extends EdFold {
                         if (choices[i][j].length == level+1) {
                             Sampler2 s = new Sampler2(learningSamples, choices[i][j]);
                             s.fold(randomDepth);
-                            populationScores[i][j] = s.dfa.nProductive;
+                            populationScores[i][j] = s.dfa.nProductiveStates;
                         }
                     }
                 }
@@ -303,7 +303,7 @@ public class Sampler2 extends EdFold {
 
         Sampler2 s = new Sampler2(learningSamples, bestChoice);
         s.fold(randomDepth);
-        int nstates = s.dfa.nProductive;
+        int nstates = s.dfa.nProductiveStates;
 
         logger.info("Learned DFA with " + nstates + " states");
         logger.info("and the winner is:\n" + s.dfa);

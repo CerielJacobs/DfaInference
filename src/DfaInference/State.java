@@ -175,6 +175,24 @@ public final class State implements java.io.Serializable, Configuration,
     }
 
     /**
+     * Returns the number of productive edges for this state.
+     * @param flag either <code>ACCEPTING</code> or <code>REJECTING</code>.
+     * @return the number of productive edges.
+     */
+    public int productiveEdges(byte flag) {
+        if ((productive & flag) == 0) {
+            return 0;
+        }
+        int cnt = 0;
+        for (int i = 0; i < children.length; i++) {
+            if (children[i] != null && (children[i].productive & flag) != 0) {
+                cnt++;
+            }
+        }
+        return cnt;
+    }
+
+    /**
      * Adds a conflict for the current state with the specified state.
      * Note that this does not have to be a direct conflict, but could
      * be the result of a merge attempts that fails because it results
@@ -362,7 +380,7 @@ public final class State implements java.io.Serializable, Configuration,
      * @param mask either REJECTING or ACCEPTING.
      * @return the set of productive states.
      */
-    public int computeProductive(byte mask) {
+    public int computeProductiveStates(byte mask) {
         State[] l = breadthFirst();
         boolean change = true;
         int cnt = 0;

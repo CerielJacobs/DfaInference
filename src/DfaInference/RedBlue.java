@@ -380,11 +380,11 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
                 String str = "Score after merge = " + getScore()
                     + ", nStates = " + dfa.nStates;
                 if (USE_PRODUCTIVE) {
-                    str += ", nProductive = " + dfa.nProductive;
+                    str += ", nProductiveStates = " + dfa.nProductiveStates;
                 }
                 if (MDL_NEGATIVES) {
                     if (USE_PRODUCTIVE) {
-                        str += ", nXProductive = " + dfa.nXProductive;
+                        str += ", nXProductiveStates = " + dfa.nXProductiveStates;
                     }
                 }
                 // str += ", MDL score = " + dfa.getMDLComplexity();

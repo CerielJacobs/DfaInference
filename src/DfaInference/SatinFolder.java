@@ -504,7 +504,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
             System.out.println("The winner DFA has MDL complexity "
                     + bestDFA.getMDLComplexity()
                     + ", DFA complexity " + bestDFA.getDFAComplexity()
-                    + " and " + bestDFA.nProductive + " states");
+                    + " and " + bestDFA.nProductiveStates + " states");
             System.out.println("Total time     = " + (double)(endTime - startTime) / 1000.0);
             System.out.println("Initialization = " + (double)(initializationTime - startTime) / 1000.0);
             System.out.println("Search         = " + (double)(searchTime - initializationTime) / 1000.0);

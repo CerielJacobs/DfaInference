@@ -266,28 +266,34 @@ public final class UndoInfo implements Configuration {
     private UndoInfo next;
 
     /** Saved number of states. */
-    int nStates;
+    private int nStates;
 
     /** Saved number of edges. */
-    int nEdges;
+    private int nEdges;
 
     /** Saved MDL score. */
-    double MDLScore;
+    private double MDLScore;
 
     /** Saved DFA score. */
-    double DFAScore;
+    private double DFAScore;
 
     /** Saved number of productive states. */
-    int nProductive;
+    private int nProductiveStates;
 
     /** Saved number of productive states in rejecting DFA. */
-    int nXProductive;
+    private int nXProductiveStates;
+
+    /** Saved number of productive edges. */
+    private int nProductiveEdges;
+
+    /** Saved number of productive edges in rejecting DFA. */
+    private int nXProductiveEdges;
 
     /** Missing edges in DFA. */
-    int missingEdges;
+    private int missingEdges;
 
     /** Missing edges in rejecting DFA. */
-    int missingXEdges;
+    private int missingXEdges;
 
     /** Collects all Undo info. */
     private StateInfo savedStates;
@@ -325,8 +331,10 @@ public final class UndoInfo implements Configuration {
         si.nEdges = dfa.nEdges;
         si.MDLScore = dfa.MDLScore;
         si.DFAScore = dfa.DFAScore;
-        si.nProductive = dfa.nProductive;
-        si.nXProductive = dfa.nXProductive;
+        si.nProductiveStates = dfa.nProductiveStates;
+        si.nXProductiveStates = dfa.nXProductiveStates;
+        si.nProductiveEdges = dfa.nProductiveEdges;
+        si.nXProductiveEdges = dfa.nXProductiveEdges;
         si.missingEdges = dfa.missingEdges;
         si.missingXEdges = dfa.missingXEdges;
         si.countsInitialized = false;
@@ -417,8 +425,10 @@ public final class UndoInfo implements Configuration {
         dfa.DFAScore = DFAScore;
         dfa.nStates = nStates;
         dfa.nEdges = nEdges;
-        dfa.nProductive = nProductive;
-        dfa.nXProductive = nXProductive;
+        dfa.nProductiveStates = nProductiveStates;
+        dfa.nXProductiveStates = nXProductiveStates;
+        dfa.nProductiveEdges = nProductiveEdges;
+        dfa.nXProductiveEdges = nXProductiveEdges;
         dfa.missingEdges = missingEdges;
         dfa.missingXEdges = missingXEdges;
 

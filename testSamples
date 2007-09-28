@@ -1,12 +1,15 @@
+for t in EDSM V1 V2 V3 V4 V5
+do
 for i in 0 1 2 3 4 5 6 7 8 9
 do
 for j in 0 1 2 3 4 5 6 7 8 9
 do
 for k in 0 1 2 3 4 5 6 7 8 9
 do
-    name=$i$j$k
-    dfa=DFAs/DFA-$name
-    sh bin/testSample learned.$1/Learned-$name $dfa.test $dfa
+    name=$i$j$k.$1
+    dfa=DFAs/DFA-$i$j$k
+    sh bin/testSample learned.$t/Learned-$name $dfa.test $dfa
 done
 done
-done > testSamples.out.$1
+done > testSamples.out.$t.$1
+done

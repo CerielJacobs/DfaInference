@@ -1061,6 +1061,12 @@ public final class DFA implements java.io.Serializable, Configuration {
      * Note that any permutation of the states will do, so there is a lot
      * of redundancy in this representation. In fact, (nStates-1)! redundancy,
      * so we deduct log2((nStates-1)!) (the start state is fixed).
+     * The NEW_DFA_COUNT mechanism uses a different encoding:
+     * For each state: number of outgoing edges + 1 bit for accepting,
+     * for each edge the symbol + the destination state. With redundancy
+     * compensation. N*(1+2log(S+1)) + E*(2log(S)+2log(N)) - 2log((N-1)!)
+     * This encoding is much much better for sparse DFAs (like Prefix Tree
+     * Acceptors :-).
      *
      * @return  the actual sum for the DFA
      */
@@ -1071,24 +1077,24 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (DFAScore == 0) {
             if (USE_PRODUCTIVE) {
                 if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
-                    // int nXs = nXProductiveStates+missingXEdges;
                     int nXs = nXProductiveStates;
                     if (NEW_DFA_COUNT) {
                         DFAScore = nXs * (1+log2(nsym+1))
                             + nXProductiveEdges * (log2(nsym) + log2(nXs));
                     } else {
+                        // nXs = nXProductiveStates+missingXEdges;
                         DFAScore = nXs * (1 + nsym * log2(nXs+1));
                     }
                     DFAScore -= sumLog(nXs-1)/LOG2;
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs));
                 }
-                // int ns = nProductiveStates+missingEdges;
                 int ns = nProductiveStates;
                 if (NEW_DFA_COUNT) {
                     DFAScore += ns * (1+log2(nsym+1))
                         + nProductiveEdges * (log2(nsym) + log2(ns));
                 } else {
+                    // ns = nProductiveStates+missingEdges;
                     DFAScore += ns * (1 + nsym * log2(ns+1));
                 }
                 DFAScore -= sumLog(ns-1)/LOG2;
@@ -1096,13 +1102,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             } else {
                 int ns = nStates;
                 if (NEW_DFA_COUNT) {
-                    // Different encoding: For each state:
-                    // number of outgoing edges + 1 bit for accepting,
-                    // for each edge the symbol + the destination state.
-                    // With redundancy compensation.
-                    // N*(1+2log(S+1)) + E*(2log(S)+2log(N)) - 2log((N-1)!)
-                    // This encoding is much much better for sparse DFAs (like
-                    // Prefix Tree Acceptors :-)
                     DFAScore = ns * (1+log2(nsym+1))
                         + nEdges * (log2(nsym) + log2(ns));
                 } else {
@@ -1261,6 +1260,14 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (nProductiveStates != nprod) {
             logger.error("nProductiveStates = " + nProductiveStates + ", size = "
                     + nprod
+                    + ", DFA = \n" + dumpDFA());
+            ok = false;
+        }
+
+        int nedges = computeProductiveEdges(ACCEPTING);
+        if (nProductiveEdges != nedges) {
+            logger.error("nProductiveEdges = " + nProductiveEdges + ", size = "
+                    + nedges
                     + ", DFA = \n" + dumpDFA());
             ok = false;
         }

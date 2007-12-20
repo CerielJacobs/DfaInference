@@ -16,14 +16,6 @@
 	</antcall>
     </target>
 
-    <target name="run"
-	    depends="compile"
-	    description="Run">
-	<antcall target="runseq">
-		<param name="runjob" value="main.Main -l train.1"/>
-	</antcall>
-    </target>
-
     <target name="docs"
         description="Build JavaDoc documentation in `docs' directory">
 	<!-- Create the javadoc directory -->

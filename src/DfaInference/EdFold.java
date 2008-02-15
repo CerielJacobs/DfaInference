@@ -82,13 +82,14 @@ public class EdFold extends RedBlue implements java.io.Serializable {
             System.exit(1);
         }
 
-        int[][] learningSamples = Symbols.convert2learn(samples);
+        Symbols symbols = new Symbols();
+        int[][] learningSamples = symbols.convert2learn(samples);
 
 
         EdFold m = new EdFold();
         m.printInfo = true;
         logger.info("Starting fold ...");
-        DFA bestDFA = m.doFold(new Samples(learningSamples, null),
+        DFA bestDFA = m.doFold(new Samples(symbols, learningSamples, null),
                 new Guidance(), 0);
 
         if (logger.isInfoEnabled()) {

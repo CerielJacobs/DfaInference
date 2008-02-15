@@ -7,11 +7,14 @@ public final class Samples extends ibis.satin.SharedObject
 
     private static final long serialVersionUID = 1L;
 
+    Symbols symbols;
+    
     int [][] learningSamples;
     
     BitSet[] conflicts;
 
-    Samples(int[][] learningSamples, BitSet[] conflicts) {
+    Samples(Symbols symbols, int[][] learningSamples, BitSet[] conflicts) {
+        this.symbols = symbols;
         this.learningSamples = learningSamples;
         this.conflicts = conflicts;
     }

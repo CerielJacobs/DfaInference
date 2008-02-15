@@ -178,7 +178,8 @@ public class BeamFold {
             System.exit(1);
         }
 
-        int[][] iSamples = Symbols.convert2learn(samples);
+        Symbols symbols = new Symbols();
+        int[][] iSamples = symbols.convert2learn(samples);
 
         Class cl;
         try {
@@ -195,9 +196,9 @@ public class BeamFold {
             throw new Error("Could not instantiate " + folder, e);
         }
 
-        DFA dfa = new DFA(iSamples);
+        DFA dfa = new DFA(symbols, iSamples);
         BitSet[] conflicts = dfa.computeConflicts();
-        Samples learningSamples = new Samples(iSamples, conflicts);
+        Samples learningSamples = new Samples(symbols, iSamples, conflicts);
 
         BeamFold b = new BeamFold(learningSamples, f);
 

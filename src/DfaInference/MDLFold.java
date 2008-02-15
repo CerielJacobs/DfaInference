@@ -75,12 +75,13 @@ public class MDLFold extends RedBlue implements java.io.Serializable {
             System.exit(1);
         }
 
-        int[][] learningSamples = Symbols.convert2learn(samples);
+        Symbols symbols = new Symbols();
+        int[][] learningSamples = symbols.convert2learn(samples);
 
 
         MDLFold m = new MDLFold();
         m.printInfo = true;
-        DFA bestDFA = m.doFold(new Samples(learningSamples, null),
+        DFA bestDFA = m.doFold(new Samples(symbols, learningSamples, null),
                 new Guidance(), 0);
 
         if (logger.isInfoEnabled()) {

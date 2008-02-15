@@ -191,7 +191,8 @@ public class ExhSearch implements java.io.Serializable {
             System.exit(1);
         }
 
-        int[][] learningSamples = Symbols.convert2learn(samples);
+        Symbols symbols = new Symbols();
+        int[][] learningSamples = symbols.convert2learn(samples);
 
         /*
            for (int i = 1; i < max; i++) {
@@ -214,7 +215,7 @@ public class ExhSearch implements java.io.Serializable {
            }
            }
            */
-        DFA dfa = new DFA(learningSamples);
+        DFA dfa = new DFA(symbols, learningSamples);
         if (logger.isInfoEnabled()) {
             logger.info("Max = " + max + ", initial DFA has complexity "
                     + dfa.getMDLComplexity());

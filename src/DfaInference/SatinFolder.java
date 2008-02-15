@@ -92,7 +92,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
     public ControlResultPair[] examineChoice(int[] pcontrol, int windex,
             int percentage, Samples learningSamples) {
 
-        DFA dfa = new DFA(learningSamples.learningSamples);
+        DFA dfa = new DFA(learningSamples.symbols, learningSamples.learningSamples);
         dfa.setConflicts(learningSamples.conflicts);
         Guidance g = new IntGuidance(pcontrol);
         Choice[] choice = folder.getOptions(dfa, g, percentage);
@@ -136,7 +136,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
                         learningSamples);
             }
             else {
-                DFA dfa = new DFA(learningSamples.learningSamples);
+                DFA dfa = new DFA(learningSamples.symbols, learningSamples.learningSamples);
                 dfa.setConflicts(learningSamples.conflicts);
                 ControlResultPair p = l[i];
                 Guidance g = new IntGuidance(p.control);
@@ -478,7 +478,8 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
             System.exit(1);
         }
 
-        int[][] iSamples = Symbols.convert2learn(samples);
+        Symbols symbols = new Symbols();
+        int[][] iSamples = symbols.convert2learn(samples);
 
         SatinFolder b = new SatinFolder(f, dump, random, bestf, mw);
 
@@ -487,7 +488,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
         BitSet[] conflicts = null;
         // DFA dfa = new DFA(iSamples);
         // conflicts = dfa.computeConflicts();
-        Samples learningSamples = new Samples(iSamples, conflicts);
+        Samples learningSamples = new Samples(symbols, iSamples, conflicts);
 
         ControlResultPair p = b.doSearch(window, depth, percentage,
                 scorePercentage, learningSamples);

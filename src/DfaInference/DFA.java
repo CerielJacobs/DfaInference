@@ -65,6 +65,8 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
     };
 
+    public Symbols symbols;
+
     /** The learning samples. */
     int[][] samples;
 
@@ -168,14 +170,16 @@ public final class DFA implements java.io.Serializable, Configuration {
         nEdges = 0;
         this.nsym = nsym;
         startState = new State(nsym);
+        symbols = new Symbols();
     }
 
     /**
      * Constructor, creates a DFA recognizing the specified samples.
      * @param samples the samples
      */
-    public DFA(int[][] samples) {
+    public DFA(Symbols symbols, int[][] samples) {
         this(getNumSyms(samples));
+        this.symbols = symbols;
 
         runSample(samples);
         saved = new State[nStates];
@@ -229,6 +233,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         nXProductiveStates = dfa.nXProductiveStates;
         nProductiveEdges = dfa.nProductiveEdges;
         nXProductiveEdges = dfa.nXProductiveEdges;
+        symbols = new Symbols(symbols);
 
         startState = dfa.startState.copy();
         idMap = startState.breadthFirst();
@@ -279,6 +284,8 @@ public final class DFA implements java.io.Serializable, Configuration {
      */
     public DFA(Reader r) {
         HashMap<Integer, State> nodes = new HashMap<Integer, State>();
+        
+        symbols = new Symbols();
 
         try {
             String line;
@@ -348,7 +355,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                             throw new Error("File format error: Invalid E line (2)!");
                         }
                         String label_s = line.substring(lastLastIndex+1,lastIndex);
-                        int label = Symbols.addSymbol(label_s);
+                        int label = symbols.addSymbol(label_s);
                         String to = line.substring(lastIndex+1);
 
                         Integer fromVal = new Integer(from);
@@ -487,14 +494,14 @@ public final class DFA implements java.io.Serializable, Configuration {
      */
     public int[] stringToSymbols(String sentence) {
         int len = sentence.length();
-        int [] symbols = new int[len+1];
+        int [] syms = new int[len+1];
 
-        symbols[0] = len;
+        syms[0] = len;
         for (int i = 0; i < len; i++) {
             String substr = sentence.substring(i, i+1);
-            symbols[i+1] = Symbols.addSymbol(substr);
+            syms[i+1] = symbols.addSymbol(substr);
         }
-        return symbols;
+        return syms;
     }
 
     /**
@@ -1405,7 +1412,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     State e = s.traverseLink(j);
                     if (e != null
                             && (allStates || (e.productive & ACCEPTING) != 0)) {
-                        w.write("E" + index + ":" + Symbols.getSymbol(j) + ":"
+                        w.write("E" + index + ":" + symbols.getSymbol(j) + ":"
                                 + (allStates ? e.id : ((Integer) h.get(e)).intValue()) + "\n");
                             }
                 }

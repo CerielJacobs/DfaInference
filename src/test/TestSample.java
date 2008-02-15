@@ -5,7 +5,6 @@ import java.io.FileReader;
 import org.apache.log4j.Logger;
 
 import DfaInference.DFA;
-import DfaInference.Symbols;
 import abbadingo.AbbaDingoReader;
 import abbadingo.AbbaDingoString;
 
@@ -86,7 +85,7 @@ public class TestSample {
             System.exit(1);
         }
 
-        int[][] testSamples = Symbols.convert2learn(samples);
+        int[][] testSamples = dfa.symbols.convert2learn(samples);
 
         if (baseDFA == null) {
             for (int i = 0; i < testSamples.length; i++) {
@@ -99,9 +98,10 @@ public class TestSample {
         } else {
             int okCount = 0;
             int notOkCount = 0;
+            int[][] baseTestSamples = baseDFA.symbols.convert2learn(samples);
             for (int i = 0; i < testSamples.length; i++) {
                 if (dfa.recognize(testSamples[i])
-                        != baseDFA.recognize(testSamples[i])) {
+                        != baseDFA.recognize(baseTestSamples[i])) {
                     notOkCount++;
                 } else {
                     okCount++;

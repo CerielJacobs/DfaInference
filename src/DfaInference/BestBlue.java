@@ -72,7 +72,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
     ControlResultPair tryExtending(ControlResultPair p, int depth,
             Samples learningSamples) {
         ControlResultPair[] pairs;
-        DFA dfa = new DFA(learningSamples.learningSamples);
+        DFA dfa = new DFA(learningSamples.symbols, learningSamples.learningSamples);
         dfa.setConflicts(learningSamples.conflicts);
         Guidance g;
         g = new IntGuidance(p.control);
@@ -301,12 +301,13 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             System.exit(1);
         }
 
-        int[][] iSamples = Symbols.convert2learn(samples);
+        Symbols symbols = new Symbols();
+        int[][] iSamples = symbols.convert2learn(samples);
 
-        DFA dfa = new DFA(iSamples);
+        DFA dfa = new DFA(symbols, iSamples);
         BitSet[] conflicts = dfa.computeConflicts();
 
-        Samples learningSamples = new Samples(iSamples, conflicts);
+        Samples learningSamples = new Samples(symbols, iSamples, conflicts);
 
         BestBlue b = new BestBlue(f, mindepth);
 

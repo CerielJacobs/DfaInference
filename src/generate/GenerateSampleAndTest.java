@@ -103,11 +103,11 @@ public class GenerateSampleAndTest {
      * @param flag the flag.
      * @return the AbbaDingoString.
      */
-    private static AbbaDingoString cvt2AbbaDingo(int[] str, int flag) {
+    private static AbbaDingoString cvt2AbbaDingo(Symbols symbols, int[] str, int flag) {
         AbbaDingoString s = new AbbaDingoString(str.length, flag);
 
         for (int i = 0; i < str.length; i++) {
-            s.addToken(Symbols.getSymbol(str[i]));
+            s.addToken(symbols.getSymbol(str[i]));
         }
         return s;
     }
@@ -179,7 +179,8 @@ public class GenerateSampleAndTest {
         }
 
         DFA dfa = new DFA(fr);
-        int nsym = Symbols.nSymbols();
+        Symbols symbols = dfa.symbols;
+        int nsym = symbols.nSymbols();
 
         try {
             learn = new BufferedWriter(new FileWriter(prefix + "." + count));
@@ -227,7 +228,7 @@ public class GenerateSampleAndTest {
                 System.arraycopy(samples[i], 0, s, 1, s.length-1);
                 s[0] = -1;
                 boolean recognize = dfa.recognize(s);
-                learn.write("" + cvt2AbbaDingo(samples[i], recognize ? 1 : 0));
+                learn.write("" + cvt2AbbaDingo(symbols, samples[i], recognize ? 1 : 0));
                 learn.newLine();
             }
             learn.close();
@@ -246,7 +247,7 @@ public class GenerateSampleAndTest {
                 test.write("" + testcount + " " + nsym);
                 test.newLine();
                 for (int i = 0; i < testcount; i++) {
-                    test.write("" + cvt2AbbaDingo(tests[i], -1));
+                    test.write("" + cvt2AbbaDingo(symbols, tests[i], -1));
                     test.newLine();
                 }
                 test.close();

@@ -390,11 +390,12 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
             System.exit(1);
         }
 
-        int[][] iSamples = Symbols.convert2learn(samples);
-        DFA initialDFA = new DFA(iSamples);
+        Symbols symbols = new Symbols();
+        int[][] iSamples = symbols.convert2learn(samples);
+        DFA initialDFA = new DFA(symbols, iSamples);
         BitSet[] conflicts = initialDFA.computeConflicts();
         initialDFA.setConflicts(conflicts);
-        Samples learningSamples = new Samples(iSamples, conflicts);
+        Samples learningSamples = new Samples(symbols, iSamples, conflicts);
 
         BestBlueMW b = new BestBlueMW(initialDFA, f);
 

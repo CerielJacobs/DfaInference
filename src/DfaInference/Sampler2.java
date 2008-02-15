@@ -21,11 +21,11 @@ public class Sampler2 extends EdFold {
     ArrayList<Choice> choices;
     private Choice[] initial;
 
-    Sampler2(int[][] learningSamples, Choice[] initial) {
+    Sampler2(Symbols symbols, int[][] learningSamples, Choice[] initial) {
         super();
-        DFA dfa = new DFA(learningSamples);
+        DFA dfa = new DFA(symbols, learningSamples);
         BitSet[] conflicts = dfa.computeConflicts();
-        init(new Samples(learningSamples, conflicts));
+        init(new Samples(symbols, learningSamples, conflicts));
         this.initial = initial;
     }
 
@@ -106,7 +106,7 @@ public class Sampler2 extends EdFold {
         return true;
     }
 
-    static Choice[] compete(int[][] learningSamples, int depth, int randomDepth,
+    static Choice[] compete(Symbols symbols, int[][] learningSamples, int depth, int randomDepth,
             int populationRoot, int diversityThreshold) {
         int[][] populationScores = new int[populationRoot][populationRoot];
         Choice[][][] choices = new Choice[populationRoot][populationRoot][0];
@@ -116,7 +116,7 @@ public class Sampler2 extends EdFold {
             // Initialize for new level.
             for (int i = 0; i < populationRoot; i++) {
                 for (int j = 0; j < populationRoot; j++) {
-                    Sampler2 s = new Sampler2(learningSamples, choices[i][j]);
+                    Sampler2 s = new Sampler2(symbols, learningSamples, choices[i][j]);
                     Choice[] chs = s.getOptions();
                     if (chs.length != 0) {
                         Choice[] newchoice = new Choice[level+1];
@@ -135,7 +135,7 @@ public class Sampler2 extends EdFold {
                 for (int i = 0; i < populationRoot; i++) {
                     for (int j = 0; j < populationRoot; j++) {
                         if (choices[i][j].length == level+1) {
-                            Sampler2 s = new Sampler2(learningSamples, choices[i][j]);
+                            Sampler2 s = new Sampler2(symbols, learningSamples, choices[i][j]);
                             s.fold(randomDepth);
                             populationScores[i][j] = s.dfa.nProductiveStates;
                         }
@@ -296,12 +296,13 @@ public class Sampler2 extends EdFold {
             System.exit(1);
         }
 
-        int[][] learningSamples = Symbols.convert2learn(samples);
+        Symbols symbols = new Symbols();
+        int[][] learningSamples = symbols.convert2learn(samples);
 
-        Choice[] bestChoice = compete(learningSamples, depth, randomDepth,
+        Choice[] bestChoice = compete(symbols, learningSamples, depth, randomDepth,
                 populationRoot, diversityThreshold);
 
-        Sampler2 s = new Sampler2(learningSamples, bestChoice);
+        Sampler2 s = new Sampler2(symbols, learningSamples, bestChoice);
         s.fold(randomDepth);
         int nstates = s.dfa.nProductiveStates;
 

@@ -12,19 +12,27 @@ import abbadingo.AbbaDingoString;
  * A symbol here is just a string, usually consisting of just a single
  * character.
  */
-public class Symbols {
+public class Symbols implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /** Log4j logger. */
     private static Logger logger = Logger.getLogger(Symbols.class.getName());
 
     /** Hashmap to store the symbols, and map them to integers. */
-    private static HashMap<String, Integer> sym2int = new HashMap<String, Integer>();
+    private final HashMap<String, Integer> sym2int;
 
     /** ArrayList to map the integers back onto the symbols. */
-    private static ArrayList<String> int2sym = new ArrayList<String>();
+    private final ArrayList<String> int2sym;
 
-    /** Constructor. Private so that it cannot be instantiated. */
-    private Symbols() {
+    public Symbols() {
+        sym2int = new HashMap<String, Integer>();
+        int2sym = new ArrayList<String>();
+    }
+
+    public Symbols(Symbols orig) {
+        sym2int = new HashMap<String, Integer>(orig.sym2int);
+        int2sym = new ArrayList<String>(orig.int2sym);
     }
 
     /**
@@ -33,7 +41,7 @@ public class Symbols {
      * @param s the specified symbol
      * @return the corresponding integer.
      */
-    public static int addSymbol(String s) {
+    public int addSymbol(String s) {
         Integer i = sym2int.get(s);
         if (i != null) {
             // Already added.
@@ -50,7 +58,7 @@ public class Symbols {
      * Returns the total number of different symbols.
      * @return the total number of symbols
      */
-    public static int nSymbols() {
+    public int nSymbols() {
         return int2sym.size();
     }
 
@@ -59,7 +67,7 @@ public class Symbols {
      * @param n the specified integer.
      * @return the corresponding symbol.
      */
-    public static String getSymbol(int n) {
+    public String getSymbol(int n) {
         return int2sym.get(n);
     }
 
@@ -72,7 +80,7 @@ public class Symbols {
      * @param s the string to convert.
      * @return an array with token numbers.
      */
-    public static int[] abbaToSym(AbbaDingoString s) {
+    public int[] abbaToSym(AbbaDingoString s) {
         String[] str = s.getString();
         int[] tokens = new int[str.length+1];
         
@@ -92,7 +100,7 @@ public class Symbols {
      * @param samples the samples as they are read.
      * @return the array of symbol number strings.
      */
-    public static int[][] convert2learn(AbbaDingoString[] samples) {
+    public int[][] convert2learn(AbbaDingoString[] samples) {
         int len = samples.length;
 
         int[][] result = new int[len][];

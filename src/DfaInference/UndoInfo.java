@@ -250,7 +250,6 @@ public final class UndoInfo implements Configuration {
                 } else {
                     n.dest.parents.remove(n.state);
                 }
-                n.dest.parentsArray = null;
                 n = n.next;
             } while (n != null);
 

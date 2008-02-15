@@ -11,9 +11,8 @@ public final class State implements java.io.Serializable, Configuration,
         Comparable {
 
     private static final long serialVersionUID = 1L;
-
-    /** The number of symbols used. */
-    static int nsym = 0;
+    
+    private static int idCounter;
 
     /** The children of this state. Index is the symbol number. */
     State[] children = null;
@@ -54,9 +53,6 @@ public final class State implements java.io.Serializable, Configuration,
     /** Set of parents. */
     ArrayList<State> parents;
 
-    /** Parents, as an array. */
-    State[] parentsArray;
-
     /**
      * Weight of this state. The weight of an accepting state is defined
      * as the number of samples that finish in this state.
@@ -79,9 +75,6 @@ public final class State implements java.io.Serializable, Configuration,
      * @param nsym the number of symbols.
      */
     public State(int nsym) {
-        if (State.nsym == 0) {
-            State.nsym = nsym;
-        }
         children = new State[nsym];
         if (USE_PARENT_SETS) {
             parents = new ArrayList<State>();
@@ -95,12 +88,19 @@ public final class State implements java.io.Serializable, Configuration,
      * @param s the state to copy
      * @param parent the parent of the newly created state
      * @param h maps states to copies, so that cycles can be dealt with.
+     * @param map if non-null, re-orders the symbol numbering.
+     * @param idOffset, to be added to the id.
+     * @param nsym the new number of symbols.
      */
-    private State(State s, State parent, HashMap<State, State> h) {
+    State(State s, State parent, HashMap<State, State> h, int[] map, boolean renumber, int nsym) {
         productive = s.productive;
         accepting = s.accepting;
         depth = s.depth;
-        id = s.id;
+        if (renumber) {
+            id = idCounter++;
+        } else {
+            id = s.id;
+        }
         weight = s.weight;
         if (USE_PARENT_SETS) {
             parents = new ArrayList<State>();
@@ -111,23 +111,72 @@ public final class State implements java.io.Serializable, Configuration,
         //        }
         children = new State[nsym];
         h.put(s, this);
-        for (int i = 0; i < children.length; i++) {
+        for (int i = 0; i < s.children.length; i++) {
             if (s.children[i] != null) {
                 State cp = (State) h.get(s.children[i]);
                 if (cp == null) {
-                    cp = new State(s.children[i], this, h);
+                    cp = new State(s.children[i], this, h, map, renumber, nsym);
                 }
-                children[i] = cp;
+                if (map == null) {
+                    children[i] = cp;
+                } else {
+                    children[map[i]] = cp;
+                }
                 if (USE_PARENT_SETS) {
                     if (! cp.parents.contains(this)) {
                         cp.parents.add(this);
-                        cp.parentsArray = null;
                     }
                 }
             }
         }
     }
+    
+    State(State s, BitSet[] mergeSets, State[] map, State[] oldStates) {
+        productive = 0;
+        accepting = 0;
+        id = idCounter++;
+        weight = 0;
+        children = new State[s.children.length];
+        if (USE_PARENT_SETS) {
+            parents = new ArrayList<State>();
+        }
+        if (mergeSets[s.id] == null) {
+            map[s.id] = this;
+            mergeIn(s, mergeSets, map, oldStates);
+        } else {
+            for (int n = mergeSets[s.id].nextSetBit(0); n != -1; n = mergeSets[s.id].nextSetBit(n+1)) {
+                map[n] = this;
+                mergeIn(oldStates[n], mergeSets, map, oldStates);
+            }
+        }
+    }
+    
+    private void mergeIn(State s, BitSet[] mergeSets, State[] map, State[] oldStates) {
+        productive |= s.productive;
+        accepting |= s.accepting;
+        weight += s.weight;
 
+        for (int i = 0; i < children.length; i++) {
+            State child = s.children[i];
+            if (children[i] == null && child != null) {
+                State dest = map[child.id];
+                if (dest == null) {
+                    dest = new State(child, mergeSets, map, oldStates);
+                }
+                children[i] = dest;
+                if (USE_PARENT_SETS) {
+                    if (! dest.parents.contains(this)) {
+                        dest.parents.add(this);
+                    }
+                }
+            }
+        }
+    }
+    
+    static void resetIdCounter() {
+        idCounter = 0;
+    }
+    
     public int compareTo(Object o) {
         State s = (State) o;
         if (s.depth == depth) {
@@ -224,12 +273,11 @@ public final class State implements java.io.Serializable, Configuration,
      * @return the new state.
      */
     public State addDestination(int symbol) {
-        State dest = new State(nsym);
+        State dest = new State(children.length);
         dest.parent = this;
         if (USE_PARENT_SETS) {
             if (! dest.parents.contains(this)) {
                 dest.parents.add(this);
-                dest.parentsArray = null;
             }
         }
         dest.depth = depth + 1;
@@ -258,7 +306,6 @@ public final class State implements java.io.Serializable, Configuration,
         if (USE_PARENT_SETS) {
             if (! dest.parents.contains(this)) {
                 dest.parents.add(this);
-                dest.parentsArray = null;
             }
         }
     }
@@ -268,7 +315,7 @@ public final class State implements java.io.Serializable, Configuration,
      * @return the copy.
      */
     public State copy() {
-        return new State(this, null, new HashMap<State, State>());
+        return new State(this, null, new HashMap<State, State>(), null, false, children.length);
     }
 
     /**
@@ -373,6 +420,18 @@ public final class State implements java.io.Serializable, Configuration,
             }
         }
         return cnt;
+    }
+    
+    public void fillIdMap(State[] idMap) {
+        if (idMap[id] == null) {
+            idMap[id] = this;
+            for (int i = 0; i < children.length; i++) {
+                State child = children[i];
+                if (child != null) {
+                    child.fillIdMap(idMap);
+                }
+            }
+        }
     }
 
     /**

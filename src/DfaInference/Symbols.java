@@ -25,11 +25,18 @@ public class Symbols implements java.io.Serializable {
     /** ArrayList to map the integers back onto the symbols. */
     private final ArrayList<String> int2sym;
 
+    /**
+     * Constructor for empty symbols set.
+     */
     public Symbols() {
         sym2int = new HashMap<String, Integer>();
         int2sym = new ArrayList<String>();
     }
 
+    /**
+     * Copying constructor.
+     * @param orig the symbol set to copy.
+     */
     public Symbols(Symbols orig) {
         sym2int = new HashMap<String, Integer>(orig.sym2int);
         int2sym = new ArrayList<String>(orig.int2sym);
@@ -51,6 +58,24 @@ public class Symbols implements java.io.Serializable {
         sym2int.put(s, new Integer(retval));
         int2sym.add(s);
         logger.debug("new Symbol added: " + s + " --> " + retval);
+        return retval;
+    }
+    
+    /**
+     * Adds the symbols of the specified symbol set to the current one,
+     * and computes a mapping from the symbol numbers in the specified set
+     * to the (new) symbol numbers in the current set.
+     * @param s the symbol set to be added.
+     * @return the mapping.
+     */
+    public int[] addSymbols(Symbols s) {
+        for (String str : s.int2sym) {
+            addSymbol(str);
+        }
+        int[] retval = new int[s.int2sym.size()];
+        for (int i = 0; i < s.int2sym.size(); i++) {
+            retval[i] = sym2int.get(s.int2sym.get(i));
+        }
         return retval;
     }
 

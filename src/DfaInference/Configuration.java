@@ -38,7 +38,7 @@ public interface Configuration {
 
     /** Use new DFA count. */
     static final boolean NEW_DFA_COUNT =
-        tp.getBooleanProperty("NewDFACount", false);
+        tp.getBooleanProperty("NewDFACount", true);
 
     /**
      * Bit that indicates accepting state or state of DFA that recognizes

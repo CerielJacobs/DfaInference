@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 
 import org.apache.log4j.Logger;
 
@@ -178,7 +179,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @param samples the samples
      */
     public DFA(Symbols symbols, int[][] samples) {
-        this(getNumSyms(samples));
+        this(symbols.nSymbols());
         this.symbols = symbols;
 
         runSample(samples);
@@ -406,7 +407,19 @@ public final class DFA implements java.io.Serializable, Configuration {
         } catch(IOException E) {
             throw new Error(E.toString());
         }
+        
+        dfaComputations();
 
+        if (logger.isDebugEnabled()) {
+            if (! checkDFA()) {
+                logger.error("From dfa reader constructor: exit");
+                System.exit(1);
+            }
+        }
+    }
+    
+    private void dfaComputations() {
+        
         idMap = startState.breadthFirst();
         startState.computeDepths();
         saved = new State[nStates];
@@ -421,13 +434,153 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (MDL_COMPLEMENT || MDL_NEGATIVES) {
             missingXEdges = computeMissingEdges(REJECTING);
         }
+    }
+    
+    /**
+     * Creates a DFA that is the result of merging the specified DFAs.
+     * @param dfa1 
+     * @param dfa2
+     */
+    public DFA(DFA dfa1, DFA dfa2) {
+        // First merge symbol sets.
+        symbols = new Symbols(dfa1.symbols);
+        int[] dfa2SymbolMap = symbols.addSymbols(dfa2.symbols);
+        
+        // Then, copy and states and possibly re-index the children arrays.
+        State.resetIdCounter();
+        startState = new State(dfa1.startState, null,
+                new HashMap<State, State>(), null, true, symbols.nSymbols());
+        State state2 = new State(dfa2.startState, null,
+                new HashMap<State, State>(), dfa2SymbolMap, true, symbols.nSymbols());
+        
+        // compute a new idMap array.
+        nStates = dfa1.nStates + dfa2.nStates;
+        idMap = new State[nStates];
+        startState.fillIdMap(idMap);
+        state2.fillIdMap(idMap);
+        
+        // Compute equivalence sets. The resulting array of sets is
+        // indexed by state id. Equivalent states have the same equivalence
+        // set.
+        BitSet[] merges = merge(startState, state2);
+               
+        State.resetIdCounter();
+        startState = new State(startState, merges, new State[idMap.length], idMap);
+        nsym = symbols.nSymbols();
+        dfaComputations();
+    }
 
-        if (logger.isDebugEnabled()) {
-            if (! checkDFA()) {
-                logger.error("From dfa reader constructor: exit");
-                System.exit(1);
+    /**
+     * Determines the merge sets which are the result of merging the specified
+     * states and making the DFA deterministic.
+     * @param s1 the first state to merge.
+     * @param s2 the second state to merge.
+     * @return the bitsets containing the merge sets.
+     */
+    private BitSet[] merge(State s1, State s2) {
+
+        LinkedList<BitSet> l = new LinkedList<BitSet>();
+        BitSet temp = new BitSet(nStates);
+        BitSet newMerge = new BitSet(nStates);
+        BitSet acceptingStates = new BitSet(nStates);
+        BitSet rejectingStates = new BitSet(nStates);
+        BitSet[] mergeSets = new BitSet[nStates];
+        
+        BitSet b = new BitSet();
+        b.set(s1.id);
+        b.set(s2.id);
+        
+        for (State s : idMap) {
+            if ((s.accepting & ACCEPTING) != 0) {
+                acceptingStates.set(s.id);
+            } else if ((s.accepting & REJECTING) != 0) {
+                rejectingStates.set(s.id);
             }
         }
+        
+        // Add the set containing the to states to the list of sets to process.
+        l.addFirst(b);
+
+        // Process list of equivalence sets.
+        while (l.size() != 0) {
+            int n;
+            b = (BitSet) l.removeFirst();
+
+            // Add all states that are known to be equivalent to a state in
+            // b to b.
+            for (int i = b.nextSetBit(0); i != -1; i = b.nextSetBit(i+1)) {
+                if (mergeSets[i] != null) {
+                    b.or(mergeSets[i]);
+                }
+            }
+
+            // Mark all these states with the current equivalence set.
+            for (n = b.nextSetBit(0); n != -1; n = b.nextSetBit(n+1)) {
+                mergeSets[n] = b;
+            }
+
+            System.out.println("Merging: " + b);
+
+            // Check for conflicts: an accepting state cannot be equivalent
+            // with a rejecting state.
+            if (b.intersects(acceptingStates) && b.intersects(rejectingStates)) {
+                conflict = true;
+                return mergeSets;
+            }
+
+            // Find conflicts, i.e. new merge sets.
+            for (int i = 0; i < symbols.nSymbols(); i++) {
+                for (n = b.nextSetBit(0); n != -1; n = b.nextSetBit(n+1)) {
+                    State t = idMap[n].traverseLink(i);
+                    if (t != null) {
+                        if (mergeSets[t.id] != null) {
+                            newMerge.or(mergeSets[t.id]);
+                        } else {
+                            newMerge.set(t.id);
+                        }
+                    }
+                }
+                
+                // newMerge now contains either a proposed merge, or a singleton.
+                n = newMerge.nextSetBit(0);
+                int n1 = newMerge.nextSetBit(n+1);
+                if (n1 != -1) {
+                    // The set newMerge is not a singleton, so it contains a proposed
+                    // merge.
+                    // Find out if this proposed merge has not already been done.
+                    // This is the case if the mergeSet of the first member
+                    // does not exist yet or does not contain the proposed
+                    // merge.
+                    if (mergeSets[n] == null) {
+                        // Does not exist yet. Add it to the list of sets to process.
+                        addMerge(l, newMerge);
+                    } else {
+                        // Check if it contains the proposed merge.
+                        // BitSet has no contains() or subset() operator, so
+                        // create a copy, intersect it with the proposed
+                        // merge, and compare with the proposed merge.
+                        temp.or(mergeSets[n]);
+                        temp.and(newMerge);
+                        if (! temp.equals(newMerge)) {
+                            addMerge(l, newMerge);
+                        }
+                        temp.clear();
+                    }
+                }
+                newMerge.clear();
+            }
+        }
+        return mergeSets;
+    }
+
+    private void addMerge(LinkedList<BitSet> l, BitSet s) {
+        for (BitSet el : l) {
+            if (el.intersects(s)) {
+                el.or(s);
+                return;
+            }
+        }
+        l.addFirst((BitSet) s.clone());
     }
 
     /**
@@ -541,24 +694,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             n.accepting = ACCEPTING;
             n.weight = 1;
         }
-    }
-
-    /**
-     * Derives and returns the number of symbols used in the specified samples.
-     * @param samples the samples.
-     * @return the number of symbols used in the samples.
-     */
-    private static int getNumSyms(int[][] samples) {
-        int ns = 0;
-        for (int i = 0; i < samples.length; i++) {
-            int[] sample = samples[i];
-            for (int j = 1; j < sample.length; j++) {
-                if (sample[j] >= ns) {
-                    ns = sample[j] + 1;
-                }
-            }
-        }
-        return ns;
     }
 
     /**
@@ -691,11 +826,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             states = mods.toArray(new State[mods.size()]);
             for (int i = startIndex; i < states.length; i++) {
                 State s = states[i];
-                if (s.parentsArray == null) {
-                    s.parentsArray = (State[]) s.parents.toArray(new State[0]);
-                }
-                for (int j = 0; j < s.parentsArray.length; j++) {
-                    State ps = s.parentsArray[j];
+                for (State ps : s.parents) {
                     if (ps.mark != mark) {
                         mods.add(ps);
                         ps.mark = mark;
@@ -1004,7 +1135,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                     addEdge(undo, n1, i, v2);
                     if (USE_PARENT_SETS) {
                         v2.parents.remove(n2);
-                        v2.parentsArray = null;
                         if (undo != null) {
                             undo.addParentRemoval(v2, n2);
                         }
@@ -1285,11 +1415,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 State s = l[i];
                 boolean present;
 
-                if (s.parentsArray == null) {
-                    s.parentsArray = (State[]) s.parents.toArray(new State[0]);
-                }
-                for (int iter = 0; iter < s.parentsArray.length; iter++) {
-                    State s2 = s.parentsArray[iter];
+                for (State s2 : s.parents) {
                     present = false;
                     for (int j = 0; j < nsym; j++) {
                         if (s2.children[j] == s) {
@@ -1490,11 +1616,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     BitSet h2 = new BitSet(idMap.length);
                     for (int i = h.nextSetBit(0); i >= 0; i = h.nextSetBit(i+1)) {
                         State s = idMap[i];
-                        if (s.parentsArray == null) {
-                            s.parentsArray = (State[]) s.parents.toArray(new State[0]);
-                        }
-                        for (int iter = 0; iter < s.parentsArray.length; iter++) {
-                            State si = s.parentsArray[iter];
+                        for (State si : s.parents) {
                             for (int j = 0; j < nsym; j++) {
                                 if (si.children[j] == s) {
                                     count[k][si.id] += count[k-1][s.id];
@@ -1717,7 +1839,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         for (int i = 0; i < npartitions; i++) {
             if (states[i].parents != null) {
                 states[i].parents.clear();
-                states[i].parentsArray = null;
             }
         }
         for (int i = 0; i < npartitions; i++) {

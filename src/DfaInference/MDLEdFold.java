@@ -12,19 +12,18 @@ public class MDLEdFold extends RedBlue implements java.io.Serializable {
     }
 
     boolean testMerge(State r, State b) {
-        boolean foundMerge = false;
-
         if (r == null) {
             addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(), 0));
             return true;
         }
-        UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
-        if (! dfa.conflict) {
+        try {
+            UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
             addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(), -dfa.labelScore));
-            foundMerge = true;
+            dfa.undoMerge(u);
+            return true;
+        } catch(Throwable e) {
+            return false;
         }
-        dfa.undoMerge(u);
-        return foundMerge;
     }
 
     public static void main(String[] args) {

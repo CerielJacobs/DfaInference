@@ -66,15 +66,17 @@ public class ExhSearch implements java.io.Serializable {
             State blue = blueStates.get(i);
             int count = 1;      // promoting blue to red is one possibility
             for (State red : redStates) {
-                UndoInfo u = dfa.treeMerge(red, blue, true, reds, reds.length);
-                if (! dfa.conflict) {
+                try {
+                    UndoInfo u = dfa.treeMerge(red, blue, true, reds, reds.length);
                     double sc = dfa.getMDLComplexity();
                     double dfasc = dfa.getDFAComplexity();
                     if (sc != dfasc && sc - dfasc < bestScore) {
                         count++;
                     }
+                    dfa.undoMerge(u);
+                } catch(Throwable e) {
+                    // ignored
                 }
-                dfa.undoMerge(u);
             }
             if (count < bestCount) {
                 if (bestBlue != null) {
@@ -109,8 +111,8 @@ public class ExhSearch implements java.io.Serializable {
             State blue = pickBlueState(blueStates, redStates);
             // Try all possible merges between a red state and blue.
             for (State red : redStates) {
-                UndoInfo u = dfa.treeMerge(red, blue, true, reds, reds.length);
-                if (! dfa.conflict) {
+                try {
+                    UndoInfo u = dfa.treeMerge(red, blue, true, reds, reds.length);
                     double sc = dfa.getMDLComplexity();
                     double dfasc = dfa.getDFAComplexity();
                     if (sc != dfasc && sc - dfasc < bestScore) {
@@ -126,8 +128,11 @@ public class ExhSearch implements java.io.Serializable {
                             return true;
                         }
                     }
+
+                    dfa.undoMerge(u);
+                } catch(Throwable e) {
+                    // ignored
                 }
-                dfa.undoMerge(u);
             }
             blue.conflicting = null;
             // Also try promoting blue to a red state.

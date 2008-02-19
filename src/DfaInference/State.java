@@ -83,8 +83,6 @@ public final class State implements java.io.Serializable, Configuration,
 
     /**
      * Constructor that creates a deep copy of the specified state.
-     * In a general DFA, a state can have more than one parent. However,
-     * we only use the parent field as long as the form is a tree.
      * @param s the state to copy
      * @param parent the parent of the newly created state
      * @param h maps states to copies, so that cycles can be dealt with.
@@ -130,7 +128,18 @@ public final class State implements java.io.Serializable, Configuration,
             }
         }
     }
-    
+ 
+    /**
+     * Constructs a deep copy of the specified state. However, some states are to
+     * be merged together, as specified by the <code>mergeSets</code> array, which
+     * is indexed by state numbers, and specifies which states are equivalent to this
+     * state. A table is maintained which maps original states to copies, to avoid
+     * infinite loops.  
+     * @param s the state to deep-copy.
+     * @param mergeSets specifies which states are equivalent.
+     * @param map maps original states to copies.
+     * @param oldStates the original state table.
+     */
     State(State s, BitSet[] mergeSets, State[] map, State[] oldStates) {
         productive = 0;
         accepting = 0;
@@ -141,9 +150,13 @@ public final class State implements java.io.Serializable, Configuration,
             parents = new ArrayList<State>();
         }
         if (mergeSets[s.id] == null) {
+            // No states equivalent to this one. Just merge in the edges
+            // and data.
             map[s.id] = this;
             mergeIn(s, mergeSets, map, oldStates);
         } else {
+            // There are equivalent states. Merge everything in from
+            // all states in this equivalence class.
             for (int n = mergeSets[s.id].nextSetBit(0); n != -1; n = mergeSets[s.id].nextSetBit(n+1)) {
                 map[n] = this;
                 mergeIn(oldStates[n], mergeSets, map, oldStates);
@@ -161,6 +174,7 @@ public final class State implements java.io.Serializable, Configuration,
             if (children[i] == null && child != null) {
                 State dest = map[child.id];
                 if (dest == null) {
+                    // This destination is not copied yet. Deep-copy it.
                     dest = new State(child, mergeSets, map, oldStates);
                 }
                 children[i] = dest;

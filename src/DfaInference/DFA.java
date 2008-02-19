@@ -140,9 +140,6 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Edges missing in complement DFA. */
     int missingXEdges = 0;
 
-    /** Conflict: an accepting state is merged with a rejecting state. */
-    boolean conflict = false;
-
     /** Maps ids to states. */
     State[] idMap;
 
@@ -155,12 +152,9 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Conflicts of initial DFA. */
     private transient BitSet[] conflicts;
 
-    boolean mustRecomputeProductive;
+    private boolean mustRecomputeProductive;
 
-    int markCounter = 2;     // Used for state marker
-
-    int[] accepts;
-    int[] rejects;
+    private int markCounter = 2;     // Used for state marker
 
     /**
      * Basic constructor, creates an empty DFA.
@@ -419,7 +413,7 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
     
     private void dfaComputations() {
-        
+        startState.id = -1;
         idMap = startState.breadthFirst();
         startState.computeDepths();
         saved = new State[nStates];
@@ -438,10 +432,13 @@ public final class DFA implements java.io.Serializable, Configuration {
     
     /**
      * Creates a DFA that is the result of merging the specified DFAs.
-     * @param dfa1 
-     * @param dfa2
+     * This is not an exact merge. Rather, any non-determinism introduced
+     * by the merge is resolved by merging target states.
+     * @param dfa1 the first dfa.
+     * @param dfa2 the second dfa.
+     * @throws ConflictingMerge  when the merge results in a conflict.
      */
-    public DFA(DFA dfa1, DFA dfa2) {
+    public DFA(DFA dfa1, DFA dfa2) throws ConflictingMerge {
         // First merge symbol sets.
         symbols = new Symbols(dfa1.symbols);
         int[] dfa2SymbolMap = symbols.addSymbols(dfa2.symbols);
@@ -476,8 +473,9 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @param s1 the first state to merge.
      * @param s2 the second state to merge.
      * @return the bitsets containing the merge sets.
+     * @throws ConflictingMerge 
      */
-    private BitSet[] merge(State s1, State s2) {
+    private BitSet[] merge(State s1, State s2) throws ConflictingMerge {
 
         LinkedList<BitSet> l = new LinkedList<BitSet>();
         BitSet temp = new BitSet(nStates);
@@ -519,13 +517,14 @@ public final class DFA implements java.io.Serializable, Configuration {
                 mergeSets[n] = b;
             }
 
-            System.out.println("Merging: " + b);
+            if (logger.isInfoEnabled()) {
+                logger.info("Merging: " + b);
+            }
 
             // Check for conflicts: an accepting state cannot be equivalent
             // with a rejecting state.
             if (b.intersects(acceptingStates) && b.intersects(rejectingStates)) {
-                conflict = true;
-                return mergeSets;
+                throw new ConflictingMerge("Conflict on merge set " + b);
             }
 
             // Find conflicts, i.e. new merge sets.
@@ -666,11 +665,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         State n = startState;
         boolean reject = symbols[0] != 1;
 
-        if (accepts == null) {
-            accepts = new int[256];
-            rejects = new int[256];
-        }
-
         for (int i = 1; i < symbols.length; i++) {
             State target = n.traverseEdge(symbols[i]);
             if (target == null) {
@@ -683,14 +677,12 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if (reject) {
             numRejected++;
-            rejects[symbols.length-1]++;
             n.accepting = REJECTING;
             if (MDL_NEGATIVES || MDL_COMPLEMENT) {
                 n.weight = 1;
             }
         } else {
             numRecognized++;
-            accepts[symbols.length-1]++;
             n.accepting = ACCEPTING;
             n.weight = 1;
         }
@@ -888,19 +880,17 @@ public final class DFA implements java.io.Serializable, Configuration {
      * DFA has a conflict, it is marked as such.
      */
     public UndoInfo treeMerge(State red, State blue, boolean undoNeeded,
-            State[] redStates, int numRedStates) {
+            State[] redStates, int numRedStates) throws ConflictingMerge {
         UndoInfo undo = null;
 
         if (conflicts != null && conflicts[red.id] != null) {
             if (conflicts[red.id].get(blue.id)) {
-                conflict = true;
-                return null;
+                throw new ConflictingMerge("Stored conflict: " + red.id + ", " + blue.id);
             }
         }
 
         if (blue.hasConflict(red)) {
-            conflict = true;
-            return null;
+            throw new ConflictingMerge("Found conflict: " + red.id + ", " + blue.id);
         }
 
         State parent = blue.parent;
@@ -932,87 +922,87 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         // Recurse while merging ...
-        labelScore = walkTreeMerge(red, blue, undo);
-
-        DFAScore = 0;
-
-        if (! conflict) {
-            MDLScore = 0;
-
-            if (mustRecomputeProductive ||
-                (INCREMENTAL_COUNTS && (counts != null))) {
-                State[] states;
-
-                if (USE_PARENT_SETS) {
-                    states = computeParentClosure(saved, savedIndex);
-                } else {
-                    states = addToSavedStates(redStates, numRedStates);
-                }
-
-                if (INCREMENTAL_COUNTS && counts != null) {
-                    if (undo != null) {
-                        // Does not fully recompute the counts array.
-                        // Only recomputes for as far as needed to obtain the
-                        // counts for the start state.
-
-                        int mark = getMark();
-                        int startStateIndex = -1;
-
-                        markCounter += states.length;
-
-                        for (int i = 0; i < states.length; i++) {
-                            states[i].maxLenComputed = 0;
-                            states[i].mark = mark+i;
-                            if (states[i] == startState) {
-                                startStateIndex = i;
-                            }
-                        }
-
-                        if (tempCounts == null || tempCounts.length < states.length) {
-                            tempCounts = new double[states.length][maxlen+1];
-                        }
-
-                        undo.saveCounts();
-
-                        startState.computeUpdate(maxlen, counts, tempCounts, mark);
-                        for (int i = 1; i <= maxlen; i++) {
-                            counts[i][startState.id] = tempCounts[startStateIndex][i];
-                        }
-                        if (MDL_NEGATIVES) {
-                            for (int i = 0; i < states.length; i++) {
-                                states[i].maxLenComputed = 0;
-                            }
-                            startState.computeUpdate(maxlen, xCounts, tempCounts, mark);
-                            for (int i = 1; i <= maxlen; i++) {
-                                xCounts[i][startState.id] = tempCounts[startStateIndex][i];
-                            }
-                        }
-                    } else {
-                        // Fully recompute the counts.
-                        counts_done = false;
-                    }
-                }
-
-                if (mustRecomputeProductive) {
-                    updateProductive(states, undo);
-                }
-            }
-
-            if (logger.isDebugEnabled()) {
-                if (! checkDFA()) {
-                    System.out.println("Problem after merge.");
-                    if (undo != null) {
-                        System.out.println("DFA before merge was: ");
-                        undoMerge(undo);
-                        System.out.println(dumpDFA());
-                    }
-                    System.exit(1);
-                }
-            }
-        } else {
+        try {
+            labelScore = walkTreeMerge(red, blue, undo);
+        } catch(ConflictingMerge e) {
             blue.addConflict(red);
+            undoMerge(undo);
+            throw new ConflictingMerge("Detected conflict " + blue.id + ", " + red.id, e);
         }
 
+        DFAScore = 0;
+        MDLScore = 0;
+
+        if (mustRecomputeProductive ||
+                (INCREMENTAL_COUNTS && (counts != null))) {
+            State[] states;
+
+            if (USE_PARENT_SETS) {
+                states = computeParentClosure(saved, savedIndex);
+            } else {
+                states = addToSavedStates(redStates, numRedStates);
+            }
+
+            if (INCREMENTAL_COUNTS && counts != null) {
+                if (undo != null) {
+                    // Does not fully recompute the counts array.
+                    // Only recomputes for as far as needed to obtain the
+                    // counts for the start state.
+
+                    int mark = getMark();
+                    int startStateIndex = -1;
+
+                    markCounter += states.length;
+
+                    for (int i = 0; i < states.length; i++) {
+                        states[i].maxLenComputed = 0;
+                        states[i].mark = mark+i;
+                        if (states[i] == startState) {
+                            startStateIndex = i;
+                        }
+                    }
+
+                    if (tempCounts == null || tempCounts.length < states.length) {
+                        tempCounts = new double[states.length][maxlen+1];
+                    }
+
+                    undo.saveCounts();
+
+                    startState.computeUpdate(maxlen, counts, tempCounts, mark);
+                    for (int i = 1; i <= maxlen; i++) {
+                        counts[i][startState.id] = tempCounts[startStateIndex][i];
+                    }
+                    if (MDL_NEGATIVES) {
+                        for (int i = 0; i < states.length; i++) {
+                            states[i].maxLenComputed = 0;
+                        }
+                        startState.computeUpdate(maxlen, xCounts, tempCounts, mark);
+                        for (int i = 1; i <= maxlen; i++) {
+                            xCounts[i][startState.id] = tempCounts[startStateIndex][i];
+                        }
+                    }
+                } else {
+                    // Fully recompute the counts.
+                    counts_done = false;
+                }
+            }
+
+            if (mustRecomputeProductive) {
+                updateProductive(states, undo);
+            }
+        }
+
+        if (logger.isDebugEnabled()) {
+            if (! checkDFA()) {
+                System.out.println("Problem after merge.");
+                if (undo != null) {
+                    System.out.println("DFA before merge was: ");
+                    undoMerge(undo);
+                    System.out.println(dumpDFA());
+                }
+                System.exit(1);
+            }
+        }
         return undo;
     }
 
@@ -1041,7 +1031,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      *   @param undo Will collect information for undoing this merge.
      *   @return the number of corresponding labels in this merge.
      */
-    public int walkTreeMerge(State n1, State n2, UndoInfo undo) {
+    private int walkTreeMerge(State n1, State n2, UndoInfo undo) throws ConflictingMerge {
 
         int labelscore = 0;
 
@@ -1050,8 +1040,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         if ((n1.accepting & n2.accepting) != 0) {
             labelscore = 1;
         } else if ((n1.accepting | n2.accepting) == MASK) {
-            conflict = true;
-            return 0;
+            throw new ConflictingMerge("conflict: " + n1.id + ", " + n2.id);
         } else {
             n1.accepting |= n2.accepting;
             if (! REFINED_MDL) {
@@ -1125,9 +1114,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                         missingXEdges--;
                     }
                     labelscore += walkTreeMerge(v1, v2, undo);
-                    if (conflict) {
-                        return 0;
-                    }
                 } else {
                     // Parent of v2 changes, but is recomputed before every
                     // merge.
@@ -1175,7 +1161,6 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @param u specifies saved state.
      */
     public void undoMerge(UndoInfo u) {
-        conflict = false;
         if (u != null) {
             u.undo();
         }
@@ -1208,9 +1193,6 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @return  the actual sum for the DFA
      */
     public double getDFAComplexity() {
-        if (conflict) {
-            return Double.MAX_VALUE;
-        }
         if (DFAScore == 0) {
             if (USE_PRODUCTIVE) {
                 if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
@@ -1286,9 +1268,6 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @return The complexity
      */
     public double getMDLComplexity() {
-        if (conflict) {
-            return Double.MAX_VALUE;
-        }
 
         double DFAScore = getDFAComplexity();
 
@@ -1384,7 +1363,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     logger.error("Did not recognize sample " + i);
                     ok = false;
                 }
-                if (! conflict && samples[i][0] == 0 && recognize(samples[i])) {
+                if (samples[i][0] == 0 && recognize(samples[i])) {
                     logger.error("Did recognize sample " + i);
                     ok = false;
                 }

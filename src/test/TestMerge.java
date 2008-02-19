@@ -2,6 +2,7 @@ package test;
 
 import java.io.FileReader;
 
+import DfaInference.ConflictingMerge;
 import DfaInference.DFA;
 
 /**
@@ -30,7 +31,10 @@ public class TestMerge {
         }
         DFA dfa2 = new DFA(fr);
 
-        DFA result = new DFA(dfa1, dfa2);
-        System.out.println(result.dumpDFA());
+        try {
+            System.out.println(new DFA(dfa1, dfa2).dumpDFA());
+        } catch (ConflictingMerge e) {
+            System.err.println("Merge gave conflict " + e);
+        }
     }
 }

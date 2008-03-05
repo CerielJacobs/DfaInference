@@ -8,7 +8,9 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -69,28 +71,30 @@ public final class DFA implements java.io.Serializable, Configuration {
     public Symbols symbols;
 
     /** The learning samples. */
-    int[][] samples;
+    // ** REMARK: For ' CheckDFA ' is it neceassary to keep this. In production:
+    // make samples TRANSIENT!!!
+    
+    private ArrayList<int[]> samples;
 
     /**
      * Counts for number of strings recognized by each state, for
      * all lengths from 0 to maxlen.
      */
-    double [][] counts;
+    double[][] counts;
 
     /**
      * Counts for number of strings recognized by each state of the rejecting
      * dfa, for all lengths from 0 to maxlen.
      */
-    double [][] xCounts;
+    double[][] xCounts;
 
     /**
      * Temporary for counts, for computing updates.
      */
-    private double [][] tempCounts;
+    private double[][] tempCounts;
 
     /** Set when counts are initialized. Used for incremental computations. */
     private boolean counts_done = false;
-
 
     /** The start state of this DFA. */
     State startState;
@@ -172,17 +176,12 @@ public final class DFA implements java.io.Serializable, Configuration {
      * Constructor, creates a DFA recognizing the specified samples.
      * @param samples the samples
      */
-    public DFA(Symbols symbols, int[][] samples) {
+    public DFA(Symbols symbols, int[][] samples2) {
         this(symbols.nSymbols());
         this.symbols = symbols;
 
-        runSample(samples);
-        saved = new State[nStates];
+        addSample(samples2);
 
-        missingEdges = computeMissingEdges(ACCEPTING);
-        if (MDL_COMPLEMENT || MDL_NEGATIVES) {
-            missingXEdges = computeMissingEdges(REJECTING);
-        }
         if (logger.isDebugEnabled()) {
             if (! checkDFA()) {
                 logger.error("From dfa constructor: exit");
@@ -199,14 +198,44 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (nsym <= 1) {
             nsentences = maxlen + 1;
         } else {
-            nsentences = (Math.pow(nsym, maxlen+1) -1) / (nsym - 1);
+            nsentences = (Math.pow(nsym, maxlen + 1) - 1) / (nsym - 1);
         }
 
         if (logger.isInfoEnabled()) {
             logger.info("PTAScore = " + getMDLComplexity());
             logger.info("trivialScore = "
-                    + approximate2LogNoverK(nsentences, samples.length));
+                    + approximate2LogNoverK(nsentences, samples.size()));
         }
+    }
+
+    private static class IntArrayComparator implements Comparator<int[]> {
+
+        public int compare(int[] o1, int[] o2) {
+            if (o1.length != o2.length) {
+                return o2.length - o1.length;
+            }
+            for (int i = 0; i < o1.length; i++) {
+                if (o1[i] != o2[i]) {
+                    return o2[i] - o1[i];
+                }
+            }
+            return 0;
+        }
+    }
+
+    private int[][] sortAndUnique(int[][] samples2) {
+        IntArrayComparator comparator = new IntArrayComparator();
+        Arrays.sort(samples2, comparator);
+        ArrayList<int[]> list = new ArrayList<int[]>();
+        int[] prev = null;
+        for (int[] element : samples2) {
+            if (prev != null && comparator.compare(prev, element) == 0) {
+                continue;
+            }
+            prev = element;
+            list.add(element);
+        }
+        return list.toArray(new int[list.size()][]);
     }
 
     /**
@@ -217,7 +246,10 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         nStates = dfa.nStates;
         nEdges = dfa.nEdges;
-        samples = dfa.samples;
+        if (dfa.samples != null) {
+            samples = new ArrayList<int[]>(dfa.samples);
+        }
+        symbols = new Symbols(dfa.symbols);
         maxlen = dfa.maxlen;
         numRecognized = dfa.numRecognized;
         numRejected = dfa.numRejected;
@@ -245,22 +277,25 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Read the dfa from the specified reader, interpreting the
-     * input as described below.
-     * <br>
+     * Read the dfa from the specified reader, interpreting the input as
+     * described below. <br>
      * The input consists of lines that start with a tag and arguments to the
      * tag. The tags are X for example, T for number of tokens, S for startnode,
-     * N for node, A for accepting and E for edge.
-     * Order is important. In general the order is:<ul>
+     * N for node, A for accepting and E for edge. Order is important. In
+     * general the order is:
+     * <ul>
      * <li> 1. One or more X lines.
      * <li> 2. A T line.
      * <li> 3. An S line.
-     * <li> 4. One or more groups of:<ul>
+     * <li> 4. One or more groups of:
+     * <ul>
      * <li> a. an N line, optionally followed by an A line.
-     * <li> b. followed by zero or more E lines</ul></ul>
-     * <br> 
+     * <li> b. followed by zero or more E lines
+     * </ul>
+     * </ul>
+     * <br>
      * Example:<br>
-     *
+     * 
      * <pre>
      * Xa
      * Xab
@@ -274,8 +309,9 @@ public final class DFA implements java.io.Serializable, Configuration {
      * N3
      * A3
      * </pre>
-     *
-     * @param r reader from which to read the dfa.
+     * 
+     * @param r
+     *            reader from which to read the dfa.
      */
     public DFA(Reader r) {
         HashMap<Integer, State> nodes = new HashMap<Integer, State>();
@@ -286,7 +322,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             String line;
             BufferedReader br = new BufferedReader(r);
             Integer startNodeId = null;
-            while ((line=br.readLine()) != null) {
+            while ((line = br.readLine()) != null) {
                 if (line.length() == 0) {
                     continue;
                 }
@@ -300,11 +336,13 @@ public final class DFA implements java.io.Serializable, Configuration {
                 case 'S':
                     // Treat start node indicator (creates the dfa)
                     if (startNodeId != null) {
-                        throw new Error("File format error: multiple start states!");
+                        throw new Error(
+                                "File format error: multiple start states!");
                     }
                     startNodeId = new Integer(line.substring(1));
                     if (nsym == 0) {
-                        throw new Error("File format error: number of tokens not specified before startnode defined");
+                        throw new Error(
+                                "File format error: number of tokens not specified before startnode defined");
                     }
                     startState = new State(nsym);
                     nodes.put(startNodeId, startState);
@@ -312,82 +350,85 @@ public final class DFA implements java.io.Serializable, Configuration {
                     nEdges = 0;
                     break;
 
-                case 'N':
-                    {
-                        // Treat node definition
-                        if (startNodeId == null) {
-                            throw new Error("File format error: node defined before startnode defined!");
-                        }
-                        // add node only if it is not the start node (which is already
-                        // created)
-                        Integer id = new Integer(line.substring(1));
-                        if (nodes.get(id) == null) {
-                            State s = new State(nsym);
-                            nodes.put(id, s);
-                            nStates++;
-                        }
-                        break;
+                case 'N': {
+                    // Treat node definition
+                    if (startNodeId == null) {
+                        throw new Error(
+                                "File format error: node defined before startnode defined!");
+                    }
+                    // add node only if it is not the start node (which is
+                    // already
+                    // created)
+                    Integer id = new Integer(line.substring(1));
+                    if (nodes.get(id) == null) {
+                        State s = new State(nsym);
+                        nodes.put(id, s);
+                        nStates++;
+                    }
+                    break;
+                }
+
+                case 'E': {
+                    // Treat edge definition
+                    if (startNodeId == null) {
+                        throw new Error(
+                                "File format error: edge defined before startnode defined!");
                     }
 
-                case 'E':
-                    {
-                        // Treat edge definition
-                        if (startNodeId == null) {
-                            throw new Error("File format error: edge defined before startnode defined!");
-                        }
+                    int lastIndex = line.indexOf(':');
+                    // first field defines from node
+                    if (lastIndex == -1) {
+                        throw new Error(
+                                "File format error: Invalid E line (1)!");
+                    }
+                    String from = line.substring(1, lastIndex);
 
-                        int lastIndex = line.indexOf(':');
-                        // first field defines from node 
-                        if (lastIndex == -1) {
-                            throw new  Error("File format error: Invalid E line (1)!");
-                        }
-                        String from = line.substring(1,lastIndex);
+                    // next field defines label, and last field defines to node
+                    int lastLastIndex = lastIndex;
+                    lastIndex = line.indexOf(':', lastIndex + 1);
+                    if (lastIndex == -1) {
+                        throw new Error(
+                                "File format error: Invalid E line (2)!");
+                    }
+                    String label_s = line.substring(lastLastIndex + 1,
+                            lastIndex);
+                    int label = symbols.addSymbol(label_s);
+                    String to = line.substring(lastIndex + 1);
 
-                        // next field defines label, and last field defines to node
-                        int lastLastIndex = lastIndex;
-                        lastIndex = line.indexOf(':',lastIndex+1);
-                        if (lastIndex == -1) {
-                            throw new Error("File format error: Invalid E line (2)!");
-                        }
-                        String label_s = line.substring(lastLastIndex+1,lastIndex);
-                        int label = symbols.addSymbol(label_s);
-                        String to = line.substring(lastIndex+1);
+                    Integer fromVal = new Integer(from);
+                    Integer toVal = new Integer(to);
 
-                        Integer fromVal = new Integer(from);
-                        Integer toVal = new Integer(to);
-
-                        // only from node needs to exist; note that this is
-                        // a bug, we should really check if the destination
-                        // node exists at the end of the read operation
-                        State s = (State) nodes.get(fromVal);
-                        if (s == null) {
-                            throw new Error("File format error: E with from "
-                                    + "node for which no N line seen yet!");
-                        }
-
-                        State d = (State) nodes.get(toVal);
-                        if (d == null) {
-                            d = s.addDestination(label);
-                            nodes.put(toVal, d);
-                            nStates++;
-                        } else {
-                            s.addEdge(d, label);
-                        }
-                        nEdges++;
-                        break;
+                    // only from node needs to exist; note that this is
+                    // a bug, we should really check if the destination
+                    // node exists at the end of the read operation
+                    State s = (State) nodes.get(fromVal);
+                    if (s == null) {
+                        throw new Error("File format error: E with from "
+                                + "node for which no N line seen yet!");
                     }
 
-                case 'A':
-                    {
-                        // Treat accepting indicator (node must be defined)
-                        State d = (State) nodes.get(
-                                new Integer(line.substring(1)));
-                        if (d == null) {
-                            throw new Error("Trying to set Accept of node for which no N line seen!");
-                        }
-                        d.accepting = ACCEPTING;
-                        break;
+                    State d = (State) nodes.get(toVal);
+                    if (d == null) {
+                        d = s.addDestination(label);
+                        nodes.put(toVal, d);
+                        nStates++;
+                    } else {
+                        s.addEdge(d, label);
                     }
+                    nEdges++;
+                    break;
+                }
+
+                case 'A': {
+                    // Treat accepting indicator (node must be defined)
+                    State d = (State) nodes.get(new Integer(line.substring(1)));
+                    if (d == null) {
+                        throw new Error(
+                                "Trying to set Accept of node for which no N line seen!");
+                    }
+                    d.accepting = ACCEPTING;
+                    break;
+                }
 
                 case 'X':
                     // Treat example definition (ignore)
@@ -398,23 +439,24 @@ public final class DFA implements java.io.Serializable, Configuration {
                     break;
                 }
             }
-        } catch(IOException E) {
+        } catch (IOException E) {
             throw new Error(E.toString());
         }
-        
+
         dfaComputations();
 
         if (logger.isDebugEnabled()) {
-            if (! checkDFA()) {
+            if (!checkDFA()) {
                 logger.error("From dfa reader constructor: exit");
                 System.exit(1);
             }
         }
     }
-    
+
     private void dfaComputations() {
         startState.id = -1;
         idMap = startState.breadthFirst();
+        nStates = idMap.length;
         startState.computeDepths();
         saved = new State[nStates];
         nProductiveStates = startState.computeProductiveStates(ACCEPTING);
@@ -428,52 +470,190 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (MDL_COMPLEMENT || MDL_NEGATIVES) {
             missingXEdges = computeMissingEdges(REJECTING);
         }
+        counts = null;
+        xCounts = null;
+        MDLScore = 0;
+        DFAScore = 0;
+        counts_done = false;
     }
-    
-    /**
-     * Creates a DFA that is the result of merging the specified DFAs.
-     * This is not an exact merge. Rather, any non-determinism introduced
-     * by the merge is resolved by merging target states.
-     * @param dfa1 the first dfa.
-     * @param dfa2 the second dfa.
-     * @throws ConflictingMerge  when the merge results in a conflict.
-     */
+
     public DFA(DFA dfa1, DFA dfa2) throws ConflictingMerge {
+        this(dfa1, dfa2, true);
+    }
+
+    /**
+     * Creates a DFA that is the result of merging the specified DFAs. This may
+     * or may not be an exact merge, depending on the <code>exact</code>
+     * flag.
+     * 
+     * @param dfa1
+     *            the first dfa.
+     * @param dfa2
+     *            the second dfa.
+     * @param exact
+     *            determines wether the merge is exact or generalizing.
+     * @throws ConflictingMerge
+     *             when the merge results in a conflict.
+     */
+    public DFA(DFA dfa1, DFA dfa2, boolean exact) throws ConflictingMerge {
         // First merge symbol sets.
         symbols = new Symbols(dfa1.symbols);
         int[] dfa2SymbolMap = symbols.addSymbols(dfa2.symbols);
-        
+        nsym = symbols.nSymbols();
+
+        if (dfa1.samples != null && dfa2.samples != null) {
+            samples = new ArrayList<int[]>(dfa1.samples);
+            for (int[] element : dfa2.samples) {
+                int[] cp = new int[element.length];
+                cp[0] = element[0]; // first byte of element contains flag
+                                    // whether sample is positive or negative
+                for (int i = 1; i < cp.length; i++) {
+                    cp[i] = dfa2SymbolMap[element[i]];
+                }
+                samples.add(cp);
+            }
+        }
         // Then, copy and states and possibly re-index the children arrays.
         State.resetIdCounter();
-        startState = new State(dfa1.startState, null,
-                new HashMap<State, State>(), null, true, symbols.nSymbols());
+        State state1 = new State(dfa1.startState, null,
+                new HashMap<State, State>(), null, true, nsym);
         State state2 = new State(dfa2.startState, null,
-                new HashMap<State, State>(), dfa2SymbolMap, true, symbols.nSymbols());
-        
+                new HashMap<State, State>(), dfa2SymbolMap, true, nsym);
+
         // compute a new idMap array.
         nStates = dfa1.nStates + dfa2.nStates;
         idMap = new State[nStates];
-        startState.fillIdMap(idMap);
+        state1.fillIdMap(idMap);
         state2.fillIdMap(idMap);
-        
-        // Compute equivalence sets. The resulting array of sets is
-        // indexed by state id. Equivalent states have the same equivalence
-        // set.
-        BitSet[] merges = merge(startState, state2);
-               
-        State.resetIdCounter();
-        startState = new State(startState, merges, new State[idMap.length], idMap);
-        nsym = symbols.nSymbols();
+        maxlen = dfa1.maxlen;
+        if (dfa2.maxlen > maxlen) {
+            maxlen = dfa2.maxlen;
+        }
+
+        // TODO: we need numRecognized and numRejected for the score. How to
+        // compute
+        // them acurately??? The code here is only correct if there is no
+        // overlap.
+        // If we have the samples, we can just recompute them, but what if we
+        // don't? (Ceriel)
+        numRecognized = dfa1.numRecognized + dfa2.numRecognized;
+        numRejected = dfa1.numRejected + dfa2.numRejected;
+
+        if (exact) {
+            exactMerge(state1, state2);
+        } else {
+            // Compute equivalence sets. The resulting array of sets is
+            // indexed by state id. Equivalent states have the same equivalence
+            // set.
+            BitSet[] merges = merge(state1, state2);
+            State.resetIdCounter();
+            startState = new State(state1, merges, new State[idMap.length],
+                    idMap);
+        }
         dfaComputations();
+
+        if (logger.isDebugEnabled()) {
+            if (!checkDFA()) {
+                System.out.println(dumpDFA());
+                logger.error("From dfa merging constructor: exit");
+                System.exit(1);
+            }
+        }
+    }
+
+    
+    public void fullMerge(State s1, State s2) throws ConflictingMerge {
+        BitSet[] merges = merge(s1, s2);
+        startState = new State(startState, merges, new State[idMap.length],
+                idMap);
+        dfaComputations();
+    }
+
+    /**
+     * Actually merges two DFAs, making the result deterministic on the fly.
+     * This method implements an exact merge, that is, the resulting DFA
+     * accepts sentences that are accepted by either one (or both) of the
+     * original DFAs, and rejects all others.
+     * @param state1 startstate of the first DFA.
+     * @param state2 startstate of the second DFA.
+     * @throws ConflictingMerge is thrown when a conflict is detected,
+     *     t.i., a state turns out to be accepting as well as rejecting.
+     */
+    private void exactMerge(State state1, State state2) throws ConflictingMerge {
+        ArrayList<BitSet> workList = new ArrayList<BitSet>();
+        HashMap<BitSet, State> map = new HashMap<BitSet, State>();
+        BitSet initial = new BitSet(nStates);
+
+        // Mimic a new startstate consisting of the union of the two startstates.
+        initial.set(state1.id);
+        initial.set(state2.id);
+        workList.add(initial);
+        startState = new State(nsym);
+        startState.accepting = (byte)(state1.accepting | state2.accepting);
+        startState.weight = state1.weight + state2.weight;
+        if (startState.accepting == (ACCEPTING|REJECTING)) {
+            throw new ConflictingMerge("found conflict!");
+        }
+        map.put(initial, startState);
+        
+        // Each entry on the worklist represents a state in the new DFA that
+        // is yet to be processed.
+        while (workList.size() > 0) {
+            BitSet current = workList.remove(0);
+            State currentState = map.get(current);
+            // For each symbol, determine the set of target states from the
+            // original DFAs.
+            for (int sym = 0; sym < nsym; sym++) {
+                BitSet target = new BitSet(nStates);
+                boolean toAdd = false;
+
+                byte accepting = 0;
+                int weight = 0;
+
+                for (int i = current.nextSetBit(0); i != -1; i = current.nextSetBit(i + 1)) {
+                    State si = getState(i);
+                    State child = si.children[sym];
+                    if (child != null) {
+                        target.set(child.id);
+                        accepting |= child.accepting;
+                        weight += child.weight;
+                        toAdd = true;
+                    }
+                }
+                // See if we found any transitions. If not, continue with
+                // the next symbol.
+                if (! toAdd) {
+                    continue;
+                }
+                if (accepting == (ACCEPTING|REJECTING)) {
+                    throw new ConflictingMerge("found conflict!");
+                }
+                // Now we have a set of target states, which is a state in the
+                // new DFA. Maybe we already have it ...
+                State newTarget = map.get(target);
+                if (newTarget == null) {
+                    // No we don't. Add it, and add it to the worklist as well.
+                    newTarget = new State(nsym);
+                    newTarget.accepting = accepting;
+                    newTarget.weight = weight;
+                    workList.add(target);
+                    map.put(target, newTarget);
+                }
+                currentState.addEdge(newTarget, sym);
+            }
+        }
     }
 
     /**
      * Determines the merge sets which are the result of merging the specified
      * states and making the DFA deterministic.
-     * @param s1 the first state to merge.
-     * @param s2 the second state to merge.
+     * 
+     * @param s1
+     *            the first state to merge.
+     * @param s2
+     *            the second state to merge.
      * @return the bitsets containing the merge sets.
-     * @throws ConflictingMerge 
+     * @throws ConflictingMerge
      */
     private BitSet[] merge(State s1, State s2) throws ConflictingMerge {
 
@@ -483,11 +663,11 @@ public final class DFA implements java.io.Serializable, Configuration {
         BitSet acceptingStates = new BitSet(nStates);
         BitSet rejectingStates = new BitSet(nStates);
         BitSet[] mergeSets = new BitSet[nStates];
-        
+
         BitSet b = new BitSet();
         b.set(s1.id);
         b.set(s2.id);
-        
+
         for (State s : idMap) {
             if ((s.accepting & ACCEPTING) != 0) {
                 acceptingStates.set(s.id);
@@ -495,7 +675,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 rejectingStates.set(s.id);
             }
         }
-        
+
         // Add the set containing the to states to the list of sets to process.
         l.addFirst(b);
 
@@ -506,14 +686,14 @@ public final class DFA implements java.io.Serializable, Configuration {
 
             // Add all states that are known to be equivalent to a state in
             // b to b.
-            for (int i = b.nextSetBit(0); i != -1; i = b.nextSetBit(i+1)) {
+            for (int i = b.nextSetBit(0); i != -1; i = b.nextSetBit(i + 1)) {
                 if (mergeSets[i] != null) {
                     b.or(mergeSets[i]);
                 }
             }
 
             // Mark all these states with the current equivalence set.
-            for (n = b.nextSetBit(0); n != -1; n = b.nextSetBit(n+1)) {
+            for (n = b.nextSetBit(0); n != -1; n = b.nextSetBit(n + 1)) {
                 mergeSets[n] = b;
             }
 
@@ -529,7 +709,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
             // Find conflicts, i.e. new merge sets.
             for (int i = 0; i < symbols.nSymbols(); i++) {
-                for (n = b.nextSetBit(0); n != -1; n = b.nextSetBit(n+1)) {
+                for (n = b.nextSetBit(0); n != -1; n = b.nextSetBit(n + 1)) {
                     State t = idMap[n].traverseLink(i);
                     if (t != null) {
                         if (mergeSets[t.id] != null) {
@@ -539,19 +719,23 @@ public final class DFA implements java.io.Serializable, Configuration {
                         }
                     }
                 }
-                
-                // newMerge now contains either a proposed merge, or a singleton.
+
+                // newMerge now contains either a proposed merge, or a
+                // singleton.
                 n = newMerge.nextSetBit(0);
-                int n1 = newMerge.nextSetBit(n+1);
+                int n1 = newMerge.nextSetBit(n + 1);
                 if (n1 != -1) {
-                    // The set newMerge is not a singleton, so it contains a proposed
+                    // The set newMerge is not a singleton, so it contains a
+                    // proposed
                     // merge.
-                    // Find out if this proposed merge has not already been done.
+                    // Find out if this proposed merge has not already been
+                    // done.
                     // This is the case if the mergeSet of the first member
                     // does not exist yet or does not contain the proposed
                     // merge.
                     if (mergeSets[n] == null) {
-                        // Does not exist yet. Add it to the list of sets to process.
+                        // Does not exist yet. Add it to the list of sets to
+                        // process.
                         addMerge(l, newMerge);
                     } else {
                         // Check if it contains the proposed merge.
@@ -560,7 +744,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         // merge, and compare with the proposed merge.
                         temp.or(mergeSets[n]);
                         temp.and(newMerge);
-                        if (! temp.equals(newMerge)) {
+                        if (!temp.equals(newMerge)) {
                             addMerge(l, newMerge);
                         }
                         temp.clear();
@@ -583,14 +767,15 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Computes the number of edges that are needed to make the DFA
-     * functionally complete (every state has an outgoing edge on all
-     * symbols). We don't actually make the DFA functionally complete,
-     * but we could compute scores as if it is.
-     * Every edge computed here would then account for one extra state,
-     * with edges to itself on all symbols.
-     * @param flag either <code>ACCEPTING</code> or <code>REJECTING</code>,
-     * deciding if the accepting or rejecting DFA is used.
+     * Computes the number of edges that are needed to make the DFA functionally
+     * complete (every state has an outgoing edge on all symbols). We don't
+     * actually make the DFA functionally complete, but we could compute scores
+     * as if it is. Every edge computed here would then account for one extra
+     * state, with edges to itself on all symbols.
+     * 
+     * @param flag
+     *            either <code>ACCEPTING</code> or <code>REJECTING</code>,
+     *            deciding if the accepting or rejecting DFA is used.
      * @return the number of additional edges needed.
      */
     private int computeMissingEdges(byte flag) {
@@ -622,7 +807,9 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /**
      * Sets the initial conflicts.
-     * @param conflicts the initial conflict sets.
+     * 
+     * @param conflicts
+     *            the initial conflict sets.
      */
     public void setConflicts(BitSet[] conflicts) {
         this.conflicts = conflicts;
@@ -630,7 +817,9 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /**
      * Returns the state identified by the specified id.
-     * @param id the identification
+     * 
+     * @param id
+     *            the identification
      * @return the state.
      */
     public State getState(int id) {
@@ -646,19 +835,22 @@ public final class DFA implements java.io.Serializable, Configuration {
      */
     public int[] stringToSymbols(String sentence) {
         int len = sentence.length();
-        int [] syms = new int[len+1];
+        int [] symbol_array = new int[len+1];
 
-        syms[0] = len;
+        symbol_array[0] = len;
         for (int i = 0; i < len; i++) {
             String substr = sentence.substring(i, i+1);
-            syms[i+1] = symbols.addSymbol(substr);
+            symbol_array[i+1] = symbols.addSymbol(substr);
         }
-        return syms;
+        return symbol_array;
     }
 
     /**
      * Adds states and edges from the given symbol string.
-     * symbols[0] tells whether this is an accept or reject.
+     * Symbols[0] tells whether this is an accept or reject.
+     * Note: this method has the implicit assumption that this is a new sample,
+     * not present before. (Ceriel)
+     *
      * @param symbols        the given symbol string.
      */
     public void addString(int[] symbols) {
@@ -692,29 +884,30 @@ public final class DFA implements java.io.Serializable, Configuration {
      * Adds states and edges from the specified sample.
      * @param samples        the specified sample.
      */
-    public void runSample(int[][] samples) {
-        this.samples = samples;
-        maxlen = 0;
+    public void addSample(int[][] samples) {
+        samples = sortAndUnique(samples);
+
+        if (this.samples == null) {
+            this.samples = new ArrayList<int[]>();
+            maxlen = 0;
+        }
+
+        for (int[] el : samples) {
+            this.samples.add(el);
+        }
+
         MDLScore = 0;
         DFAScore = 0;
 
-
         for (int i = 0; i < samples.length; i++) {
-            if (samples[i].length > maxlen+1) {
-                maxlen = samples[i].length-1;
+            if (samples[i].length > maxlen + 1) {
+                maxlen = samples[i].length - 1;
             }
         }
         for (int i = 0; i < samples.length; i++) {
             addString(samples[i]);
         }
-        idMap = startState.breadthFirst();
-        nProductiveStates = startState.computeProductiveStates(ACCEPTING);
-        nProductiveEdges = computeProductiveEdges(ACCEPTING);
-        if (MDL_NEGATIVES || MDL_COMPLEMENT) {
-            nXProductiveStates = startState.computeProductiveStates(REJECTING);
-            nXProductiveEdges = computeProductiveEdges(REJECTING);
-        }
-        
+        dfaComputations();
     }
 
     /**
@@ -727,7 +920,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         for (int i = 0; i < sentences.length; i++) {
             samples[i] = stringToSymbols(sentences[i]);
         }
-        runSample(samples);
+        addSample(samples);
     }
 
     /**
@@ -750,11 +943,12 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Attempts to recognize the given string.
-     * Each character in the string is assumed to be separate symbol.
-     * Returns <code>true</code> if accepted, <code>false</code> if not.
-     *
-     * @param sentence        the given string.
+     * Attempts to recognize the given string. Each character in the string is
+     * assumed to be separate symbol. Returns <code>true</code> if accepted,
+     * <code>false</code> if not.
+     * 
+     * @param sentence
+     *            the given string.
      */
     public boolean recognize(String sentence) {
         return recognize(stringToSymbols(sentence));
@@ -762,7 +956,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /**
      * Obtains the number of states.
-     *
+     * 
      * @return number of states
      */
     public int getNumStates() {
@@ -771,7 +965,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /**
      * Obtains the start state for this DFA.
-     *
+     * 
      * @return the start state of this DFA.
      */
     public State getStartState() {
@@ -875,9 +1069,9 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Merges the specified red and blue states, including the implied
-     * merges to make the DFA deterministic again. If afterwards the
-     * DFA has a conflict, it is marked as such.
+     * Merges the specified red and blue states, including the implied merges to
+     * make the DFA deterministic again. If afterwards the DFA has a conflict,
+     * it is marked as such.
      */
     public UndoInfo treeMerge(State red, State blue, boolean undoNeeded,
             State[] redStates, int numRedStates) throws ConflictingMerge {
@@ -885,19 +1079,20 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if (conflicts != null && conflicts[red.id] != null) {
             if (conflicts[red.id].get(blue.id)) {
-                throw new ConflictingMerge("Stored conflict: " + red.id + ", " + blue.id);
+                throw new ConflictingMerge("Stored conflict: " + red.id + ", "
+                        + blue.id);
             }
         }
 
         if (blue.hasConflict(red)) {
-            throw new ConflictingMerge("Found conflict: " + red.id + ", " + blue.id);
+            throw new ConflictingMerge("Found conflict: " + red.id + ", "
+                    + blue.id);
         }
 
         State parent = blue.parent;
 
         if (USE_PRODUCTIVE) {
-            mustRecomputeProductive =
-                (parent.productive | red.productive) != parent.productive;
+            mustRecomputeProductive = (parent.productive | red.productive) != parent.productive;
         }
 
         // Make the blue node's parent indicate the red node.
@@ -907,7 +1102,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         parent.savedIndex = 0;
 
         if (undoNeeded) {
-            if (INCREMENTAL_COUNTS && ! counts_done) {
+            if (INCREMENTAL_COUNTS && !counts_done) {
                 getMDLComplexity();
             }
             undo = UndoInfo.getUndoInfo(this);
@@ -924,17 +1119,17 @@ public final class DFA implements java.io.Serializable, Configuration {
         // Recurse while merging ...
         try {
             labelScore = walkTreeMerge(red, blue, undo);
-        } catch(ConflictingMerge e) {
+        } catch (ConflictingMerge e) {
             blue.addConflict(red);
             undoMerge(undo);
-            throw new ConflictingMerge("Detected conflict " + blue.id + ", " + red.id, e);
+            throw new ConflictingMerge("Detected conflict " + blue.id + ", "
+                    + red.id, e);
         }
 
         DFAScore = 0;
         MDLScore = 0;
 
-        if (mustRecomputeProductive ||
-                (INCREMENTAL_COUNTS && (counts != null))) {
+        if (mustRecomputeProductive || (INCREMENTAL_COUNTS && (counts != null))) {
             State[] states;
 
             if (USE_PARENT_SETS) {
@@ -956,14 +1151,14 @@ public final class DFA implements java.io.Serializable, Configuration {
 
                     for (int i = 0; i < states.length; i++) {
                         states[i].maxLenComputed = 0;
-                        states[i].mark = mark+i;
+                        states[i].mark = mark + i;
                         if (states[i] == startState) {
                             startStateIndex = i;
                         }
                     }
 
                     if (tempCounts == null || tempCounts.length < states.length) {
-                        tempCounts = new double[states.length][maxlen+1];
+                        tempCounts = new double[states.length][maxlen + 1];
                     }
 
                     undo.saveCounts();
@@ -976,7 +1171,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                         for (int i = 0; i < states.length; i++) {
                             states[i].maxLenComputed = 0;
                         }
-                        startState.computeUpdate(maxlen, xCounts, tempCounts, mark);
+                        startState.computeUpdate(maxlen, xCounts, tempCounts,
+                                mark);
                         for (int i = 1; i <= maxlen; i++) {
                             xCounts[i][startState.id] = tempCounts[startStateIndex][i];
                         }
@@ -993,7 +1189,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         if (logger.isDebugEnabled()) {
-            if (! checkDFA()) {
+            if (!checkDFA()) {
                 System.out.println("Problem after merge.");
                 if (undo != null) {
                     System.out.println("DFA before merge was: ");
@@ -1018,20 +1214,23 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     *   Merges two states. This version specifically performs merges for
-     *   which one of the states is the top of a tree, so does not take
-     *   into account states that point upwards. For some
-     *   search techniques, this is good enough, for others, it is not.
-     *   It computes the number of corresponding labels in the merge, where
-     *   a corresponding label means: either both states are accepting or
-     *   both states are rejecting.
-     *
-     *   @param n1  The first state
-     *   @param n2  The second state (top of a tree)
-     *   @param undo Will collect information for undoing this merge.
-     *   @return the number of corresponding labels in this merge.
+     * Merges two states. This version specifically performs merges for which
+     * one of the states is the top of a tree, so does not take into account
+     * states that point upwards. For some search techniques, this is good
+     * enough, for others, it is not. It computes the number of corresponding
+     * labels in the merge, where a corresponding label means: either both
+     * states are accepting or both states are rejecting.
+     * 
+     * @param n1
+     *            The first state
+     * @param n2
+     *            The second state (top of a tree)
+     * @param undo
+     *            Will collect information for undoing this merge.
+     * @return the number of corresponding labels in this merge.
      */
-    private int walkTreeMerge(State n1, State n2, UndoInfo undo) throws ConflictingMerge {
+    private int walkTreeMerge(State n1, State n2, UndoInfo undo)
+            throws ConflictingMerge {
 
         int labelscore = 0;
 
@@ -1136,7 +1335,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (undo != null) {
             undo.addChild(parent, i, parent.children[i]);
             if (USE_PARENT_SETS) {
-                if (! dest.parents.contains(parent)) {
+                if (!dest.parents.contains(parent)) {
                     undo.addParentAddition(dest, parent);
                 }
             }
@@ -1156,9 +1355,11 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Restores the DFA to the state it was in earlier, as specified by
-     * the parameter.
-     * @param u specifies saved state.
+     * Restores the DFA to the state it was in earlier, as specified by the
+     * parameter.
+     * 
+     * @param u
+     *            specifies saved state.
      */
     public void undoMerge(UndoInfo u) {
         if (u != null) {
@@ -1166,7 +1367,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         if (logger.isDebugEnabled()) {
-            if (! checkDFA()) {
+            if (!checkDFA()) {
                 logger.error("From undoMerge: exit");
                 System.exit(1);
             }
@@ -1174,23 +1375,21 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Computes the number of bits needed to encode the DFA.
-     * We need a two-dimensional array of (nStates * nsym) size, where
-     * each entry contains a destination state. We also need one bit per
-     * state indicating if the state is an end state.
-     * Each entry needs enough bits to encode a state number.
-     * This assumes a fixed start state.
-     * Note that any permutation of the states will do, so there is a lot
-     * of redundancy in this representation. In fact, (nStates-1)! redundancy,
-     * so we deduct log2((nStates-1)!) (the start state is fixed).
-     * The NEW_DFA_COUNT mechanism uses a different encoding:
-     * For each state: number of outgoing edges + 1 bit for accepting,
-     * for each edge the symbol + the destination state. With redundancy
-     * compensation. N*(1+2log(S+1)) + E*(2log(S)+2log(N)) - 2log((N-1)!)
-     * This encoding is much much better for sparse DFAs (like Prefix Tree
-     * Acceptors :-).
-     *
-     * @return  the actual sum for the DFA
+     * Computes the number of bits needed to encode the DFA. We need a
+     * two-dimensional array of (nStates * nsym) size, where each entry contains
+     * a destination state. We also need one bit per state indicating if the
+     * state is an end state. Each entry needs enough bits to encode a state
+     * number. This assumes a fixed start state. Note that any permutation of
+     * the states will do, so there is a lot of redundancy in this
+     * representation. In fact, (nStates-1)! redundancy, so we deduct
+     * log2((nStates-1)!) (the start state is fixed). The NEW_DFA_COUNT
+     * mechanism uses a different encoding: For each state: number of outgoing
+     * edges + 1 bit for accepting, for each edge the symbol + the destination
+     * state. With redundancy compensation. N*(1+2log(S+1)) +
+     * E*(2log(S)+2log(N)) - 2log((N-1)!) This encoding is much much better for
+     * sparse DFAs (like Prefix Tree Acceptors :-).
+     * 
+     * @return the actual sum for the DFA
      */
     public double getDFAComplexity() {
         if (DFAScore == 0) {
@@ -1198,35 +1397,35 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
                     int nXs = nXProductiveStates;
                     if (NEW_DFA_COUNT) {
-                        DFAScore = nXs * (1+log2(nsym+1))
-                            + nXProductiveEdges * (log2(nsym) + log2(nXs));
+                        DFAScore = nXs * (1 + log2(nsym + 1))
+                                + nXProductiveEdges * (log2(nsym) + log2(nXs));
                     } else {
                         // nXs = nXProductiveStates+missingXEdges;
-                        DFAScore = nXs * (1 + nsym * log2(nXs+1));
+                        DFAScore = nXs * (1 + nsym * log2(nXs + 1));
                     }
-                    DFAScore -= sumLog(nXs-1)/LOG2;
+                    DFAScore -= sumLog(nXs - 1) / LOG2;
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs));
                 }
                 int ns = nProductiveStates;
                 if (NEW_DFA_COUNT) {
-                    DFAScore += ns * (1+log2(nsym+1))
-                        + nProductiveEdges * (log2(nsym) + log2(ns));
+                    DFAScore += ns * (1 + log2(nsym + 1)) + nProductiveEdges
+                            * (log2(nsym) + log2(ns));
                 } else {
                     // ns = nProductiveStates+missingEdges;
-                    DFAScore += ns * (1 + nsym * log2(ns+1));
+                    DFAScore += ns * (1 + nsym * log2(ns + 1));
                 }
-                DFAScore -= sumLog(ns-1)/LOG2;
+                DFAScore -= sumLog(ns - 1) / LOG2;
                 // DFAScore += ns * (1.5 + log2(ns));
             } else {
                 int ns = nStates;
                 if (NEW_DFA_COUNT) {
-                    DFAScore = ns * (1+log2(nsym+1))
-                        + nEdges * (log2(nsym) + log2(ns));
+                    DFAScore = ns * (1 + log2(nsym + 1)) + nEdges
+                            * (log2(nsym) + log2(ns));
                 } else {
-                    DFAScore = ns * (1 + nsym * log2(ns+1));
+                    DFAScore = ns * (1 + nsym * log2(ns + 1));
                 }
-                DFAScore -= sumLog(ns-1)/LOG2;
+                DFAScore -= sumLog(ns - 1) / LOG2;
                 // DFAScore = ns * (1.5 + log2(ns));
             }
         }
@@ -1259,6 +1458,9 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     private double approximate2LogNoverK(double n, int k) {
+        if (k > n) {
+            return 0.0;
+        }
         return (sumLog(n) - sumLog(k) - sumLog(n-k))/LOG2;
     }
 
@@ -1289,16 +1491,11 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (REFINED_MDL) {
                 double score = 0;
                 /*
-                State[] myStates = startState.breadthFirst();
-                for (int i = 0; i < myStates.length; i++) {
-                    if (myStates[i].weight != 0) {
-                        int id = myStates[i].id;
-                        for (int j = 0; j <= maxlen; j++) {
-                            counts[j][id] = 0;
-                        }
-                    }
-                }
-                */
+                 * State[] myStates = startState.breadthFirst(); for (int i = 0;
+                 * i < myStates.length; i++) { if (myStates[i].weight != 0) {
+                 * int id = myStates[i].id; for (int j = 0; j <= maxlen; j++) {
+                 * counts[j][id] = 0; } } }
+                 */
                 State[] myStates = reachCount();
                 int totalCount = 0;
                 for (int i = 0; i < myStates.length; i++) {
@@ -1307,8 +1504,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     for (int j = 0; j <= maxlen; j++) {
                         cnt += counts[j][id];
                     }
-                    double sc = approximate2LogNoverK(cnt,
-                            myStates[i].weight);
+                    double sc = approximate2LogNoverK(cnt, myStates[i].weight);
                     if (logger.isDebugEnabled()) {
                         totalCount += cnt;
                         logger.debug("State " + id + ", weight = "
@@ -1329,7 +1525,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
 
                 if (MDL_COMPLEMENT && numRejected > 0) {
-                    double cn = Math.pow(2, maxlen+1) - n - 1;
+                    double cn = Math.pow(2, maxlen + 1) - n - 1;
                     double score = approximate2LogNoverK(cn, numRejected);
                     MDLScore += score;
                 }
@@ -1356,14 +1552,15 @@ public final class DFA implements java.io.Serializable, Configuration {
     public boolean checkDFA() {
         boolean ok = true;
 
-        // Check that it recognizes the samples! 
+        // Check that it recognizes the samples!
         if (samples != null) {
-            for (int i = 0; i < samples.length; i++) {
-                if (samples[i][0] == 1 && ! recognize(samples[i])) {
+            for (int i = 0; i < samples.size(); i++) {
+                int[] sample = samples.get(i);
+                if (sample[0] == 1 && !recognize(sample)) {
                     logger.error("Did not recognize sample " + i);
                     ok = false;
                 }
-                if (samples[i][0] == 0 && recognize(samples[i])) {
+                if (sample[0] == 0 && recognize(sample)) {
                     logger.error("Did recognize sample " + i);
                     ok = false;
                 }
@@ -1402,8 +1599,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                             break;
                         }
                     }
-                    if (! present) {
-                        logger.error("State " + s2 + " is present in the parent "
+                    if (!present) {
+                        logger.error("State " + s2
+                                + " is present in the parent "
                                 + "set of state " + s + ", but should not be.");
 
                         ok = false;
@@ -1411,8 +1609,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
                 for (int j = 0; j < nsym; j++) {
                     State s2 = s.children[j];
-                    if (s2 != null && ! s2.parents.contains(s)) {
-                        logger.error("State " + s + " is not present in the parent "
+                    if (s2 != null && !s2.parents.contains(s)) {
+                        logger.error("State " + s
+                                + " is not present in the parent "
                                 + "set of state " + s2 + ", but should be.");
                         ok = false;
                     }
@@ -1433,7 +1632,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         StringWriter w = new StringWriter();
         try {
             write(w, false);
-        } catch(IOException e) {
+        } catch (IOException e) {
             throw new Error("Should not happen? " + e);
         }
         return w.toString();
@@ -1443,19 +1642,19 @@ public final class DFA implements java.io.Serializable, Configuration {
         StringWriter w = new StringWriter();
         try {
             write(w, true);
-        } catch(IOException e) {
+        } catch (IOException e) {
             throw new Error("Should not happen? " + e);
         }
         return w.toString();
     }
 
-
-
     /**
-     * Writes a string representation of this object to the specified
-     * writer.
-     * @param w the writer.
-     * @param allStates when set, print all states, not just productive ones.
+     * Writes a string representation of this object to the specified writer.
+     * 
+     * @param w
+     *            the writer.
+     * @param allStates
+     *            when set, print all states, not just productive ones.
      */
     public void write(Writer w, boolean allStates) throws IOException {
 
@@ -1487,7 +1686,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (allStates || (s.productive & ACCEPTING) != 0) {
                 // Print the node definition
                 int index = s.id;
-                if (! allStates) {
+                if (!allStates) {
                     index = h.get(s).intValue();
                 }
                 w.write("N" + index);
@@ -1517,9 +1716,14 @@ public final class DFA implements java.io.Serializable, Configuration {
                     State e = s.traverseLink(j);
                     if (e != null
                             && (allStates || (e.productive & ACCEPTING) != 0)) {
-                        w.write("E" + index + ":" + symbols.getSymbol(j) + ":"
-                                + (allStates ? e.id : ((Integer) h.get(e)).intValue()) + "\n");
-                            }
+                        w.write("E"
+                                + index
+                                + ":"
+                                + symbols.getSymbol(j)
+                                + ":"
+                                + (allStates ? e.id : ((Integer) h.get(e))
+                                        .intValue()) + "\n");
+                    }
                 }
             }
         }
@@ -1527,21 +1731,23 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /**
      * Writes a string representation of this DFA to the specified file.
-     * @param filename the specified file.
+     * 
+     * @param filename
+     *            the specified file.
      */
     public void write(String filename) {
         try {
             BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
             write(bw, false);
             bw.close();
-        } catch(Exception E) {
+        } catch (Exception E) {
             throw new Error(E.toString(), E);
         }
     }
 
     private void computeCounts(State[] states, double[][] counts) {
         for (int j = 1; j <= maxlen; j++) {
-            double[] countjm1 = counts[j-1];
+            double[] countjm1 = counts[j - 1];
             for (int i = 0; i < states.length; i++) {
                 State s = states[i];
                 double cnt = 0;
@@ -1559,15 +1765,18 @@ public final class DFA implements java.io.Serializable, Configuration {
     /**
      * Computes the number of strings with length less than or equal to
      * <code>l</code> that are recognized by the current DFA.
-     * @param l the maximum string length
-     * @param count the count array.
-     * @param acceptOrReject count either from the rejecting DFA or
-     * the accepting DFA.
+     * 
+     * @param l
+     *            the maximum string length
+     * @param count
+     *            the count array.
+     * @param acceptOrReject
+     *            count either from the rejecting DFA or the accepting DFA.
      * @return the number of strings recognized.
      */
     private double computeNStrings(int l, double[][] count, int acceptOrReject) {
         BitSet h = null;
-        if (! INCREMENTAL_COUNTS || ! counts_done) {
+        if (!INCREMENTAL_COUNTS || !counts_done) {
             State[] myStates = startState.breadthFirst();
 
             if (USE_PARENT_SETS) {
@@ -1589,16 +1798,17 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
         if (USE_PARENT_SETS) {
-            if (! INCREMENTAL_COUNTS || ! counts_done) {
+            if (!INCREMENTAL_COUNTS || !counts_done) {
                 // Compute counts
                 for (int k = 1; k <= l; k++) {
                     BitSet h2 = new BitSet(idMap.length);
-                    for (int i = h.nextSetBit(0); i >= 0; i = h.nextSetBit(i+1)) {
+                    for (int i = h.nextSetBit(0); i >= 0; i = h
+                            .nextSetBit(i + 1)) {
                         State s = idMap[i];
                         for (State si : s.parents) {
                             for (int j = 0; j < nsym; j++) {
                                 if (si.children[j] == s) {
-                                    count[k][si.id] += count[k-1][s.id];
+                                    count[k][si.id] += count[k - 1][s.id];
                                 }
                             }
                             h2.set(si.id);
@@ -1608,7 +1818,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
             }
         } else if (INCREMENTAL_COUNTS) {
-            if (! counts_done) {
+            if (!counts_done) {
                 computeCounts(idMap, count);
             }
         } else {
@@ -1663,7 +1873,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             int mark = getMark();
             c2 = 0;
             double[] countk = counts[k];
-            double[] countkm1 = counts[k-1];
+            double[] countkm1 = counts[k - 1];
             for (int i = 0; i < c1; i++) {
                 State s = l1[i];
                 double km1 = countkm1[s.id];
@@ -1675,7 +1885,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                             sj.mark = mark;
                             countk[sj.id] = 0;
                             if (sj.weight > 0) {
-                                if (! h.contains(sj)) {
+                                if (!h.contains(sj)) {
                                     h.add(sj);
                                     for (int l = 0; l <= maxlen; l++) {
                                         counts[l][sj.id] = 0;
@@ -1713,7 +1923,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         for (int i = 0; i < idMap.length; i++) {
             State s = idMap[i];
-            if (! REFINED_MDL) {
+            if (!REFINED_MDL) {
                 if (counts != null) {
                     counts[0][s.id] = 0;
                 }
@@ -1722,12 +1932,12 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
             }
             if ((s.accepting & ACCEPTING) != 0) {
-                if (! REFINED_MDL && counts != null) {
+                if (!REFINED_MDL && counts != null) {
                     counts[0][s.id] = 1;
                 }
                 partition1.set(s.id);
             } else if ((s.accepting & REJECTING) != 0) {
-                if (! REFINED_MDL && xCounts != null) {
+                if (!REFINED_MDL && xCounts != null) {
                     xCounts[0][s.id] = 1;
                 }
                 partition2.set(s.id);
@@ -1783,16 +1993,16 @@ public final class DFA implements java.io.Serializable, Configuration {
                             // not in Ia, i.e. R is not contained in Ia.
                             // R must be split.
                             R.andNot(R1);
-                            partition[j] =  R1;
+                            partition[j] = R1;
                             partition[npartitions++] = R;
                             // workList.set(j);
                             // workList.set(npartitions-1);
                             if (workList.get(j)) {
-                                workList.set(npartitions-1);
+                                workList.set(npartitions - 1);
                             } else if (c <= R.cardinality()) {
                                 workList.set(j);
                             } else {
-                                workList.set(npartitions-1);
+                                workList.set(npartitions - 1);
                             }
                         }
                     }
@@ -1806,10 +2016,10 @@ public final class DFA implements java.io.Serializable, Configuration {
             BitSet p = partition[i];
             int ind = p.nextSetBit(0);
             states[i] = idMap[ind];
-            ind = p.nextSetBit(ind+1);
+            ind = p.nextSetBit(ind + 1);
             while (ind >= 0) {
                 states[i].weight += idMap[ind].weight;
-                ind = p.nextSetBit(ind+1);
+                ind = p.nextSetBit(ind + 1);
             }
             if (p.get(startState.id)) {
                 startState = states[i];
@@ -1835,13 +2045,8 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         nStates = npartitions;
+        dfaComputations();
 
-        nProductiveStates = startState.computeProductiveStates(ACCEPTING);
-        nProductiveEdges = computeProductiveEdges(ACCEPTING);
-        if (MDL_NEGATIVES || MDL_COMPLEMENT) {
-            nXProductiveStates = startState.computeProductiveStates(REJECTING);
-            nXProductiveEdges = computeProductiveEdges(REJECTING);
-        }
         MDLScore = 0;
         DFAScore = 0;
     }
@@ -1878,6 +2083,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /**
      * Precomputes conflicts for the initial DFA.
+     * 
      * @return the conflict sets.
      */
     public BitSet[] computeConflicts() {
@@ -1894,5 +2100,17 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
         return conflicts;
+    }
+
+    public Symbols getSymbols() {
+        return symbols;
+    }
+
+    public ArrayList<int[]> getSamples() {
+        return samples;
+    }
+
+    public void setSamples(ArrayList<int[]> samples) {
+        this.samples = samples;
     }
 }

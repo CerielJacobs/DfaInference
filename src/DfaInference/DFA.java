@@ -460,15 +460,15 @@ public final class DFA implements java.io.Serializable, Configuration {
         startState.computeDepths();
         saved = new State[nStates];
         nProductiveStates = startState.computeProductiveStates(ACCEPTING);
-        nProductiveEdges = computeProductiveEdges(ACCEPTING);
+        nProductiveEdges = computeProductiveEdges(idMap, ACCEPTING);
         if (MDL_NEGATIVES || MDL_COMPLEMENT) {
             nXProductiveStates = startState.computeProductiveStates(REJECTING);
-            nXProductiveEdges = computeProductiveEdges(REJECTING);
+            nXProductiveEdges = computeProductiveEdges(idMap, REJECTING);
         }
 
-        missingEdges = computeMissingEdges(ACCEPTING);
+        missingEdges = computeMissingEdges(idMap, ACCEPTING);
         if (MDL_COMPLEMENT || MDL_NEGATIVES) {
-            missingXEdges = computeMissingEdges(REJECTING);
+            missingXEdges = computeMissingEdges(idMap, REJECTING);
         }
         counts = null;
         xCounts = null;
@@ -778,13 +778,12 @@ public final class DFA implements java.io.Serializable, Configuration {
      *            deciding if the accepting or rejecting DFA is used.
      * @return the number of additional edges needed.
      */
-    private int computeMissingEdges(byte flag) {
+    private int computeMissingEdges(State[] map, byte flag) {
 
         int sum = 0;
 
-        // Assume idMap is just computed.
-        for (int i = 0; i < idMap.length; i++) {
-            sum += idMap[i].missingEdges(flag);
+        for (int i = 0; i < map.length; i++) {
+            sum += map[i].missingEdges(flag);
         }
         return sum;
     }
@@ -795,12 +794,11 @@ public final class DFA implements java.io.Serializable, Configuration {
      * deciding if the accepting or rejecting DFA is used.
      * @return the number of productive edges.
      */
-    private int computeProductiveEdges(byte flag) {
+    private int computeProductiveEdges(State[] map, byte flag) {
         int sum = 0;
 
-        // Assume idMap is just computed.
-        for (int i = 0; i < idMap.length; i++) {
-            sum += idMap[i].productiveEdges(flag);
+        for (int i = 0; i < map.length; i++) {
+            sum += map[i].productiveEdges(flag);
         }
         return sum;
     }
@@ -1577,7 +1575,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             ok = false;
         }
 
-        int nedges = computeProductiveEdges(ACCEPTING);
+        int nedges = computeProductiveEdges(l, ACCEPTING);
         if (nProductiveEdges != nedges) {
             logger.error("nProductiveEdges = " + nProductiveEdges + ", size = "
                     + nedges

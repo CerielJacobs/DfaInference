@@ -12,8 +12,6 @@ public final class State implements java.io.Serializable, Configuration,
 
     private static final long serialVersionUID = 1L;
     
-    private static int idCounter;
-
     /** The children of this state. Index is the symbol number. */
     State[] children = null;
 
@@ -90,12 +88,13 @@ public final class State implements java.io.Serializable, Configuration,
      * @param idOffset, to be added to the id.
      * @param nsym the new number of symbols.
      */
-    State(State s, State parent, HashMap<State, State> h, int[] map, boolean renumber, int nsym) {
+    State(State s, State parent, HashMap<State, State> h, int[] map,
+            Numberer numberer, int nsym) {
         productive = s.productive;
         accepting = s.accepting;
         depth = s.depth;
-        if (renumber) {
-            id = idCounter++;
+        if (numberer != null) {
+            id = numberer.next();
         } else {
             id = s.id;
         }
@@ -111,9 +110,9 @@ public final class State implements java.io.Serializable, Configuration,
         h.put(s, this);
         for (int i = 0; i < s.children.length; i++) {
             if (s.children[i] != null) {
-                State cp = (State) h.get(s.children[i]);
+                State cp = h.get(s.children[i]);
                 if (cp == null) {
-                    cp = new State(s.children[i], this, h, map, renumber, nsym);
+                    cp = new State(s.children[i], this, h, map, numberer, nsym);
                 }
                 if (map == null) {
                     children[i] = cp;
@@ -140,10 +139,11 @@ public final class State implements java.io.Serializable, Configuration,
      * @param map maps original states to copies.
      * @param oldStates the original state table.
      */
-    State(State s, BitSet[] mergeSets, State[] map, State[] oldStates) {
+    State(State s, BitSet[] mergeSets, State[] map, State[] oldStates,
+            Numberer numberer) {
         productive = 0;
         accepting = 0;
-        id = idCounter++;
+        id = numberer.next();
         weight = 0;
         children = new State[s.children.length];
         if (USE_PARENT_SETS) {
@@ -153,18 +153,19 @@ public final class State implements java.io.Serializable, Configuration,
             // No states equivalent to this one. Just merge in the edges
             // and data.
             map[s.id] = this;
-            mergeIn(s, mergeSets, map, oldStates);
+            mergeIn(s, mergeSets, map, oldStates, numberer);
         } else {
             // There are equivalent states. Merge everything in from
             // all states in this equivalence class.
             for (int n = mergeSets[s.id].nextSetBit(0); n != -1; n = mergeSets[s.id].nextSetBit(n+1)) {
                 map[n] = this;
-                mergeIn(oldStates[n], mergeSets, map, oldStates);
+                mergeIn(oldStates[n], mergeSets, map, oldStates, numberer);
             }
         }
     }
     
-    private void mergeIn(State s, BitSet[] mergeSets, State[] map, State[] oldStates) {
+    private void mergeIn(State s, BitSet[] mergeSets, State[] map,
+            State[] oldStates, Numberer numberer) {
         productive |= s.productive;
         accepting |= s.accepting;
         weight += s.weight;
@@ -175,7 +176,7 @@ public final class State implements java.io.Serializable, Configuration,
                 State dest = map[child.id];
                 if (dest == null) {
                     // This destination is not copied yet. Deep-copy it.
-                    dest = new State(child, mergeSets, map, oldStates);
+                    dest = new State(child, mergeSets, map, oldStates, numberer);
                 }
                 children[i] = dest;
                 if (USE_PARENT_SETS) {
@@ -185,10 +186,6 @@ public final class State implements java.io.Serializable, Configuration,
                 }
             }
         }
-    }
-    
-    static void resetIdCounter() {
-        idCounter = 0;
     }
     
     public int compareTo(Object o) {
@@ -329,7 +326,7 @@ public final class State implements java.io.Serializable, Configuration,
      * @return the copy.
      */
     public State copy() {
-        return new State(this, null, new HashMap<State, State>(), null, false, children.length);
+        return new State(this, null, new HashMap<State, State>(), null, null, children.length);
     }
 
     /**
@@ -391,12 +388,12 @@ public final class State implements java.io.Serializable, Configuration,
      */
     public State[] breadthFirst() {
         ArrayList<State> a = new ArrayList<State>();
-        int idCounter = 0;
+        Numberer numberer = null;
         int low = 0;
         int high = 1;
         if (id == -1) {
-            id = 0;
-            idCounter = 1;
+            numberer = new Numberer();
+            id = numberer.next();
         }
         a.add(this);
         clearMarks();
@@ -409,8 +406,8 @@ public final class State implements java.io.Serializable, Configuration,
                     if (schj != null && schj.mark == 0) {
                         schj.mark = 1;
                         a.add(schj);
-                        if (idCounter > 0) {
-                            schj.id = idCounter++;
+                        if (numberer != null) {
+                            schj.id = numberer.next();
                         }
                     }
                 }
@@ -574,6 +571,10 @@ public final class State implements java.io.Serializable, Configuration,
             }
             maxLenComputed = maxlen;
         }
+    }
+    
+    public boolean isRejecting(){
+        return accepting==REJECTING;
     }
 
     /**

@@ -514,11 +514,11 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
         // Then, copy and states and possibly re-index the children arrays.
-        State.resetIdCounter();
+        Numberer numberer = new Numberer();
         State state1 = new State(dfa1.startState, null,
-                new HashMap<State, State>(), null, true, nsym);
+                new HashMap<State, State>(), null, numberer, nsym);
         State state2 = new State(dfa2.startState, null,
-                new HashMap<State, State>(), dfa2SymbolMap, true, nsym);
+                new HashMap<State, State>(), dfa2SymbolMap, numberer, nsym);
 
         // compute a new idMap array.
         nStates = dfa1.nStates + dfa2.nStates;
@@ -546,10 +546,10 @@ public final class DFA implements java.io.Serializable, Configuration {
             // indexed by state id. Equivalent states have the same equivalence
             // set.
             BitSet[] merges = merge(state1, state2);
-            State.resetIdCounter();
             startState = new State(state1, merges, new State[idMap.length],
-                    idMap);
+                    idMap, new Numberer());
         }
+
         dfaComputations();
 
         if (logger.isDebugEnabled()) {
@@ -565,7 +565,7 @@ public final class DFA implements java.io.Serializable, Configuration {
     public void fullMerge(State s1, State s2) throws ConflictingMerge {
         BitSet[] merges = merge(s1, s2);
         startState = new State(startState, merges, new State[idMap.length],
-                idMap);
+                idMap, new Numberer());
         dfaComputations();
     }
 
@@ -698,7 +698,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
 
             if (logger.isInfoEnabled()) {
-                logger.info("Merging: " + b);
+                logger.debug("Merging: " + b);
             }
 
             // Check for conflicts: an accepting state cannot be equivalent
@@ -1907,15 +1907,17 @@ public final class DFA implements java.io.Serializable, Configuration {
      * Minimize the DFA. HopCrofts algorithm.
      */
     public void minimize() {
+
+        // Careful! You cannot rely on state ids anymore after this.
+        startState.id = -1;
+        idMap = startState.breadthFirst();
+        nStates = idMap.length;
+        
         BitSet[] partition = new BitSet[nStates];
         BitSet workList = new BitSet(nStates);
         BitSet partition1 = new BitSet(nStates);
         BitSet partition2 = new BitSet(nStates);
         BitSet partition3 = new BitSet(nStates);
-
-        // Careful! You cannot rely on state ids anymore after this.
-        startState.id = -1;
-        idMap = startState.breadthFirst();
 
         counts_done = false;
 
@@ -2042,7 +2044,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
 
-        nStates = npartitions;
         dfaComputations();
 
         MDLScore = 0;

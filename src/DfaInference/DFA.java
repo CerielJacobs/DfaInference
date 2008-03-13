@@ -113,6 +113,12 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /** Number of edges in this DFA. */
     int nEdges;
+    
+    /** Number of accepting states in this DFA. */
+    int nAccepting;
+    
+    /** Number of rejecting states in this DFA. */
+    int nRejecting;
 
     /** MDL Score of sample. */
     double MDLScore = 0;
@@ -246,6 +252,8 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         nStates = dfa.nStates;
         nEdges = dfa.nEdges;
+        nAccepting = dfa.nAccepting;
+        nRejecting = dfa.nRejecting;
         if (dfa.samples != null) {
             samples = new ArrayList<int[]>(dfa.samples);
         }
@@ -427,6 +435,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                                 "Trying to set Accept of node for which no N line seen!");
                     }
                     d.accepting = ACCEPTING;
+                    nAccepting++;
                     break;
                 }
 
@@ -457,6 +466,15 @@ public final class DFA implements java.io.Serializable, Configuration {
         startState.id = -1;
         idMap = startState.breadthFirst();
         nStates = idMap.length;
+        nAccepting = 0;
+        nRejecting = 0;
+        for (int i = 0; i < nStates; i++) {
+            if (idMap[i].isRejecting()) {
+                nRejecting++;
+            } else if (idMap[i].isAccepting()) {
+                nAccepting++;
+            }
+        }
         startState.computeDepths();
         saved = new State[nStates];
         nProductiveStates = startState.computeProductiveStates(ACCEPTING);
@@ -522,6 +540,8 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         // compute a new idMap array.
         nStates = dfa1.nStates + dfa2.nStates;
+        nAccepting = dfa1.nAccepting + dfa2.nAccepting;
+        nRejecting = dfa1.nRejecting + dfa2.nRejecting;
         idMap = new State[nStates];
         state1.fillIdMap(idMap);
         state2.fillIdMap(idMap);
@@ -867,12 +887,14 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if (reject) {
             numRejected++;
+            nRejecting++;
             n.accepting = REJECTING;
             if (MDL_NEGATIVES || MDL_COMPLEMENT) {
                 n.weight = 1;
             }
         } else {
             numRecognized++;
+            nAccepting++;
             n.accepting = ACCEPTING;
             n.weight = 1;
         }
@@ -1236,6 +1258,11 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if ((n1.accepting & n2.accepting) != 0) {
             labelscore = 1;
+            if (n1.isAccepting()) {
+                nAccepting--;
+            } else {
+                nRejecting--;
+            }
         } else if ((n1.accepting | n2.accepting) == MASK) {
             throw new ConflictingMerge("conflict: " + n1.id + ", " + n2.id);
         } else {
@@ -1386,7 +1413,8 @@ public final class DFA implements java.io.Serializable, Configuration {
      * state. With redundancy compensation. N*(1+2log(S+1)) +
      * E*(2log(S)+2log(N)) - 2log((N-1)!) This encoding is much much better for
      * sparse DFAs (like Prefix Tree Acceptors :-).
-     * 
+     * With NEW_DFA_COUNT, the way end-states are encoded is different
+     * as well: assumed is a list.
      * @return the actual sum for the DFA
      */
     public double getDFAComplexity() {
@@ -1395,22 +1423,30 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
                     int nXs = nXProductiveStates;
                     if (NEW_DFA_COUNT) {
-                        DFAScore = nXs * (1 + log2(nsym + 1))
+                        // DFAScore = nXs * (1 + log2(nsym + 1))
+                        //         + nXProductiveEdges * (log2(nsym) + log2(nXs));
+                        DFAScore = nXs * log2(nsym + 1) 
                                 + nXProductiveEdges * (log2(nsym) + log2(nXs));
+                        // rejecting states:
+                        DFAScore += nRejecting * log2(nXs);
+                        // DFAScore += approximate2LogNoverK(nXs, nRejecting);
                     } else {
-                        // nXs = nXProductiveStates+missingXEdges;
                         DFAScore = nXs * (1 + nsym * log2(nXs + 1));
                     }
                     DFAScore -= sumLog(nXs - 1) / LOG2;
                     // From a paper by Domaratzky, Kisman, Shallit
-                    // DFAScore = nXs * (1.5 + log2(nXs));
+                    // DFAScore = nXs * (1.5 + log2(nXs)); (if nsym = 2).
                 }
                 int ns = nProductiveStates;
                 if (NEW_DFA_COUNT) {
-                    DFAScore += ns * (1 + log2(nsym + 1)) + nProductiveEdges
-                            * (log2(nsym) + log2(ns));
+                    // DFAScore += ns * (1 + log2(nsym + 1)) + nProductiveEdges
+                    //        * (log2(nsym) + log2(ns));
+                    DFAScore += ns * log2(nsym + 1)
+                            + nProductiveEdges * (log2(nsym) + log2(ns));
+                    // Accepting states ...
+                    DFAScore += nAccepting * log2(ns);
+                    // DFAScore += approximate2LogNoverK(ns, nAccepting);
                 } else {
-                    // ns = nProductiveStates+missingEdges;
                     DFAScore += ns * (1 + nsym * log2(ns + 1));
                 }
                 DFAScore -= sumLog(ns - 1) / LOG2;
@@ -1418,8 +1454,13 @@ public final class DFA implements java.io.Serializable, Configuration {
             } else {
                 int ns = nStates;
                 if (NEW_DFA_COUNT) {
-                    DFAScore = ns * (1 + log2(nsym + 1)) + nEdges
-                            * (log2(nsym) + log2(ns));
+                    // DFAScore = ns * (1 + log2(nsym + 1)) + nEdges
+                    //         * (log2(nsym) + log2(ns));                    
+                    DFAScore = ns * log2(nsym + 1)
+                            + nEdges * (log2(nsym) + log2(ns));
+                    DFAScore += (nAccepting + nRejecting) * log2(ns);
+                    // DFAScore += approximate2LogNoverK(ns, nAccepting);
+                    // DFAScore += approximate2LogNoverK(ns, nRejecting);                   
                 } else {
                     DFAScore = ns * (1 + nsym * log2(ns + 1));
                 }
@@ -1427,8 +1468,10 @@ public final class DFA implements java.io.Serializable, Configuration {
                 // DFAScore = ns * (1.5 + log2(ns));
             }
         }
-        logger.debug("DFAScore = " + DFAScore + ", nStates = " + nStates);
-
+        if (logger.isInfoEnabled()) {
+            logger.info("DFAScore = " + DFAScore + ", nStates = " + nStates
+                    + ", nRejecting = " + nRejecting + ", nAccepting = " + nAccepting);
+        }
         return DFAScore;
     }
 

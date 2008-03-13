@@ -577,6 +577,10 @@ public final class State implements java.io.Serializable, Configuration,
         return accepting==REJECTING;
     }
 
+    public boolean isAccepting(){
+        return accepting==ACCEPTING;
+    }
+
     /**
      * Returns a string representation of this state.
      * @return a string representation.

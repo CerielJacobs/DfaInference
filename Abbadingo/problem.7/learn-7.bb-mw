@@ -12,6 +12,7 @@ prun -4 CLASSPATH=../../DfaInference.jar:. -v -o learn-7.bb-mw.out \
     -Dibis.name=tcp \
     -Dsatin.closed \
     -Dsatin.alg=MW \
+    -Dsatin.closeConnections=false \
     $ARGS \
     DfaInference.BestBlueMW \
     -strategy DfaInference.ChoiceCountStrategy \

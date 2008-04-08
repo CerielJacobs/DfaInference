@@ -10,6 +10,7 @@ prun -t 0:10:0 -4 CLASSPATH=../../DfaInference.jar:. -v -o learn-7.nomw.out \
     -server -Xms512M -Xmx512M \
     -Dsatin.closed \
     -Dibis.name=tcp \
+    -Dsatin.closeConnections=false \
     $ARGS \
     DfaInference.SatinFolder \
     -input ../train.7 -depth 5 -no-mw -window 192 -dump DfaDump7

@@ -11,6 +11,7 @@ prun -t 0:10:0 -4 CLASSPATH=../../DfaInference.jar:. -v -o learn-7.out \
     -Dsatin.closed \
     -Dibis.name=tcp \
     -Dsatin.alg=MW \
+    -Dsatin.closeConnections=false \
     $ARGS \
     DfaInference.SatinFolder \
     -input ../train.7 -depth 5 -mw -window 192 -dump DfaDump7

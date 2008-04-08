@@ -10,6 +10,7 @@ prun -4  CLASSPATH=../../DfaInference.jar:. -v -o learn-7.bb.out \
     -server -Xms512M -Xmx512M \
     -Dibis.name=tcp \
     -Dsatin.closed \
+    -Dsatin.closeConnections=false \
     $ARGS \
     DfaInference.BestBlue \
     -strategy DfaInference.ChoiceCountStrategy \

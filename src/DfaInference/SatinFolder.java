@@ -130,6 +130,9 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
             int scorePercentage, int window, Samples learningSamples) {
         ControlResultPair[][] pairs = new ControlResultPair[l.length][];
 
+        if (masterWorker) {
+            logger.warn("Starting spawns");
+        }
         for (int i = 0; i < l.length; i++) {
             if (! masterWorker) {
                 pairs[i] = examineChoice(l[i].control, i, percentage,
@@ -159,6 +162,9 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
                     pairs[i][k].score = buildPair(pairs[i][k], learningSamples);
                 }
             }
+        }
+        if (masterWorker) {
+            logger.warn("Spawns done");
         }
         sync(); // wait for all spawned jobs.
         int sz = 0;

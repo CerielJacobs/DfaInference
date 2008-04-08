@@ -12,13 +12,14 @@ public class MDLFold extends RedBlue implements java.io.Serializable {
     }
 
     boolean testMerge(State r, State b) {
+        boolean foundMerge = false;
+
         if (r == null) {
             addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(), getScore()));
             return true;
         }
-        try {
-            boolean foundMerge = false;
-            UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
+        UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
+        if (! dfa.conflict) {
             double sc = getScore();
             double dfascore = dfa.getDFAComplexity();
 
@@ -28,11 +29,9 @@ public class MDLFold extends RedBlue implements java.io.Serializable {
                 addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(), sc));
                 foundMerge = true;
             }
-            dfa.undoMerge(u);
-            return foundMerge;
-        } catch(Throwable e) {
-            return false;
         }
+        dfa.undoMerge(u);
+        return foundMerge;
     }
 
     public static void main(String[] args) {

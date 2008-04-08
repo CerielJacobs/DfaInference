@@ -599,11 +599,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
         State[] oldBlueStates = new State[numBlueStates];
         System.arraycopy(blueStates, 0, oldBlueStates, 0, numBlueStates);
 
-        try {
-            dfa.treeMerge(red, blue, false, redStates, numRedStates);
-        } catch(Throwable e) {
-            logger.error("Should not happen!", e);
-        }
+        dfa.treeMerge(red, blue, false, redStates, numRedStates);
 
         if (printInfo && logger.isInfoEnabled()) {
             logger.info("Merging blue state " + blue.id + " into " + red.id

@@ -150,6 +150,8 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Edges missing in complement DFA. */
     int missingXEdges = 0;
 
+    boolean conflict = false;
+
     /** Maps ids to states. */
     State[] idMap;
 
@@ -1094,19 +1096,19 @@ public final class DFA implements java.io.Serializable, Configuration {
      * it is marked as such.
      */
     public UndoInfo treeMerge(State red, State blue, boolean undoNeeded,
-            State[] redStates, int numRedStates) throws ConflictingMerge {
+            State[] redStates, int numRedStates) {
         UndoInfo undo = null;
 
         if (conflicts != null && conflicts[red.id] != null) {
             if (conflicts[red.id].get(blue.id)) {
-                throw new ConflictingMerge("Stored conflict: " + red.id + ", "
-                        + blue.id);
+                conflict = true;
+                return undo;
             }
         }
 
         if (blue.hasConflict(red)) {
-            throw new ConflictingMerge("Found conflict: " + red.id + ", "
-                    + blue.id);
+            conflict = true;
+            return undo;
         }
 
         State parent = blue.parent;
@@ -1137,16 +1139,14 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         // Recurse while merging ...
-        try {
-            labelScore = walkTreeMerge(red, blue, undo);
-        } catch (ConflictingMerge e) {
+        labelScore = walkTreeMerge(red, blue, undo);
+        DFAScore = 0;
+
+        if (conflict) {
             blue.addConflict(red);
-            undoMerge(undo);
-            throw new ConflictingMerge("Detected conflict " + blue.id + ", "
-                    + red.id, e);
+            return undo;
         }
 
-        DFAScore = 0;
         MDLScore = 0;
 
         if (mustRecomputeProductive || (INCREMENTAL_COUNTS && (counts != null))) {
@@ -1249,8 +1249,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      *            Will collect information for undoing this merge.
      * @return the number of corresponding labels in this merge.
      */
-    private int walkTreeMerge(State n1, State n2, UndoInfo undo)
-            throws ConflictingMerge {
+    private int walkTreeMerge(State n1, State n2, UndoInfo undo) {
 
         int labelscore = 0;
 
@@ -1264,7 +1263,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                 nRejecting--;
             }
         } else if ((n1.accepting | n2.accepting) == MASK) {
-            throw new ConflictingMerge("conflict: " + n1.id + ", " + n2.id);
+            conflict = true;
+            return 0;
         } else {
             n1.accepting |= n2.accepting;
             if (! REFINED_MDL) {
@@ -1338,6 +1338,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                         missingXEdges--;
                     }
                     labelscore += walkTreeMerge(v1, v2, undo);
+                    if (conflict) {
+                        return 0;
+                    }
                 } else {
                     // Parent of v2 changes, but is recomputed before every
                     // merge.
@@ -1387,6 +1390,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      *            specifies saved state.
      */
     public void undoMerge(UndoInfo u) {
+        conflict = false;
         if (u != null) {
             u.undo();
         }

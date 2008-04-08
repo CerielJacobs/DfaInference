@@ -12,6 +12,7 @@ public class StateFold extends RedBlue implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
     boolean testMerge(State r, State b) {
+        boolean foundMerge = false;
 
         if (r == null) {
             addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(),
@@ -21,15 +22,14 @@ public class StateFold extends RedBlue implements java.io.Serializable {
         if (logger.isDebugEnabled()) {
             logger.debug("testMerge " + r.id + ", " + b.id);
         }
-        try {
-            UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
+        UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
+        if (! dfa.conflict) {
             addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
                         dfa.getNumStates()));
-            dfa.undoMerge(u);
-            return true;
-        } catch(Throwable e) {
-            return false;
+            foundMerge = true;
         }
+        dfa.undoMerge(u);
+        return foundMerge;
     }
 
     double getScore() {

@@ -28,6 +28,8 @@ public final class UndoInfo implements Configuration {
 
         /** The weight field of the object to be saved. */
         int weight;
+        
+        int[] edgeWeights;
 
 
         /**
@@ -40,6 +42,7 @@ public final class UndoInfo implements Configuration {
             productive = s.productive;
             depth = s.depth;
             weight = s.weight;
+            edgeWeights = (int[]) s.edgeWeights.clone();
         }
 
         /**
@@ -88,6 +91,8 @@ public final class UndoInfo implements Configuration {
                 orig.productive = last.productive;
                 orig.depth = last.depth;
                 orig.weight = last.weight;
+                orig.edgeWeights = last.edgeWeights;
+                last.edgeWeights = null;
                 n = last.next;
             } while (n != null);
 

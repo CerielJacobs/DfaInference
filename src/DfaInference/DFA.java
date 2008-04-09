@@ -613,6 +613,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         startState = new State(nsym);
         startState.accepting = (byte)(state1.accepting | state2.accepting);
         startState.weight = state1.weight + state2.weight;
+        for (int i = 0; i < nsym; i++) {
+            startState.edgeWeights[i] = state1.edgeWeights[i] + state2.edgeWeights[i];
+        }
         if (startState.accepting == (ACCEPTING|REJECTING)) {
             throw new ConflictingMerge("found conflict!");
         }
@@ -631,6 +634,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
                 byte accepting = 0;
                 int weight = 0;
+                int[] edgeWeights = new int[nsym];
 
                 for (int i = current.nextSetBit(0); i != -1; i = current.nextSetBit(i + 1)) {
                     State si = getState(i);
@@ -639,6 +643,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                         target.set(child.id);
                         accepting |= child.accepting;
                         weight += child.weight;
+                        for (int j = 0; j < nsym; j++) {
+                            edgeWeights[j] += child.edgeWeights[j];
+                        }
                         toAdd = true;
                     }
                 }
@@ -658,6 +665,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     newTarget = new State(nsym);
                     newTarget.accepting = accepting;
                     newTarget.weight = weight;
+                    newTarget.edgeWeights = edgeWeights;
                     workList.add(target);
                     map.put(target, newTarget);
                 }
@@ -883,6 +891,10 @@ public final class DFA implements java.io.Serializable, Configuration {
                 target = n.addDestination(symbols[i]);
                 nStates++;
                 nEdges++;
+            } else {
+                if (! reject) {
+                    n.edgeWeights[symbols[i]]++;
+                }
             }
             n = target;
         }
@@ -1280,6 +1292,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         n1.weight += n2.weight;
+        for (int j = 0; j < nsym; j++) {
+            n1.edgeWeights[j] += n2.edgeWeights[j];
+        }
 
         if ((n2.productive & ACCEPTING) != 0) {
             missingEdges -= n2.missingEdges(ACCEPTING);
@@ -2066,6 +2081,9 @@ public final class DFA implements java.io.Serializable, Configuration {
             ind = p.nextSetBit(ind + 1);
             while (ind >= 0) {
                 states[i].weight += idMap[ind].weight;
+                for (int j = 0; j < nsym; j++) {
+                    states[i].edgeWeights[j] += idMap[ind].edgeWeights[j];
+                }
                 ind = p.nextSetBit(ind + 1);
             }
             if (p.get(startState.id)) {

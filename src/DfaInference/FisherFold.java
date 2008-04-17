@@ -3,32 +3,28 @@ package DfaInference;
 import abbadingo.AbbaDingoReader;
 import abbadingo.AbbaDingoString;
 
-/**
- * This class implements an evidence-driven state folder.
- * Evidence consists of the number of corresponding state labels that result
- * when doing a merge and making the resulting DFA deterministic by collapsing
- * states. Corresponding means: both states are rejecting or both states are
- * accepting.
- */
-public class BernoulliFold extends RedBlue implements java.io.Serializable {
+public class FisherFold extends RedBlue implements java.io.Serializable {
 
     private static final long serialVersionUID = 1L;
-
-    private static final double ALPHA = 0.10;
-    private static final double LIMIT = Math.sqrt(.5 * Math.log(2.0/ALPHA));
+    
+    // Threshold for promoting to red.
+    private static final double PROBABILITY_THRESHOLD = .05;
+    
+    // Reject if FisherScore is below this.
+    private static final double LIMIT = .001;
 
     boolean testMerge(State r, State b) {
         boolean foundMerge = false;
 
         if (r == null) {
-            addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(), LIMIT));
+            addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(), -PROBABILITY_THRESHOLD));
             return true;
         }
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
-        if (! dfa.conflict) {
+        if (! dfa.conflict && dfa.FisherScore > LIMIT) {           
             addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
-                        dfa.bernouilliScore));
+                        -dfa.FisherScore));
             foundMerge = true;
         }
         dfa.undoMerge(u);
@@ -49,6 +45,11 @@ public class BernoulliFold extends RedBlue implements java.io.Serializable {
 
         // Print Java version and system.
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
+        
+        if (! Configuration.FISHERSCORE) {
+            System.err.println("Should set ComputeFisher property!");
+            System.exit(1);
+        }
 
         for (int i = 0; i < args.length; i++) {
             if (false) {
@@ -89,7 +90,7 @@ public class BernoulliFold extends RedBlue implements java.io.Serializable {
         int[][] learningSamples = symbols.convert2learn(samples);
 
 
-        BernoulliFold m = new BernoulliFold();
+        FisherFold m = new FisherFold();
         m.printInfo = true;
         logger.info("Starting fold ...");
         DFA bestDFA = m.doFold(new Samples(symbols, learningSamples, null),

@@ -40,8 +40,8 @@ public interface Configuration {
     static final boolean NEW_DFA_COUNT =
         tp.getBooleanProperty("NewDFACount", true);
     
-    static final boolean BERNOULLI =
-        tp.getBooleanProperty("ComputeBernoulli", false);
+    static final boolean FISHERSCORE =
+        tp.getBooleanProperty("ComputeFisher", false);
 
     /**
      * Bit that indicates accepting state or state of DFA that recognizes

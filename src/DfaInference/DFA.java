@@ -16,12 +16,14 @@ import java.util.HashSet;
 import java.util.LinkedList;
 
 import org.apache.log4j.Logger;
+import org.apache.commons.math.MathException;
+import org.apache.commons.math.special.Gamma;
 
 /**
  * This class represents a DFA and offers various operations on it.
  */
 public final class DFA implements java.io.Serializable, Configuration {
-
+    
     private static final long serialVersionUID = 1L;
 
     /** Precompute log(2). */
@@ -125,9 +127,12 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /** Score of this DFA without samples. */
     double DFAScore = 0;
-    
-    /* BernouilliScore of the last merge. */
-    double bernouilliScore;
+
+    /** Fisher score for the last merge. */
+    double FisherScore;
+
+    /* Chi-square sum of the last merge. */
+    private double chiSquareSum;
 
     /** Label score of the last merge. */
     int labelScore = 0;
@@ -557,7 +562,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         // TODO: we need numRecognized and numRejected for the score. How to
         // compute
-        // them acurately??? The code here is only correct if there is no
+        // them accurately??? The code here is only correct if there is no
         // overlap.
         // If we have the samples, we can just recompute them, but what if we
         // don't? (Ceriel)
@@ -1158,13 +1163,32 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         // Recurse while merging ...
         labelScore = 0;
-        bernouilliScore = 0.0;
+        chiSquareSum = 0.0;
+        int savedNstates = nStates;
         walkTreeMerge(red, blue, undo);
         DFAScore = 0;
 
         if (conflict) {
             blue.addConflict(red);
             return undo;
+        }
+        
+        if (FISHERSCORE) {
+            // We have computed the sum of the logs of the P's for
+            // all state merges. Now, apply Fisher's method:
+            // X = -2 * sum
+            // P = P(nmerges, X/2).
+            int cnt = savedNstates - nStates;
+            try {
+                if (Double.isInfinite(chiSquareSum)) {
+                    FisherScore = .01;
+                } else {
+                    System.out.println("cnt = " + cnt + ", sum = " + chiSquareSum);
+                    FisherScore = 1.0 - Gamma.regularizedGammaP(cnt, -chiSquareSum);
+                }
+            } catch (MathException e) {
+                FisherScore = .01;
+            }
         }
 
         MDLScore = 0;
@@ -1283,11 +1307,14 @@ public final class DFA implements java.io.Serializable, Configuration {
             conflict = true;
             return;
         } else {
-            double sc = computeBernouilli(n1, n2);
-            if (sc > bernouilliScore) {
-                bernouilliScore = sc;
+            if (FISHERSCORE) {
+                double sc = Math.log(computeChiSquare(n1, n2));
+                if (Double.isNaN(sc)) {
+                    sc = Double.NEGATIVE_INFINITY;
+                }
+                chiSquareSum += sc;
             }
-            n1.accepting |= n2.accepting;
+            n1.accepting |= n2.accepting;           
             if (! REFINED_MDL) {
                 if (n1.accepting != 0) {
                     if (counts != null && (n1.accepting & ACCEPTING) != 0) {
@@ -1382,47 +1409,61 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
     }
 
-    private double symScore(int sym1, int total1, int sym2, int total2) {
-        double d1 = ((double) sym1) / total1;
-        double d2 = ((double) sym2) / total2;
-        d1 -= d2;
-        if (d1 == 0) {
-            return 0.0;
+    /**
+     * Computes a chi-square sum element: (observed - expected)^2 / expected.
+     * Problem: what to do if expected == 0 and observed != 0? We cannot
+     * divide by 0. Just return a large value?
+     * For now, we just replace it with a small fraction. (Both observed
+     * and expected are fractions, between 0 and 1).
+     * @param expected the fraction of the red state.
+     * @param observed the fraction of the blue state.
+     * @return the chi-square sum element.
+     */
+    private static double symScore(double expected, double observed) {
+        double diff = observed - expected;
+        if (expected == 0) {
+            expected = 0.01;
         }
-        if (d1 < 0.0) {
-            d1 = -d1;
-        }
-        d1 = d1 / (Math.sqrt(1.0/total1) + Math.sqrt(1.0/total2));
-        System.out.println("d1 = " + d1);
-        return d1;
+        double retval = (diff * diff) / expected;
+        System.out.println("exptected = " + expected
+                + ", observed = " + observed
+                + ", sum element = " + retval);
+        return retval;
     }
     
-    private double computeBernouilli(State n1, State n2) {
+    private double computeChiSquare(State n1, State n2) {
         double score = 0.0;
-        if (! BERNOULLI) {
-            return score;
-        }
+        int cnt = 0;
         if (n1.total == 0 || n2.total == 0) {
             // This can happen if we have negative samples.
-            // Return a large value for now.
+            // Return low probability.
             // TODO: figure out how to deal with this.
-            return (double) Integer.MAX_VALUE;
+            return 0.01;
         }
-        if ((n1.accepting & ACCEPTING) != 0) {
-            double sc = symScore(n1.weight, n1.total, n2.weight, n2.total);
-            if (sc > score) {
-                score = sc;
-            }
+        int total = n1.total + n2.total;
+        if ((n1.accepting & ACCEPTING) != 0 ||
+                (n2.accepting & ACCEPTING) != 0) {
+            double c1 = n2.total * ((double)(n1.weight + n2.weight)) / total;
+            score += symScore(c1, n2.weight);
+            cnt++;
         }
         for (int i = 0; i < nsym; i++) {
-            int c1 = n1.edgeWeights[i];
-            int c2 = n2.edgeWeights[i];
-            if (c1 != 0 || c2 != 0) {
-                double sc = symScore(c1, n1.total, c2, n2.total);
-                if (sc > score) {
-                    score = sc;
-                }
+            double c1 = n1.edgeWeights[i] + n2.edgeWeights[i];
+            c1 = n2.total * c1 / total;
+            if (c1 != 0) {
+                score += symScore(c1, n2.edgeWeights[i]);
+                cnt++;
             }
+        }
+        try {
+            if (score == 0.0) {
+                score = 1.0;
+            } else {
+                score = 1.0 - Gamma.regularizedGammaP((cnt-1)/2.0, score/2.0);
+            }
+        } catch (MathException e) {
+            // Does not converge???
+            score = 0.01;
         }
         System.out.println("Score = " + score);
         return score;
@@ -1686,7 +1727,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         State[] l = startState.breadthFirst();
-        if (BERNOULLI) {
+        if (FISHERSCORE) {
             for (State s : l) {
                 int cnt = 0;
                 if (s.isAccepting()) {

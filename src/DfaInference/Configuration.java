@@ -42,6 +42,9 @@ public interface Configuration {
     
     static final boolean FISHERSCORE =
         tp.getBooleanProperty("ComputeFisher", false);
+    
+    static final boolean ALT_ENDSTATES_SCORE =
+        tp.getBooleanProperty("FixEndstates", true);
 
     /**
      * Bit that indicates accepting state or state of DFA that recognizes

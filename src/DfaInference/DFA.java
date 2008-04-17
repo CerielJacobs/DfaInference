@@ -1525,7 +1525,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      * representation. In fact, (nStates-1)! redundancy, so we deduct
      * log2((nStates-1)!) (the start state is fixed). The NEW_DFA_COUNT
      * mechanism uses a different encoding: For each state: number of outgoing
-     * edges + 1 bit for accepting, for each edge the symbol + the destination
+     * edges, for each edge the symbol + the destination
      * state. With redundancy compensation. N*(1+2log(S+1)) +
      * E*(2log(S)+2log(N)) - 2log((N-1)!) This encoding is much much better for
      * sparse DFAs (like Prefix Tree Acceptors :-).
@@ -1539,52 +1539,58 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
                     int nXs = nXProductiveStates;
                     if (NEW_DFA_COUNT) {
-                        // DFAScore = nXs * (1 + log2(nsym + 1))
-                        //         + nXProductiveEdges * (log2(nsym) + log2(nXs));
                         DFAScore = nXs * log2(nsym + 1) 
                                 + nXProductiveEdges * (log2(nsym) + log2(nXs));
-                        // rejecting states:
-                        DFAScore += nRejecting * log2(nXs);
-                        // DFAScore += approximate2LogNoverK(nXs, nRejecting);
                     } else {
                         DFAScore = nXs * nsym * log2(nXs + 1);
+                    }
+                    // rejecting states:
+                    if (ALT_ENDSTATES_SCORE) {
+                        DFAScore += nRejecting * log2(nXs);
+                    } else {
                         DFAScore += approximate2LogNoverK(nXs, nRejecting);
                     }
+                    
                     DFAScore -= sumLog(nXs - 1) / LOG2;
+                    
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs)); (if nsym = 2).
                 }
                 int ns = nProductiveStates;
                 if (NEW_DFA_COUNT) {
-                    // DFAScore += ns * (1 + log2(nsym + 1)) + nProductiveEdges
-                    //        * (log2(nsym) + log2(ns));
                     DFAScore += ns * log2(nsym + 1)
                             + nProductiveEdges * (log2(nsym) + log2(ns));
-                    // Accepting states ...
-                    DFAScore += nAccepting * log2(ns);
-                    // DFAScore += approximate2LogNoverK(ns, nAccepting);
-                } else {
+                 } else {
                     DFAScore += ns * nsym * log2(ns + 1);
+                }
+                // Accepting states ...
+                if (ALT_ENDSTATES_SCORE) {
+                    DFAScore += nAccepting * log2(ns);
+                } else {
                     DFAScore += approximate2LogNoverK(ns, nAccepting);
                 }
-                DFAScore -= sumLog(ns - 1) / LOG2;
+                
+                DFAScore -= sumLog(ns - 1) / LOG2;               
                 // DFAScore += ns * (1.5 + log2(ns));
             } else {
                 int ns = nStates;
-                if (NEW_DFA_COUNT) {
-                    // DFAScore = ns * (1 + log2(nsym + 1)) + nEdges
-                    //         * (log2(nsym) + log2(ns));                    
+                if (NEW_DFA_COUNT) {             
                     DFAScore = ns * log2(nsym + 1)
                             + nEdges * (log2(nsym) + log2(ns));
-                    DFAScore += (nAccepting + nRejecting) * log2(ns);
-                    // DFAScore += approximate2LogNoverK(ns, nAccepting);
-                    // DFAScore += approximate2LogNoverK(ns - nAccepting, nRejecting);                   
                 } else {
                     DFAScore = ns * nsym * log2(ns + 1);
-                    DFAScore += approximate2LogNoverK(ns, nAccepting);
-                    DFAScore += approximate2LogNoverK(ns - nAccepting, nRejecting); 
+
                 }
+                // Accepting/rejecting states ...
+                if (ALT_ENDSTATES_SCORE) {
+                    DFAScore += (nAccepting + nRejecting) * log2(ns);
+                } else {
+                    DFAScore += approximate2LogNoverK(ns, nAccepting);
+                    DFAScore += approximate2LogNoverK(ns - nAccepting, nRejecting);
+                }
+                
                 DFAScore -= sumLog(ns - 1) / LOG2;
+                
                 // DFAScore = ns * (1.5 + log2(ns));
             }
         }

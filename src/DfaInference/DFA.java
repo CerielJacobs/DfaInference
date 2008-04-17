@@ -1547,6 +1547,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     // rejecting states:
                     if (ALT_ENDSTATES_SCORE) {
                         DFAScore += nRejecting * log2(nXs);
+                            // - sumLog(nRejecting - 1) / LOG2;
                     } else {
                         DFAScore += approximate2LogNoverK(nXs, nRejecting);
                     }
@@ -1566,9 +1567,20 @@ public final class DFA implements java.io.Serializable, Configuration {
                 // Accepting states ...
                 if (ALT_ENDSTATES_SCORE) {
                     DFAScore += nAccepting * log2(ns);
+                            // - sumLog(nAccepting - 1) / LOG2;
                 } else {
                     DFAScore += approximate2LogNoverK(ns, nAccepting);
                 }
+                /*
+                System.out.println("ns = " + ns
+                        + ", nAccepting = " + nAccepting);
+                System.out.println("approximate2LogNoverK(ns, nAccepting) = "
+                        + approximate2LogNoverK(ns, nAccepting));
+                System.out.println("nAccepting * log2(ns) - sumlog = "
+                        + (nAccepting * log2(ns) - sumLog(nAccepting - 1) / LOG2));
+                System.out.println("nAccepting * log2(ns) = "
+                        + (nAccepting * log2(ns)));
+                */
                 
                 DFAScore -= sumLog(ns - 1) / LOG2;               
                 // DFAScore += ns * (1.5 + log2(ns));
@@ -1584,6 +1596,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 // Accepting/rejecting states ...
                 if (ALT_ENDSTATES_SCORE) {
                     DFAScore += (nAccepting + nRejecting) * log2(ns);
+                            // - sumLog(nAccepting + nRejecting - 1) / LOG2;
                 } else {
                     DFAScore += approximate2LogNoverK(ns, nAccepting);
                     DFAScore += approximate2LogNoverK(ns - nAccepting, nRejecting);

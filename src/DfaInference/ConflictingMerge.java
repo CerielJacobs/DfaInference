@@ -22,4 +22,15 @@ public class ConflictingMerge extends Exception {
     public ConflictingMerge(String message, Throwable cause) {
         super(message, cause);
     }
+
+    /**
+     * Overrides the <code>fillInStackTrace</code> from <code>Throwable</code>.
+     * This version does not actually create a stack trace, as they are useless
+     * for this exception, and take up a lot of time.
+     * @return this inlet.
+     */
+    public Throwable fillInStackTrace() {
+        return this;
+    }
+
 }

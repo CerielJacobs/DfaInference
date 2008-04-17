@@ -1443,15 +1443,17 @@ public final class DFA implements java.io.Serializable, Configuration {
         int total = n1.total + n2.total;
         if ((n1.accepting & ACCEPTING) != 0 ||
                 (n2.accepting & ACCEPTING) != 0) {
-            double c1 = n2.total * ((double)(n1.weight + n2.weight)) / total;
-            score += symScore(c1, n2.weight);
+            double c1 = ((double)(n1.weight + n2.weight)) / total;
+            score += symScore(n2.total * c1, n2.weight);
+            score += symScore(n1.total * c1, n1.weight);
             cnt++;
         }
         for (int i = 0; i < nsym; i++) {
             double c1 = n1.edgeWeights[i] + n2.edgeWeights[i];
-            c1 = n2.total * c1 / total;
+            c1 = c1 / total;
             if (c1 != 0) {
-                score += symScore(c1, n2.edgeWeights[i]);
+                score += symScore(n2.total * c1, n2.edgeWeights[i]);
+                score += symScore(n1.total * c1, n1.edgeWeights[i]);
                 cnt++;
             }
         }
@@ -1459,7 +1461,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (score == 0.0) {
                 score = 1.0;
             } else {
-                score = 1.0 - Gamma.regularizedGammaP((cnt-1)/2.0, score/2.0);
+                score = 1.0 - Gamma.regularizedGammaP((cnt-1)/2.0, score/4.0);
             }
         } catch (MathException e) {
             // Does not converge???

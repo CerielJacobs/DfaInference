@@ -57,8 +57,11 @@ public final class State implements java.io.Serializable, Configuration,
      */
     int weight = 0;
 
-    /** Number of samples that pass through this edge. */
+    /** Number of positive samples that pass through this edge. */
     int[] edgeWeights;
+    
+    /** Total number of positive samples entering this state. */
+    int total = 0;
     
     /**
      * Identifying number of this state.
@@ -290,6 +293,7 @@ public final class State implements java.io.Serializable, Configuration,
      * Adds a new state, with an edge from the current state
      * with the specified label.
      * @param symbol the edge label.
+     * @param accept wether the input is a positive sample.
      * @return the new state.
      */
     public State addDestination(int symbol) {
@@ -302,7 +306,6 @@ public final class State implements java.io.Serializable, Configuration,
         }
         dest.depth = depth + 1;
         children[symbol] = dest;
-        edgeWeights[symbol] = 1;
         return dest;
     }
 

@@ -125,13 +125,16 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /** Score of this DFA without samples. */
     double DFAScore = 0;
+    
+    /* BernouilliScore of the last merge. */
+    double bernouilliScore;
 
     /** Label score of the last merge. */
     int labelScore = 0;
 
     /** Number of symbols. */
     int nsym;
-
+    
     /** Number of productive states. */
     int nProductiveStates = -1;
 
@@ -885,16 +888,19 @@ public final class DFA implements java.io.Serializable, Configuration {
         State n = startState;
         boolean reject = symbols[0] != 1;
 
+        if (! reject) {
+            startState.total++;
+        }
         for (int i = 1; i < symbols.length; i++) {
             State target = n.traverseEdge(symbols[i]);
             if (target == null) {
                 target = n.addDestination(symbols[i]);
                 nStates++;
                 nEdges++;
-            } else {
-                if (! reject) {
-                    n.edgeWeights[symbols[i]]++;
-                }
+            }
+            if (! reject) {
+                n.edgeWeights[symbols[i]]++;
+                target.total++;
             }
             n = target;
         }
@@ -1151,7 +1157,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         // Recurse while merging ...
-        labelScore = walkTreeMerge(red, blue, undo);
+        labelScore = 0;
+        bernouilliScore = 0.0;
+        walkTreeMerge(red, blue, undo);
         DFAScore = 0;
 
         if (conflict) {
@@ -1259,16 +1267,13 @@ public final class DFA implements java.io.Serializable, Configuration {
      *            The second state (top of a tree)
      * @param undo
      *            Will collect information for undoing this merge.
-     * @return the number of corresponding labels in this merge.
      */
-    private int walkTreeMerge(State n1, State n2, UndoInfo undo) {
-
-        int labelscore = 0;
+    private void walkTreeMerge(State n1, State n2, UndoInfo undo) {
 
         saveState(n1, undo);
 
         if ((n1.accepting & n2.accepting) != 0) {
-            labelscore = 1;
+            labelScore++;
             if (n1.isAccepting()) {
                 nAccepting--;
             } else {
@@ -1276,8 +1281,12 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         } else if ((n1.accepting | n2.accepting) == MASK) {
             conflict = true;
-            return 0;
+            return;
         } else {
+            double sc = computeBernouilli(n1, n2);
+            if (sc > bernouilliScore) {
+                bernouilliScore = sc;
+            }
             n1.accepting |= n2.accepting;
             if (! REFINED_MDL) {
                 if (n1.accepting != 0) {
@@ -1291,6 +1300,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
 
+        n1.total += n2.total;
         n1.weight += n2.weight;
         for (int j = 0; j < nsym; j++) {
             n1.edgeWeights[j] += n2.edgeWeights[j];
@@ -1352,9 +1362,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                         (v2.productive & REJECTING) != 0) {
                         missingXEdges--;
                     }
-                    labelscore += walkTreeMerge(v1, v2, undo);
+                    walkTreeMerge(v1, v2, undo);
                     if (conflict) {
-                        return 0;
+                        return;
                     }
                 } else {
                     // Parent of v2 changes, but is recomputed before every
@@ -1370,8 +1380,52 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
             }
         }
+    }
 
-        return labelscore;
+    private double symScore(int sym1, int total1, int sym2, int total2) {
+        double d1 = ((double) sym1) / total1;
+        double d2 = ((double) sym2) / total2;
+        d1 -= d2;
+        if (d1 == 0) {
+            return 0.0;
+        }
+        if (d1 < 0.0) {
+            d1 = -d1;
+        }
+        d1 = d1 / (Math.sqrt(1.0/total1) + Math.sqrt(1.0/total2));
+        System.out.println("d1 = " + d1);
+        return d1;
+    }
+    
+    private double computeBernouilli(State n1, State n2) {
+        double score = 0.0;
+        if (! BERNOULLI) {
+            return score;
+        }
+        if (n1.total == 0 || n2.total == 0) {
+            // This can happen if we have negative samples.
+            // Return a large value for now.
+            // TODO: figure out how to deal with this.
+            return (double) Integer.MAX_VALUE;
+        }
+        if ((n1.accepting & ACCEPTING) != 0) {
+            double sc = symScore(n1.weight, n1.total, n2.weight, n2.total);
+            if (sc > score) {
+                score = sc;
+            }
+        }
+        for (int i = 0; i < nsym; i++) {
+            int c1 = n1.edgeWeights[i];
+            int c2 = n2.edgeWeights[i];
+            if (c1 != 0 || c2 != 0) {
+                double sc = symScore(c1, n1.total, c2, n2.total);
+                if (sc > score) {
+                    score = sc;
+                }
+            }
+        }
+        System.out.println("Score = " + score);
+        return score;
     }
 
     private void addEdge(UndoInfo undo, State parent, int i, State dest) {
@@ -1450,7 +1504,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                         DFAScore += nRejecting * log2(nXs);
                         // DFAScore += approximate2LogNoverK(nXs, nRejecting);
                     } else {
-                        DFAScore = nXs * (1 + nsym * log2(nXs + 1));
+                        DFAScore = nXs * nsym * log2(nXs + 1);
+                        DFAScore += approximate2LogNoverK(nXs, nRejecting);
                     }
                     DFAScore -= sumLog(nXs - 1) / LOG2;
                     // From a paper by Domaratzky, Kisman, Shallit
@@ -1466,7 +1521,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                     DFAScore += nAccepting * log2(ns);
                     // DFAScore += approximate2LogNoverK(ns, nAccepting);
                 } else {
-                    DFAScore += ns * (1 + nsym * log2(ns + 1));
+                    DFAScore += ns * nsym * log2(ns + 1);
+                    DFAScore += approximate2LogNoverK(ns, nAccepting);
                 }
                 DFAScore -= sumLog(ns - 1) / LOG2;
                 // DFAScore += ns * (1.5 + log2(ns));
@@ -1479,9 +1535,11 @@ public final class DFA implements java.io.Serializable, Configuration {
                             + nEdges * (log2(nsym) + log2(ns));
                     DFAScore += (nAccepting + nRejecting) * log2(ns);
                     // DFAScore += approximate2LogNoverK(ns, nAccepting);
-                    // DFAScore += approximate2LogNoverK(ns, nRejecting);                   
+                    // DFAScore += approximate2LogNoverK(ns - nAccepting, nRejecting);                   
                 } else {
-                    DFAScore = ns * (1 + nsym * log2(ns + 1));
+                    DFAScore = ns * nsym * log2(ns + 1);
+                    DFAScore += approximate2LogNoverK(ns, nAccepting);
+                    DFAScore += approximate2LogNoverK(ns - nAccepting, nRejecting); 
                 }
                 DFAScore -= sumLog(ns - 1) / LOG2;
                 // DFAScore = ns * (1.5 + log2(ns));
@@ -1628,6 +1686,26 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         State[] l = startState.breadthFirst();
+        if (BERNOULLI) {
+            for (State s : l) {
+                int cnt = 0;
+                if (s.isAccepting()) {
+                    cnt += s.weight;
+                }
+                for (int i = 0; i < nsym; i++) {
+                    cnt += s.edgeWeights[i];
+                }
+                if (cnt != s.total) {
+                    logger.error("Count error in state " + s.id);
+                    logger.error("weight = " + s.weight);
+                    for (int i = 0; i < nsym; i++) {
+                        logger.error("edgeWeights["+i+"] = " + s.edgeWeights[i]);
+                    }
+                    ok = false;
+                }
+            }
+        }
+
 
         int nprod = startState.computeProductiveStates(ACCEPTING);
         if (nProductiveStates != nprod) {
@@ -1636,6 +1714,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     + ", DFA = \n" + dumpDFA());
             ok = false;
         }
+        
 
         int nedges = computeProductiveEdges(l, ACCEPTING);
         if (nProductiveEdges != nedges) {

@@ -31,7 +31,11 @@ public final class UndoInfo implements Configuration {
         
         int total;
         
+        int xTotal;
+        
         int[] edgeWeights;
+        
+        int[] xEdgeWeights;
 
 
         /**
@@ -45,7 +49,11 @@ public final class UndoInfo implements Configuration {
             depth = s.depth;
             weight = s.weight;
             total = s.total;
-            edgeWeights = (int[]) s.edgeWeights.clone();
+            xTotal = s.xTotal;
+            if (FISHERSCORE) {
+                edgeWeights = (int[]) s.edgeWeights.clone();
+                xEdgeWeights = (int[]) s.xEdgeWeights.clone();
+            }
         }
 
         /**
@@ -95,8 +103,11 @@ public final class UndoInfo implements Configuration {
                 orig.depth = last.depth;
                 orig.weight = last.weight;
                 orig.total = last.total;
+                orig.xTotal = last.xTotal;
                 orig.edgeWeights = last.edgeWeights;
+                orig.xEdgeWeights = last.xEdgeWeights;
                 last.edgeWeights = null;
+                last.xEdgeWeights = null;
                 n = last.next;
             } while (n != null);
 
@@ -292,10 +303,10 @@ public final class UndoInfo implements Configuration {
     private double DFAScore;
 
     /** Saved number of productive states. */
-    private int nProductiveStates;
+    int nProductiveStates;
 
     /** Saved number of productive states in rejecting DFA. */
-    private int nXProductiveStates;
+    int nXProductiveStates;
 
     /** Saved number of productive edges. */
     private int nProductiveEdges;

@@ -24,7 +24,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
         if (! dfa.conflict && dfa.FisherScore > LIMIT) {           
             addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
-                        -dfa.FisherScore));
+                        (-dfa.FisherScore - dfa.xFisherScore)/2.0));
             foundMerge = true;
         }
         dfa.undoMerge(u);

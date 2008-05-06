@@ -40,9 +40,6 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
     /** Learning samples. */
     private transient Samples samples;
 
-    /** DFA from samples. */
-    private transient DFA initialDFA;
-
     /** Job list. */
     private transient final Vector<ControlResultPair> jobList = new Vector<ControlResultPair>();
 
@@ -63,8 +60,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
      * Constructor.
      * @param folder the heuristic to be used for folding.
      */
-    public BestBlueMW(DFA initialDFA, RedBlue folder) {
-        this.initialDFA = initialDFA;
+    public BestBlueMW(RedBlue folder) {
         this.folder = folder;
         this.folder.disableChoices = false;
     }
@@ -148,9 +144,9 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
      * @return the new control/result pair.
      */
     void tryExtending(ControlResultPair p, int depth, int targetDepth) {
-        // DFA dfa = new DFA(samples.learningSamples);
-        // dfa.setConflicts(samples.conflicts);
-        DFA dfa = new DFA(initialDFA);
+        DFA dfa = new DFA(samples.symbols, samples.learningSamples);
+        dfa.setConflicts(samples.conflicts);
+        // DFA dfa = new DFA(initialDFA);
         Guidance g;
         g = new IntGuidance(p.control);
         Choice[] choice = folder.getOptions(dfa, g, 100);
@@ -397,7 +393,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
         initialDFA.setConflicts(conflicts);
         Samples learningSamples = new Samples(symbols, iSamples, conflicts);
 
-        BestBlueMW b = new BestBlueMW(initialDFA, f);
+        BestBlueMW b = new BestBlueMW(f);
 
         long initializationTime = System.currentTimeMillis();
 

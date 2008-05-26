@@ -570,15 +570,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             maxlen = dfa2.maxlen;
         }
 
-        // TODO: we need numRecognized and numRejected for the score. How to
-        // compute
-        // them accurately??? The code here is only correct if there is no
-        // overlap.
-        // If we have the samples, we can just recompute them, but what if we
-        // don't? (Ceriel)
-        numRecognized = dfa1.numRecognized + dfa2.numRecognized;
-        numRejected = dfa1.numRejected + dfa2.numRejected;
-
         if (exact) {
             exactMerge(state1, state2);
         } else {
@@ -592,12 +583,39 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         dfaComputations();
 
+        double d1Accepted = dfa1.computeTotalRecognized(maxlen, ACCEPTING);
+        double d1Rejected = dfa1.computeTotalRecognized(maxlen, REJECTING);
+        double d2Accepted = dfa2.computeTotalRecognized(maxlen, ACCEPTING);
+        double d2Rejected = dfa2.computeTotalRecognized(maxlen, REJECTING);
+
+        double newAccepted = computeTotalRecognized(maxlen, ACCEPTING);
+        double newRejected = computeTotalRecognized(maxlen, REJECTING);
+        
+        double acceptedOverlap = d1Accepted + d2Accepted - newAccepted;
+        double rejectedOverlap = d1Rejected + d2Rejected - newRejected;
+        
+        // Make a guess for numRecognized. We cannot just add the ones from
+        // dfa1 and dfa2, because there may be overlap, and we have no way
+        // of knowing. The best we can do is estimate, by incorporating
+        // the overlap in recognized strings.
+        numRecognized = (int) ((dfa1.numRecognized + dfa2.numRecognized)
+                * (1 - acceptedOverlap/(d1Accepted + d2Accepted)));
+        if (newRejected != 0) {
+            numRejected = (int) ((dfa1.numRejected + dfa2.numRejected)
+                    * (1 - rejectedOverlap/(d1Rejected + d2Rejected)));
+        }
+     
         if (logger.isDebugEnabled()) {
             if (!checkDFA()) {
                 System.out.println(dumpDFA());
                 logger.error("From dfa merging constructor: exit");
                 System.exit(1);
             }
+            logger.debug("Merged DFA: nstates = " + nStates + ", nProductiveStates = " + nProductiveStates);
+            logger.debug("DFA1.nstates = " + dfa1.nStates + ", dfa2.nStates = " + dfa2.nStates);
+            logger.debug("d1Accepted = " + d1Accepted + ", d2Accepted = " + d2Accepted);
+            logger.debug("dfa1.numRecognized = " + dfa1.numRecognized);
+            logger.debug("dfa2.numRecognized = " + dfa2.numRecognized);
         }
     }
 
@@ -623,6 +641,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         ArrayList<BitSet> workList = new ArrayList<BitSet>();
         HashMap<BitSet, State> map = new HashMap<BitSet, State>();
         BitSet initial = new BitSet(nStates);
+        nEdges = 0;
 
         // Mimic a new startstate consisting of the union of the two startstates.
         initial.set(state1.id);
@@ -708,6 +727,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     map.put(target, newTarget);
                 }
                 currentState.addEdge(newTarget, sym);
+                nEdges++;
             }
         }
     }

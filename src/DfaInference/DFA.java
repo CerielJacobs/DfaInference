@@ -1769,6 +1769,11 @@ public final class DFA implements java.io.Serializable, Configuration {
         return (sumLog(n) - sumLog(k) - sumLog(n-k))/LOG2;
     }
 
+    public double computeTotalRecognized(int maxlength, int acceptOrReject) {
+        double[][] counts = new double[maxlength+1][idMap.length];
+        return computeNStrings(maxlength, counts, acceptOrReject, false);       
+    }
+    
     /**
      * Calculates the Minimum Description Length complexity, relative to
      * the complete learning set.
@@ -1821,11 +1826,13 @@ public final class DFA implements java.io.Serializable, Configuration {
                 logger.debug("totalCount = " + totalCount);
                 MDLScore = score;
             } else {
-                double n = computeNStrings(maxlen, counts, ACCEPTING);
+                double n = computeNStrings(maxlen, counts, ACCEPTING,
+                        INCREMENTAL_COUNTS);
                 MDLScore = approximate2LogNoverK(n, numRecognized);
 
                 if (MDL_NEGATIVES && numRejected > 0) {
-                    n = computeNStrings(maxlen, xCounts, REJECTING);
+                    n = computeNStrings(maxlen, xCounts, REJECTING,
+                            INCREMENTAL_COUNTS);
                     MDLScore += approximate2LogNoverK(n, numRejected);
                 }
 
@@ -2115,9 +2122,10 @@ public final class DFA implements java.io.Serializable, Configuration {
      *            count either from the rejecting DFA or the accepting DFA.
      * @return the number of strings recognized.
      */
-    private double computeNStrings(int l, double[][] count, int acceptOrReject) {
+    private double computeNStrings(int l, double[][] count, int acceptOrReject,
+            boolean incremental) {
         BitSet h = null;
-        if (!INCREMENTAL_COUNTS || !counts_done) {
+        if (!incremental || !counts_done) {
             State[] myStates = startState.breadthFirst();
 
             if (USE_PARENT_SETS) {
@@ -2139,7 +2147,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
         if (USE_PARENT_SETS) {
-            if (!INCREMENTAL_COUNTS || !counts_done) {
+            if (!incremental || !counts_done) {
                 // Compute counts
                 for (int k = 1; k <= l; k++) {
                     BitSet h2 = new BitSet(idMap.length);
@@ -2158,7 +2166,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     h = h2;
                 }
             }
-        } else if (INCREMENTAL_COUNTS) {
+        } else if (incremental) {
             if (!counts_done) {
                 computeCounts(idMap, count);
             }

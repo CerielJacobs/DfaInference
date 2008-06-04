@@ -662,6 +662,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             throw new ConflictingMerge("found conflict!");
         }
         map.put(initial, startState);
+        nEdges = 0;
         
         // Each entry on the worklist represents a state in the new DFA that
         // is yet to be processed.

@@ -2,18 +2,17 @@ package DfaInference;
 
 import abbadingo.AbbaDingoReader;
 import abbadingo.AbbaDingoString;
-import org.apache.commons.math.special.Gamma;
 
-public class FisherFold extends RedBlue implements java.io.Serializable {
+public class ZTransformFold extends RedBlue implements java.io.Serializable {
 
     private static final long serialVersionUID = 1L;
     
     // Threshold for promoting to red.
     private static final double PROBABILITY_THRESHOLD = .05;
-    
-    // Reject if FisherScore is below this.
-    private static final double LIMIT = .001;
 
+    // Reject if Score is below this.
+    private static final double LIMIT = .001;
+    
     boolean testMerge(State r, State b) {
         boolean foundMerge = false;
 
@@ -24,21 +23,17 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
         if (! dfa.conflict) {
-            // We have computed the sum of the logs of the P's for
-            // all state merges. Now, apply Fisher's method:
-            // X = -2 * sum
-            // P = P(nmerges, X/2).
-            double fisherScore = .01;
-            if (dfa.sumCount != 0 && ! Double.isInfinite(dfa.chiSquareSum)) {
+            double score = .01;
+            if (dfa.sumCount != 0) {
                 try {
-                    fisherScore = 1.0 - Gamma.regularizedGammaP(dfa.sumCount, -dfa.chiSquareSum);
+                    score = DFA.normal.cumulativeProbability(dfa.zSum/Math.sqrt(dfa.sumCount));
                 } catch(Throwable e) {
                     // ignored
                 }
             }
-            if (fisherScore > LIMIT) {
+            if (score > LIMIT) {
                 addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
-                        -fisherScore));
+                        -score));
                 foundMerge = true;
             }
         }
@@ -105,7 +100,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
         int[][] learningSamples = symbols.convert2learn(samples);
 
 
-        FisherFold m = new FisherFold();
+        ZTransformFold m = new ZTransformFold();
         m.printInfo = true;
         logger.info("Starting fold ...");
         DFA bestDFA = m.doFold(new Samples(symbols, learningSamples, null),

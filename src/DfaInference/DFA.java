@@ -18,6 +18,9 @@ import java.util.LinkedList;
 import org.apache.log4j.Logger;
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.special.Gamma;
+import org.apache.commons.math.distribution.NormalDistributionImpl;
+import org.apache.commons.math.distribution.NormalDistribution;
+
 
 /**
  * This class represents a DFA and offers various operations on it.
@@ -34,6 +37,8 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /** Log4j logger. */
     static Logger logger = Logger.getLogger(DFA.class.getName());
+
+    static NormalDistribution normal = new NormalDistributionImpl();
 
     static {
         if (logger.isInfoEnabled()) {
@@ -128,21 +133,21 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Score of this DFA without samples. */
     double DFAScore = 0;
 
-    /** Fisher score for the last merge for positive. */
-    double FisherScore;
-    
-    /** Fisher score for the last merge for negative. */
-    double xFisherScore;
-
     /** Chi-square sum of the last merge for positive. */
-    private double chiSquareSum;
-    
-    private int sumCount;
+    double chiSquareSum;
     
     /** Chi-square sum of the last merge for negative. */
-    private double xChiSquareSum;
+    double xChiSquareSum;
+
+    /** Z-transform sum for positive. */
+    double zSum;
+
+    /** Z-transform sum for negative. */
+    double xZSum;
     
-    private int xSumCount;
+    int sumCount;
+   
+    int xSumCount;
 
     /** Label score of the last merge. */
     int labelScore = 0;
@@ -1223,6 +1228,8 @@ public final class DFA implements java.io.Serializable, Configuration {
         labelScore = 0;
         chiSquareSum = 0.0;
         xChiSquareSum = 0.0;
+        zSum = 0.0;
+        xZSum = 0.0;
         sumCount = 0;
         xSumCount = 0;
         walkTreeMerge(red, blue, undo);
@@ -1232,36 +1239,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             blue.addConflict(red);
             return undo;
         }
-        
-        if (FISHERSCORE) {
-            // We have computed the sum of the logs of the P's for
-            // all state merges. Now, apply Fisher's method:
-            // X = -2 * sum
-            // P = P(nmerges, X/2).
-            try {
-                if (Double.isInfinite(chiSquareSum)) {
-                    FisherScore = .01;
-                } else {
-                    FisherScore = 1.0 - Gamma.regularizedGammaP(sumCount, -chiSquareSum);
-                    System.out.println("cnt = " + sumCount + ", sum = " + chiSquareSum
-                            + ", score = " + FisherScore);
-                }
-            } catch (MathException e) {
-                FisherScore = .01;
-            }
-            try {
-                if (Double.isInfinite(xChiSquareSum)) {
-                    xFisherScore = .01;
-                } else {
-                    xFisherScore = 1.0 - Gamma.regularizedGammaP(xSumCount, -xChiSquareSum);
-                    System.out.println("cnt = " + xSumCount + ", sum = " + xChiSquareSum
-                            + ", xFisherScore = " + xFisherScore);
-                }
-            } catch (MathException e) {
-                xFisherScore = .01;
-            }
-        }
-
         
         MDLScore = 0;
 
@@ -1380,12 +1357,25 @@ public final class DFA implements java.io.Serializable, Configuration {
             return;
         } else {
             if (FISHERSCORE) {
-                double sc = Math.log(computeChiSquare(n1, n2));
+                double score = computeChiSquare(n1, n2);
+                try {
+                    zSum += normal.inverseCumulativeProbability(score);
+                } catch(MathException e) {
+                    logger.debug("Oops: MathException? ", e);
+                }
+                double sc = Math.log(score);
                 if (Double.isNaN(sc)) {
                     sc = Double.NEGATIVE_INFINITY;
                 }
                 chiSquareSum += sc;
-                sc = Math.log(computeXChiSquare(n1, n2));
+
+                score = computeXChiSquare(n1, n2);
+                try {
+                    xZSum += normal.inverseCumulativeProbability(score);
+                } catch(MathException e) {
+                    logger.debug("Oops: MathException? ", e);
+                }
+                sc = Math.log(score);
                 if (Double.isNaN(sc)) {
                     sc = Double.NEGATIVE_INFINITY;
                 }
@@ -1494,8 +1484,8 @@ public final class DFA implements java.io.Serializable, Configuration {
      * Computes a chi-square sum element: (observed - expected)^2 / expected.
      * Problem: what to do if expected == 0 and observed != 0? We cannot
      * divide by 0. Just return a large value?
-     * @param expected the fraction of the red state.
-     * @param observed the fraction of the blue state.
+     * @param expected the fraction of the combined state.
+     * @param observed the fraction of the individual state.
      * @return the chi-square sum element.
      */
     private static double symScore(double expected, double observed) {
@@ -1538,13 +1528,14 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
             }
             sumCount++;
+            score /= 2.0;
         }
         
         try {
             if (score == 0.0) {
                 score = 1.0;
             } else {
-                score = 1.0 - Gamma.regularizedGammaP((cnt-1)/2.0, score/4.0);
+                score = 1.0 - Gamma.regularizedGammaP((cnt-1)/2.0, score/2.0);
             }
         } catch (MathException e) {
             // Does not converge???

@@ -27,7 +27,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
             // We have computed the sum of the logs of the P's for
             // all state merges. Now, apply Fisher's method:
             // X = -2 * sum
-            // P = P(nmerges, X/2).
+            // P = P(2*nmerges, X/2).
             double fisherScore = .01;
             if (dfa.sumCount != 0 && ! Double.isInfinite(dfa.chiSquareSum)) {
                 try {
@@ -61,7 +61,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
         // Print Java version and system.
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
         
-        if (! Configuration.FISHERSCORE) {
+        if (! Configuration.USE_CHISQUARE) {
             System.err.println("Should set ComputeFisher property!");
             System.exit(1);
         }

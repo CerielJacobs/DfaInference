@@ -56,7 +56,7 @@ public class ZTransformFold extends RedBlue implements java.io.Serializable {
         // Print Java version and system.
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
         
-        if (! Configuration.FISHERSCORE) {
+        if (! Configuration.USE_CHISQUARE) {
             System.err.println("Should set ComputeFisher property!");
             System.exit(1);
         }

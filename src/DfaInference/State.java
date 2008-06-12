@@ -60,14 +60,8 @@ public final class State implements java.io.Serializable, Configuration,
     /** Number of positive samples that pass through this edge. */
     int[] edgeWeights;
     
-    /** Total number of positive samples entering this state. */
-    int total = 0;
-
     /** Number of negative samples that pass through this edge. */
     int[] xEdgeWeights;
-    
-    /** Total number of negative samples entering this state. */
-    int xTotal = 0;
     
     /**
      * Identifying number of this state.
@@ -86,7 +80,7 @@ public final class State implements java.io.Serializable, Configuration,
      */
     public State(int nsym) {
         children = new State[nsym];
-        if (FISHERSCORE) {
+        if (USE_CHISQUARE) {
             edgeWeights = new int[nsym];
             xEdgeWeights = new int[nsym];
         }
@@ -115,8 +109,6 @@ public final class State implements java.io.Serializable, Configuration,
             id = s.id;
         }
         weight = s.weight;
-        total = s.total;
-        xTotal = s.xTotal;
         if (USE_PARENT_SETS) {
             parents = new ArrayList<State>();
         }
@@ -125,7 +117,7 @@ public final class State implements java.io.Serializable, Configuration,
         //            conflicting = (BitSet) s.conflicting.clone();
         //        }
         children = new State[nsym];
-        if (FISHERSCORE) {
+        if (USE_CHISQUARE) {
             edgeWeights = new int[nsym];
             xEdgeWeights = new int[nsym];
         }
@@ -138,13 +130,13 @@ public final class State implements java.io.Serializable, Configuration,
                 }
                 if (map == null) {
                     children[i] = cp;
-                    if (FISHERSCORE) {
+                    if (USE_CHISQUARE) {
                         edgeWeights[i] = s.edgeWeights[i];
                         xEdgeWeights[i] = s.xEdgeWeights[i];
                     }
                 } else {
                     children[map[i]] = cp;
-                    if (FISHERSCORE) {
+                    if (USE_CHISQUARE) {
                         edgeWeights[map[i]] = s.edgeWeights[i];
                         xEdgeWeights[map[i]] = s.xEdgeWeights[i];
                     }
@@ -176,7 +168,7 @@ public final class State implements java.io.Serializable, Configuration,
         id = numberer.next();
         weight = 0;
         children = new State[s.children.length];
-        if (FISHERSCORE) {
+        if (USE_CHISQUARE) {
             edgeWeights = new int[children.length];
             xEdgeWeights = new int[children.length];
         }
@@ -203,11 +195,9 @@ public final class State implements java.io.Serializable, Configuration,
         productive |= s.productive;
         accepting |= s.accepting;
         weight += s.weight;
-        total += s.total;
-        xTotal += s.xTotal;
 
         for (int i = 0; i < children.length; i++) {
-            if (FISHERSCORE) {
+            if (USE_CHISQUARE) {
                 edgeWeights[i] += s.edgeWeights[i];
                 xEdgeWeights[i] += s.xEdgeWeights[i];
             }

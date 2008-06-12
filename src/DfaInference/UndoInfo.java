@@ -29,10 +29,6 @@ public final class UndoInfo implements Configuration {
         /** The weight field of the object to be saved. */
         int weight;
         
-        int total;
-        
-        int xTotal;
-        
         int[] edgeWeights;
         
         int[] xEdgeWeights;
@@ -48,9 +44,7 @@ public final class UndoInfo implements Configuration {
             productive = s.productive;
             depth = s.depth;
             weight = s.weight;
-            total = s.total;
-            xTotal = s.xTotal;
-            if (FISHERSCORE) {
+            if (USE_CHISQUARE) {
                 edgeWeights = (int[]) s.edgeWeights.clone();
                 xEdgeWeights = (int[]) s.xEdgeWeights.clone();
             }
@@ -102,8 +96,6 @@ public final class UndoInfo implements Configuration {
                 orig.productive = last.productive;
                 orig.depth = last.depth;
                 orig.weight = last.weight;
-                orig.total = last.total;
-                orig.xTotal = last.xTotal;
                 orig.edgeWeights = last.edgeWeights;
                 orig.xEdgeWeights = last.xEdgeWeights;
                 last.edgeWeights = null;

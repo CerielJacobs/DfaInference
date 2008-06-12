@@ -218,6 +218,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 logger.error("From dfa constructor: exit");
                 System.exit(1);
             }
+            logger.debug("Initial DFA:\n" + dumpDFA());
         }
 
         if (logger.isInfoEnabled()) {
@@ -655,9 +656,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         startState = new State(nsym);
         startState.accepting = (byte)(state1.accepting | state2.accepting);
         startState.weight = state1.weight + state2.weight;
-        startState.total = state1.total + state2.total;
-        startState.xTotal = state1.xTotal + state2.xTotal;
-        if (FISHERSCORE) {
+        if (USE_CHISQUARE) {
             for (int i = 0; i < nsym; i++) {
                 startState.edgeWeights[i] = state1.edgeWeights[i] + state2.edgeWeights[i];
                 startState.xEdgeWeights[i] = state1.xEdgeWeights[i] + state2.xEdgeWeights[i];
@@ -682,11 +681,9 @@ public final class DFA implements java.io.Serializable, Configuration {
 
                 byte accepting = 0;
                 int weight = 0;
-                int total = 0;
-                int xTotal = 0;
                 int[] edgeWeights = null;
                 int[] xEdgeWeights = null;
-                if (FISHERSCORE) {
+                if (USE_CHISQUARE) {
                     edgeWeights = new int[nsym];
                     xEdgeWeights = new int[nsym];
                 }
@@ -698,9 +695,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         target.set(child.id);
                         accepting |= child.accepting;
                         weight += child.weight;
-                        total += child.total;
-                        xTotal += child.xTotal;
-                        if (FISHERSCORE) {
+                        if (USE_CHISQUARE) {
                             for (int j = 0; j < nsym; j++) {
                                 edgeWeights[j] += child.edgeWeights[j];
                                 xEdgeWeights[j] += child.xEdgeWeights[j];
@@ -725,8 +720,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                     newTarget = new State(nsym);
                     newTarget.accepting = accepting;
                     newTarget.weight = weight;
-                    newTarget.total = total;
-                    newTarget.xTotal = xTotal;
                     newTarget.edgeWeights = edgeWeights;
                     newTarget.xEdgeWeights = xEdgeWeights;
                     workList.add(target);
@@ -949,11 +942,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         State n = startState;
         boolean reject = symbols[0] != 1;
 
-        if (reject) {
-            startState.xTotal++;
-        } else {
-            startState.total++;
-        }
         for (int i = 1; i < symbols.length; i++) {
             State target = n.traverseEdge(symbols[i]);
             if (target == null) {
@@ -961,13 +949,11 @@ public final class DFA implements java.io.Serializable, Configuration {
                 nStates++;
                 nEdges++;
             }
-            if (FISHERSCORE) {
+            if (USE_CHISQUARE) {
                 if (reject) {
                     n.xEdgeWeights[symbols[i]]++;
-                    target.xTotal++;
                 } else {
                     n.edgeWeights[symbols[i]]++;
-                    target.total++;
                 }
             }
             n = target;
@@ -993,7 +979,9 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @param samples        the specified sample.
      */
     public void addSample(int[][] samples) {
-        samples = sortAndUnique(samples);
+        if (UNIQUE_SAMPLES) {
+            samples = sortAndUnique(samples);
+        }
 
         if (this.samples == null) {
             this.samples = new ArrayList<int[]>();
@@ -1356,30 +1344,9 @@ public final class DFA implements java.io.Serializable, Configuration {
             conflict = true;
             return;
         } else {
-            if (FISHERSCORE) {
-                double score = computeChiSquare(n1, n2);
-                try {
-                    zSum += normal.inverseCumulativeProbability(score);
-                } catch(MathException e) {
-                    logger.debug("Oops: MathException? ", e);
-                }
-                double sc = Math.log(score);
-                if (Double.isNaN(sc)) {
-                    sc = Double.NEGATIVE_INFINITY;
-                }
-                chiSquareSum += sc;
-
-                score = computeXChiSquare(n1, n2);
-                try {
-                    xZSum += normal.inverseCumulativeProbability(score);
-                } catch(MathException e) {
-                    logger.debug("Oops: MathException? ", e);
-                }
-                sc = Math.log(score);
-                if (Double.isNaN(sc)) {
-                    sc = Double.NEGATIVE_INFINITY;
-                }
-                xChiSquareSum += sc;
+            if (USE_CHISQUARE) {
+                computeChiSquare(n1, n2);
+                computeXChiSquare(n1, n2);
             }
             n1.accepting |= n2.accepting;           
             if (! REFINED_MDL) {
@@ -1394,10 +1361,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
 
-        n1.total += n2.total;
-        n1.xTotal += n2.xTotal;
         n1.weight += n2.weight;
-        if (FISHERSCORE) {
+        if (USE_CHISQUARE) {
             for (int j = 0; j < nsym; j++) {
                 n1.edgeWeights[j] += n2.edgeWeights[j];
                 n1.xEdgeWeights[j] += n2.xEdgeWeights[j];
@@ -1482,110 +1447,184 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /**
      * Computes a chi-square sum element: (observed - expected)^2 / expected.
-     * Problem: what to do if expected == 0 and observed != 0? We cannot
-     * divide by 0. Just return a large value?
      * @param expected the fraction of the combined state.
      * @param observed the fraction of the individual state.
      * @return the chi-square sum element.
      */
     private static double symScore(double expected, double observed) {
         double diff = observed - expected;
-        if (diff == 0) {
-            return 0;
-        }
-        if (expected == 0) {
-            expected = .1;
-        }
         double retval = (diff * diff) / expected;
-        /*
-        System.out.println("exptected = " + expected
-                + ", observed = " + observed
-                + ", sum element = " + retval);
-        */
+        if (logger.isDebugEnabled()) {
+            logger.debug("expected = " + expected
+                    + ", observed = " + observed
+                    + ", sum element = " + retval);
+        }
         return retval;
     }
     
-    private double computeChiSquare(State n1, State n2) {
+    private void computeChiSquare(State n1, State n2) {
         double score = 0.0;
-        int cnt = 0;
+        int cnt = -1;
 
-        int total = n1.total + n2.total;
-        if (n2.total != 0) {
-            if ((n1.accepting & ACCEPTING) != 0 ||
-                    (n2.accepting & ACCEPTING) != 0) {
-                double c1 = ((double)(n1.weight + n2.weight)) / total;
-                score += symScore(n2.total * c1, n2.weight);
-                score += symScore(n1.total * c1, n1.weight);
+        int total1 = 0;
+        int total2 = 0;
+        int pool1 = 0;
+        int pool2 = 0;
+
+        if ((n1.accepting & ACCEPTING) != 0 ||
+                (n2.accepting & ACCEPTING) != 0) {
+            if (n1.weight < CHI_MIN || n2.weight < CHI_MIN) {
+                pool1 += n1.weight;
+                pool2 += n2.weight;
+            }
+            total1 += n1.weight;
+            total2 += n2.weight;
+        }
+        for (int i = 0; i < nsym; i++) {
+            if (n1.edgeWeights[i] < CHI_MIN || n2.edgeWeights[i] < CHI_MIN) {
+                pool1 += n1.edgeWeights[i];
+                pool2 += n2.edgeWeights[i];
+            }
+            total1 += n1.edgeWeights[i];
+            total2 += n2.edgeWeights[i];
+        }
+
+        if (pool1 < CHI_MIN || pool2 < CHI_MIN) {
+            total1 -= pool1;
+            total2 -= pool2;
+        }
+
+        if (total1 < CHI_MIN || total2 < CHI_MIN) {
+            return;
+        }
+
+        int total = total1 + total2;
+
+        if ((n1.accepting & ACCEPTING) != 0 ||
+                (n2.accepting & ACCEPTING) != 0) {
+            if (n1.weight >= CHI_MIN && n2.weight >= CHI_MIN) {
+                double c = ((double)(n1.weight + n2.weight)) / total;
+                score += symScore(total2 * c, n2.weight);
+                score += symScore(total1 * c, n1.weight);
                 cnt++;
             }
-            for (int i = 0; i < nsym; i++) {
-                double c1 = n1.edgeWeights[i] + n2.edgeWeights[i];
-                c1 = c1 / total;
-                if (c1 != 0) {
-                    score += symScore(n2.total * c1, n2.edgeWeights[i]);
-                    score += symScore(n1.total * c1, n1.edgeWeights[i]);
-                    cnt++;
-                }
+        }
+        for (int i = 0; i < nsym; i++) {
+            if (n1.edgeWeights[i] >= CHI_MIN && n2.edgeWeights[i] >= CHI_MIN) {
+                double c = ((double)(n1.edgeWeights[i] + n2.edgeWeights[i]))/total;
+                score += symScore(total2 * c, n2.edgeWeights[i]);
+                score += symScore(total1 * c, n1.edgeWeights[i]);
+                cnt++;
             }
+        }
+        if (pool1 >= CHI_MIN && pool2 >= CHI_MIN) {
+            double c = ((double)(pool1 + pool2)) / total;
+            score += symScore(total2 * c, pool2);
+            score += symScore(total1 * c, pool1);
+            cnt++;
+        }
+        if (cnt >= 1) {
+            double p_value = 0.0;
             sumCount++;
-            score /= 2.0;
-        }
-        
-        try {
-            if (score == 0.0) {
-                score = 1.0;
-            } else {
-                score = 1.0 - Gamma.regularizedGammaP((cnt-1)/2.0, score/2.0);
+            try {
+                p_value = 1.0 - Gamma.regularizedGammaP(cnt/2.0, score/2.0);
+            } catch (MathException e) {
+                // Does not converge???
+                p_value = 0.01;
             }
-        } catch (MathException e) {
-            // Does not converge???
-            score = 0.01;
+            chiSquareSum += Math.log(p_value);
+            try {
+                zSum += normal.inverseCumulativeProbability(p_value);
+            } catch(MathException e) {
+                logger.debug("Oops: MathException? ", e);
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("(" + n1.id + "," + n2.id + ") --> score = " + p_value);
+            }
         }
         
-        System.out.println("(" + n1.id + "," + n2.id + ") --> score = " + score);
-        
-        return score;
     }
     
-    private double computeXChiSquare(State n1, State n2) {
-        double xScore = 0.0;
-        int cnt = 0;    
-        
-        int xTotal = n1.xTotal + n2.xTotal;
-        if (n2.xTotal != 0) {
-            if ((n1.accepting & REJECTING) != 0 ||
-                    (n2.accepting & REJECTING) != 0) {
-                double c1 = ((double)(n1.weight + n2.weight)) / xTotal;
-                xScore += symScore(n2.xTotal * c1, n2.weight);
-                xScore += symScore(n1.xTotal * c1, n1.weight);
+    private void computeXChiSquare(State n1, State n2) {
+        double score = 0.0;
+        int cnt = -1;
+
+        int total1 = 0;
+        int total2 = 0;
+        int pool1 = 0;
+        int pool2 = 0;
+
+        if ((n1.accepting & REJECTING) != 0 ||
+                (n2.accepting & REJECTING) != 0) {
+            if (n1.weight < CHI_MIN || n2.weight < CHI_MIN) {
+                pool1 += n1.weight;
+                pool2 += n2.weight;
+            }
+            total1 += n1.weight;
+            total2 += n2.weight;
+        }
+        for (int i = 0; i < nsym; i++) {
+            if (n1.xEdgeWeights[i] < CHI_MIN || n2.xEdgeWeights[i] < CHI_MIN) {
+                pool1 += n1.xEdgeWeights[i];
+                pool2 += n2.xEdgeWeights[i];
+            }
+            total1 += n1.xEdgeWeights[i];
+            total2 += n2.xEdgeWeights[i];
+        }
+
+        if (pool1 < CHI_MIN || pool2 < CHI_MIN) {
+            total1 -= pool1;
+            total2 -= pool2;
+        }
+
+        if (total1 < CHI_MIN || total2 < CHI_MIN) {
+            return;
+        }
+
+        int total = total1 + total2;
+
+        if ((n1.accepting & REJECTING) != 0 ||
+                (n2.accepting & REJECTING) != 0) {
+            if (n1.weight >= CHI_MIN && n2.weight >= CHI_MIN) {
+                double c = ((double)(n1.weight + n2.weight)) / total;
+                score += symScore(total2 * c, n2.weight);
+                score += symScore(total1 * c, n1.weight);
                 cnt++;
             }
-            for (int i = 0; i < nsym; i++) {
-                double c1 = n1.xEdgeWeights[i] + n2.xEdgeWeights[i];
-                c1 = c1 / xTotal;
-                if (c1 != 0) {
-                    xScore += symScore(n2.xTotal * c1, n2.xEdgeWeights[i]);
-                    xScore += symScore(n1.xTotal * c1, n1.xEdgeWeights[i]);
-                    cnt++;
-                }
-            }
-            xSumCount++;
-        }   
-              
-        try {
-            if (xScore == 0.0) {
-                xScore = 1.0;
-            } else {
-                xScore = 1.0 - Gamma.regularizedGammaP((cnt-1)/2.0, xScore/4.0);
-            }
-        } catch (MathException e) {
-            // Does not converge???
-            xScore = 0.01;
         }
-        
-        System.out.println("(" + n1.id + "," + n2.id + ") --> xScore = " + xScore);
-
-        return xScore;
+        for (int i = 0; i < nsym; i++) {
+            if (n1.xEdgeWeights[i] >= CHI_MIN && n2.xEdgeWeights[i] >= CHI_MIN) {
+                double c = ((double)(n1.xEdgeWeights[i] + n2.xEdgeWeights[i]))/total;
+                score += symScore(total2 * c, n2.xEdgeWeights[i]);
+                score += symScore(total1 * c, n1.xEdgeWeights[i]);
+                cnt++;
+            }
+        }
+        if (pool1 >= CHI_MIN && pool2 >= CHI_MIN) {
+            double c = ((double)(pool1 + pool2)) / total;
+            score += symScore(total2 * c, pool2);
+            score += symScore(total1 * c, pool1);
+            cnt++;
+        }
+        if (cnt >= 1) {
+            double p_value = 0.0;
+            xSumCount++;
+            try {
+                p_value = 1.0 - Gamma.regularizedGammaP(cnt/2.0, score/2.0);
+            } catch (MathException e) {
+                // Does not converge???
+                p_value = 0.01;
+            }
+            xChiSquareSum += Math.log(p_value);
+            try {
+                xZSum += normal.inverseCumulativeProbability(p_value);
+            } catch(MathException e) {
+                logger.debug("Oops: MathException? ", e);
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("(" + n1.id + "," + n2.id + ") --> xScore = " + p_value);
+            }
+        }
     }
 
     private void addEdge(UndoInfo undo, State parent, int i, State dest) {
@@ -1872,41 +1911,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         State[] l = startState.breadthFirst();
-        if (FISHERSCORE) {
-            for (State s : l) {
-                int cnt = 0;
-                if (s.isAccepting()) {
-                    cnt += s.weight;
-                }
-                for (int i = 0; i < nsym; i++) {
-                    cnt += s.edgeWeights[i];
-                }
-                if (cnt != s.total) {
-                    logger.error("Count error in state " + s.id);
-                    logger.error("weight = " + s.weight);
-                    for (int i = 0; i < nsym; i++) {
-                        logger.error("edgeWeights["+i+"] = " + s.edgeWeights[i]);
-                    }
-                    ok = false;
-                }
-                cnt = 0;
-                if (s.isRejecting()) {
-                    cnt += s.weight;
-                }
-                for (int i = 0; i < nsym; i++) {
-                    cnt += s.xEdgeWeights[i];
-                }
-                if (cnt != s.xTotal) {
-                    logger.error("Count error in state " + s.id);
-                    logger.error("weight = " + s.weight);
-                    for (int i = 0; i < nsym; i++) {
-                        logger.error("xEdgeWeights["+i+"] = " + s.xEdgeWeights[i]);
-                    }
-                    ok = false;
-                }
-            }
-        }
-
 
         int nprod = startState.computeProductiveStates(ACCEPTING);
         if (nProductiveStates != nprod) {
@@ -2362,9 +2366,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             ind = p.nextSetBit(ind + 1);
             while (ind >= 0) {
                 states[i].weight += idMap[ind].weight;
-                states[i].xTotal += idMap[ind].total;
-                states[i].xTotal += idMap[ind].xTotal;
-                if (FISHERSCORE) {
+                if (USE_CHISQUARE) {
                     for (int j = 0; j < nsym; j++) {
                         states[i].edgeWeights[j] += idMap[ind].edgeWeights[j];
                         states[i].xEdgeWeights[j] += idMap[ind].xEdgeWeights[j];

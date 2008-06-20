@@ -24,12 +24,20 @@ public class ZTransformFold extends RedBlue implements java.io.Serializable {
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
         if (! dfa.conflict) {
             double score = .01;
-            if (dfa.sumCount != 0) {
+            double sum = dfa.zSum;
+            int count = dfa.sumCount;
+            if (NEGATIVES) {
+                sum += dfa.xZSum;
+                count += dfa.xSumCount;
+            }
+            if (count != 0) {
                 try {
-                    score = DFA.normal.cumulativeProbability(dfa.zSum/Math.sqrt(dfa.sumCount));
+                    score = DFA.normal.cumulativeProbability(sum/Math.sqrt(count));
                 } catch(Throwable e) {
                     // ignored
                 }
+            } else {
+                score = .8;
             }
             if (score > LIMIT) {
                 addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
@@ -57,7 +65,7 @@ public class ZTransformFold extends RedBlue implements java.io.Serializable {
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
         
         if (! Configuration.USE_CHISQUARE) {
-            System.err.println("Should set ComputeFisher property!");
+            System.err.println("Should set ChiSquare property!");
             System.exit(1);
         }
 

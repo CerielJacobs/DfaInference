@@ -55,7 +55,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (MDL_COMPLEMENT) {
                 str += " Complement";
             }
-            if (MDL_NEGATIVES) {
+            if (NEGATIVES) {
                 str += " Negatives";
             }
             if (REFINED_MDL) {
@@ -505,13 +505,13 @@ public final class DFA implements java.io.Serializable, Configuration {
         saved = new State[nStates];
         nProductiveStates = startState.computeProductiveStates(ACCEPTING);
         nProductiveEdges = computeProductiveEdges(idMap, ACCEPTING);
-        if (MDL_NEGATIVES || MDL_COMPLEMENT) {
+        if (NEGATIVES || MDL_COMPLEMENT) {
             nXProductiveStates = startState.computeProductiveStates(REJECTING);
             nXProductiveEdges = computeProductiveEdges(idMap, REJECTING);
         }
 
         missingEdges = computeMissingEdges(idMap, ACCEPTING);
-        if (MDL_COMPLEMENT || MDL_NEGATIVES) {
+        if (MDL_COMPLEMENT || NEGATIVES) {
             missingXEdges = computeMissingEdges(idMap, REJECTING);
         }
         counts = null;
@@ -963,7 +963,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             numRejected++;
             nRejecting++;
             n.accepting = REJECTING;
-            if (MDL_NEGATIVES || MDL_COMPLEMENT) {
+            if (NEGATIVES || MDL_COMPLEMENT) {
                 n.weight = 1;
             }
         } else {
@@ -1128,7 +1128,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             change = false;
             for (int i = 0; i < states.length; i++) {
                 State s = states[i];
-                if (s.productive != ((MDL_NEGATIVES || MDL_COMPLEMENT)
+                if (s.productive != ((NEGATIVES || MDL_COMPLEMENT)
                             ? MASK : ACCEPTING)) {
                     byte prod = s.accepting;
                     for (int j = 0; j < s.children.length; j++) {
@@ -1148,7 +1148,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                                 nProductiveEdges += s.productiveEdges(ACCEPTING);
                             }
                         }
-                        if ((MDL_NEGATIVES || MDL_COMPLEMENT)
+                        if ((NEGATIVES || MDL_COMPLEMENT)
                             && (prod & REJECTING) != 0) {
                             if ((s.productive & REJECTING) == 0) {
                                 s.productive |= REJECTING;
@@ -1268,7 +1268,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     for (int i = 1; i <= maxlen; i++) {
                         counts[i][startState.id] = tempCounts[startStateIndex][i];
                     }
-                    if (MDL_NEGATIVES) {
+                    if (NEGATIVES) {
                         for (int i = 0; i < states.length; i++) {
                             states[i].maxLenComputed = 0;
                         }
@@ -1346,7 +1346,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         } else {
             if (USE_CHISQUARE) {
                 computeChiSquare(n1, n2);
-                computeXChiSquare(n1, n2);
+                if (NEGATIVES) {
+                    computeXChiSquare(n1, n2);
+                }
             }
             n1.accepting |= n2.accepting;           
             if (! REFINED_MDL) {
@@ -1380,7 +1382,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
 
-        if ((MDL_NEGATIVES || MDL_COMPLEMENT)
+        if ((NEGATIVES || MDL_COMPLEMENT)
                 && (n2.productive & REJECTING) != 0) {
             missingXEdges -= n2.missingEdges(REJECTING);
             if ((n1.productive & REJECTING) == 0) {
@@ -1452,8 +1454,14 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @return the chi-square sum element.
      */
     private static double symScore(double expected, double observed) {
-        double diff = observed - expected;
-        double retval = (diff * diff) / expected;
+        double retval;
+        if (false) {
+            double diff = observed - expected;
+            retval = (diff * diff) / expected;
+        } else {
+            // Sicco sais this one is better.
+            retval = 2 * observed * Math.log(observed/expected);
+        }
         if (logger.isDebugEnabled()) {
             logger.debug("expected = " + expected
                     + ", observed = " + observed
@@ -1536,13 +1544,12 @@ public final class DFA implements java.io.Serializable, Configuration {
             try {
                 zSum += normal.inverseCumulativeProbability(p_value);
             } catch(MathException e) {
-                logger.debug("Oops: MathException? ", e);
+                logger.debug("Oops: MathException? p_value = " + p_value, e);
             }
             if (logger.isDebugEnabled()) {
                 logger.debug("(" + n1.id + "," + n2.id + ") --> score = " + p_value);
             }
         }
-        
     }
     
     private void computeXChiSquare(State n1, State n2) {
@@ -1692,7 +1699,7 @@ public final class DFA implements java.io.Serializable, Configuration {
     public double getDFAComplexity() {
         if (DFAScore == 0) {
             if (USE_PRODUCTIVE) {
-                if ((MDL_NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
+                if ((NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
                     int nXs = nXProductiveStates;
                     if (NEW_DFA_COUNT) {
                         DFAScore = nXs * log2(nsym + 1) 
@@ -1821,7 +1828,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     counts[i] = new double[idMap.length];
                 }
             }
-            if (MDL_NEGATIVES) {
+            if (NEGATIVES) {
                 if (xCounts == null) {
                     xCounts = new double[maxlen+1][];
                     for (int i = 0; i < xCounts.length; i++) {
@@ -1861,7 +1868,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         INCREMENTAL_COUNTS);
                 MDLScore = approximate2LogNoverK(n, numRecognized);
 
-                if (MDL_NEGATIVES && numRejected > 0) {
+                if (NEGATIVES && numRejected > 0) {
                     n = computeNStrings(maxlen, xCounts, REJECTING,
                             INCREMENTAL_COUNTS);
                     MDLScore += approximate2LogNoverK(n, numRejected);

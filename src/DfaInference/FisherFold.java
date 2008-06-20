@@ -29,13 +29,24 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
             // X = -2 * sum
             // P = P(2*nmerges, X/2).
             double fisherScore = .01;
-            if (dfa.sumCount != 0 && ! Double.isInfinite(dfa.chiSquareSum)) {
-                try {
-                    fisherScore = 1.0 - Gamma.regularizedGammaP(dfa.sumCount, -dfa.chiSquareSum);
-                } catch(Throwable e) {
-                    // ignored
-                }
+            int count = dfa.sumCount;
+            double sum = dfa.chiSquareSum;
+            if (NEGATIVES) {
+                count += dfa.xSumCount;
+                sum += dfa.xChiSquareSum;
             }
+            if (count != 0) {
+                if (! Double.isInfinite(sum)) {
+                    try {
+                        fisherScore = 1.0 - Gamma.regularizedGammaP(count, -sum);
+                    } catch(Throwable e) {
+                        // ignored
+                    }
+                }
+            } else {
+                fisherScore = .8;
+            }
+
             if (fisherScore > LIMIT) {
                 addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
                         -fisherScore));
@@ -62,7 +73,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
         
         if (! Configuration.USE_CHISQUARE) {
-            System.err.println("Should set ComputeFisher property!");
+            System.err.println("Should set ChiSquare property!");
             System.exit(1);
         }
 

@@ -18,7 +18,7 @@ public interface Configuration {
      * This is not the same as MDL_COMPLEMENT. MDL_NEGATIVES
      * tries to build a rejecting DFA independently.
      */
-    static final boolean MDL_NEGATIVES
+    static final boolean NEGATIVES
         = tp.getBooleanProperty("Negatives", false);
 
     /** Parent sets are used for computing the (improved) MDL scores. */

@@ -67,10 +67,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (USE_PRODUCTIVE) {
                 str += " ProductiveCounts";
             }
-
-            if (NEW_DFA_COUNT) {
-                str += " NewDFACount";
-            }
             logger.info(str);
         }
     };
@@ -1679,99 +1675,64 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Computes the number of bits needed to encode the DFA. We need a
-     * two-dimensional array of (nStates * nsym) size, where each entry contains
-     * a destination state. We also need one bit per state indicating if the
-     * state is an end state. Each entry needs enough bits to encode a state
+     * Computes the number of bits needed to encode the DFA. Assumed is the presence
+     * of a special accepting state A, and a special rejecting state R, and
+     * a special end-marker symbol.
+     * There are two ways of encoding: 
+     * 1. a two-dimensional array of (nStates * nsym) size, where each entry
+     * contains a destination state. Each entry needs enough bits to encode a state
      * number. This assumes a fixed start state. Note that any permutation of
      * the states will do, so there is a lot of redundancy in this
      * representation. In fact, (nStates-1)! redundancy, so we deduct
-     * log2((nStates-1)!) (the start state is fixed). The NEW_DFA_COUNT
-     * mechanism uses a different encoding: For each state: number of outgoing
-     * edges, for each edge the symbol + the destination
+     * log2((nStates-1)!) (the start state is fixed).
+     * 2. for each state: number of outgoing edges,
+     * for each edge the symbol + the destination
      * state. With redundancy compensation. N*(1+2log(S+1)) +
      * E*(2log(S)+2log(N)) - 2log((N-1)!) This encoding is much much better for
      * sparse DFAs (like Prefix Tree Acceptors :-).
-     * With NEW_DFA_COUNT, the way end-states are encoded is different
-     * as well: assumed is a list.
-     * @return the actual sum for the DFA
+     * We compute both, and use the best one.
+     * @return the actual sum for the DFA.
      */
     public double getDFAComplexity() {
         if (DFAScore == 0) {
+            double score1 = 0.0;
+            double score2 = 0.0;
             if (USE_PRODUCTIVE) {
+                double redundancy;
                 if ((NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
-                    int nXs = nXProductiveStates;
-                    if (NEW_DFA_COUNT) {
-                        DFAScore = nXs * log2(nsym + 1) 
-                                + nXProductiveEdges * (log2(nsym) + log2(nXs));
-                    } else {
-                        DFAScore = nXs * nsym * log2(nXs + 1);
-                    }
-                    // rejecting states:
-                    if (ALT_ENDSTATES_SCORE) {
-                        DFAScore += nRejecting * log2(nXs);
-                            // - sumLog(nRejecting - 1) / LOG2;
-                    } else {
-                        DFAScore += approximate2LogNoverK(nXs, nRejecting);
-                    }
-                    
-                    DFAScore -= sumLog(nXs - 1) / LOG2;
-                    
+                    int nXs = nXProductiveStates + 1;
+                    redundancy = sumLog(nXs - 1) / LOG2;
+                    score1 += nXs * (nsym+1) * log2(nXs + 1) - redundancy;
+                    score2 += nXs * log2(nsym + 2) 
+                                + (nXProductiveEdges + nRejecting) * (log2(nsym+1) + log2(nXs+1))
+                                - redundancy;                 
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs)); (if nsym = 2).
                 }
-                int ns = nProductiveStates;
-                if (NEW_DFA_COUNT) {
-                    DFAScore += ns * log2(nsym + 1)
-                            + nProductiveEdges * (log2(nsym) + log2(ns));
-                 } else {
-                    DFAScore += ns * nsym * log2(ns + 1);
-                }
-                // Accepting states ...
-                if (ALT_ENDSTATES_SCORE) {
-                    DFAScore += nAccepting * log2(ns);
-                            // - sumLog(nAccepting - 1) / LOG2;
-                } else {
-                    DFAScore += approximate2LogNoverK(ns, nAccepting);
-                }
-                /*
-                System.out.println("ns = " + ns
-                        + ", nAccepting = " + nAccepting);
-                System.out.println("approximate2LogNoverK(ns, nAccepting) = "
-                        + approximate2LogNoverK(ns, nAccepting));
-                System.out.println("nAccepting * log2(ns) - sumlog = "
-                        + (nAccepting * log2(ns) - sumLog(nAccepting - 1) / LOG2));
-                System.out.println("nAccepting * log2(ns) = "
-                        + (nAccepting * log2(ns)));
-                */
-                
-                DFAScore -= sumLog(ns - 1) / LOG2;               
+                int ns = nProductiveStates + 1;
+                redundancy = sumLog(ns - 1) / LOG2;
+                score1 += ns * (nsym+1) * log2(ns+1) - redundancy;
+                score2 += ns * log2(nsym+2)
+                            + (nProductiveEdges + nAccepting) * (log2(nsym+1) + log2(ns+1))
+                            - redundancy;             
                 // DFAScore += ns * (1.5 + log2(ns));
             } else {
-                int ns = nStates;
-                if (NEW_DFA_COUNT) {             
-                    DFAScore = ns * log2(nsym + 1)
-                            + nEdges * (log2(nsym) + log2(ns));
-                } else {
-                    DFAScore = ns * nsym * log2(ns + 1);
-
-                }
-                // Accepting/rejecting states ...
-                if (ALT_ENDSTATES_SCORE) {
-                    DFAScore += (nAccepting + nRejecting) * log2(ns);
-                            // - sumLog(nAccepting + nRejecting - 1) / LOG2;
-                } else {
-                    DFAScore += approximate2LogNoverK(ns, nAccepting);
-                    DFAScore += approximate2LogNoverK(ns - nAccepting, nRejecting);
-                }
-                
-                DFAScore -= sumLog(ns - 1) / LOG2;
-                
+                int ns = nStates + 2;
+                double redundancy = sumLog(ns - 1) / LOG2;
+                score1 += ns * (nsym+1) * log2(ns+1) - redundancy;
+                score2 += ns * log2(nsym+2)
+                            + (nEdges + nAccepting + nRejecting) * (log2(nsym+1) + log2(ns+1))
+                            - redundancy;
                 // DFAScore = ns * (1.5 + log2(ns));
             }
+            if (score1 > score2) {
+                DFAScore = score2;
+            } else {
+                DFAScore = score1;
+            }
         }
-        if (logger.isInfoEnabled()) {
-            logger.info("DFAScore = " + DFAScore + ", nStates = " + nStates
+        if (logger.isDebugEnabled()) {
+            logger.debug("DFAScore = " + DFAScore + ", nStates = " + nStates
                     + ", nRejecting = " + nRejecting + ", nAccepting = " + nAccepting);
         }
         return DFAScore;

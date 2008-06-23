@@ -35,19 +35,12 @@ public interface Configuration {
     /** Use incremental computation of counts. */
     static final boolean INCREMENTAL_COUNTS =
         tp.getBooleanProperty("IncrementalCounts", false);
-
-    /** Use new DFA count. */
-    static final boolean NEW_DFA_COUNT =
-        tp.getBooleanProperty("NewDFACount", true);
-    
+  
     static final boolean USE_CHISQUARE =
         tp.getBooleanProperty("ChiSquare", false);
     
     static final int CHI_MIN =
         tp.getIntProperty("ChiMin", 5);
-
-    static final boolean ALT_ENDSTATES_SCORE =
-        tp.getBooleanProperty("FixEndstates", true);
 
     static final boolean UNIQUE_SAMPLES =
         tp.getBooleanProperty("UniqueSamples", true);

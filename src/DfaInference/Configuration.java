@@ -46,6 +46,17 @@ public interface Configuration {
         tp.getBooleanProperty("UniqueSamples", true);
 
     /**
+     * Which version of DFA scoring to use? The options are listed below.
+     * 0: code DFA as two-dimensional array with state and sym index,
+     *    state value.
+     * 1: code DFA as list of edges.
+     * 2: whichever gives the lowest score.
+     * 3: whichever gives the highest score.
+     */
+    static final int DFA_SCORING =
+        tp.getIntProperty("DFAScoring", 2);
+
+    /**
      * Bit that indicates accepting state or state of DFA that recognizes
      * positive samples.
      */

@@ -1725,10 +1725,22 @@ public final class DFA implements java.io.Serializable, Configuration {
                             - redundancy;
                 // DFAScore = ns * (1.5 + log2(ns));
             }
-            if (score1 > score2) {
-                DFAScore = score2;
-            } else {
+            if (DFA_SCORING == 0) {
                 DFAScore = score1;
+            } else if (DFA_SCORING == 1) {
+                DFAScore = score2;
+            } else if (DFA_SCORING == 2) {
+                if (score1 > score2) {
+                    DFAScore = score2;
+                } else {
+                    DFAScore = score1;
+                }
+            } else if (DFA_SCORING == 3) {
+                if (score1 < score2) {
+                    DFAScore = score2;
+                } else {
+                    DFAScore = score1;
+                }
             }
         }
         if (logger.isDebugEnabled()) {

@@ -1508,23 +1508,21 @@ public final class DFA implements java.io.Serializable, Configuration {
                 (n2.accepting & ACCEPTING) != 0) {
             if (n1.weight >= CHI_MIN && n2.weight >= CHI_MIN) {
                 double c = ((double)(n1.weight + n2.weight)) / total;
-                score += symScore(total2 * c, n2.weight);
-                score += symScore(total1 * c, n1.weight);
+                score += symScore(total2 * c, n2.weight) + symScore(total1 * c, n1.weight);
                 cnt++;
             }
         }
         for (int i = 0; i < nsym; i++) {
             if (n1.edgeWeights[i] >= CHI_MIN && n2.edgeWeights[i] >= CHI_MIN) {
                 double c = ((double)(n1.edgeWeights[i] + n2.edgeWeights[i]))/total;
-                score += symScore(total2 * c, n2.edgeWeights[i]);
-                score += symScore(total1 * c, n1.edgeWeights[i]);
+                score += symScore(total2 * c, n2.edgeWeights[i])
+                        + symScore(total1 * c, n1.edgeWeights[i]);
                 cnt++;
             }
         }
         if (pool1 >= CHI_MIN && pool2 >= CHI_MIN) {
             double c = ((double)(pool1 + pool2)) / total;
-            score += symScore(total2 * c, pool2);
-            score += symScore(total1 * c, pool1);
+            score += symScore(total2 * c, pool2) + symScore(total1 * c, pool1);
             cnt++;
         }
         if (cnt >= 1) {
@@ -1544,6 +1542,10 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
             if (logger.isDebugEnabled()) {
                 logger.debug("(" + n1.id + "," + n2.id + ") --> score = " + p_value);
+            }
+        } else {
+            if (logger.isDebugEnabled()) {
+                logger.debug("No ChiSquare contribution from this merge");
             }
         }
     }
@@ -1590,23 +1592,21 @@ public final class DFA implements java.io.Serializable, Configuration {
                 (n2.accepting & REJECTING) != 0) {
             if (n1.weight >= CHI_MIN && n2.weight >= CHI_MIN) {
                 double c = ((double)(n1.weight + n2.weight)) / total;
-                score += symScore(total2 * c, n2.weight);
-                score += symScore(total1 * c, n1.weight);
+                score += symScore(total2 * c, n2.weight) + symScore(total1 * c, n1.weight);
                 cnt++;
             }
         }
         for (int i = 0; i < nsym; i++) {
             if (n1.xEdgeWeights[i] >= CHI_MIN && n2.xEdgeWeights[i] >= CHI_MIN) {
                 double c = ((double)(n1.xEdgeWeights[i] + n2.xEdgeWeights[i]))/total;
-                score += symScore(total2 * c, n2.xEdgeWeights[i]);
-                score += symScore(total1 * c, n1.xEdgeWeights[i]);
+                score += symScore(total2 * c, n2.xEdgeWeights[i])
+                        + symScore(total1 * c, n1.xEdgeWeights[i]);
                 cnt++;
             }
         }
         if (pool1 >= CHI_MIN && pool2 >= CHI_MIN) {
             double c = ((double)(pool1 + pool2)) / total;
-            score += symScore(total2 * c, pool2);
-            score += symScore(total1 * c, pool1);
+            score += symScore(total2 * c, pool2) + symScore(total1 * c, pool1);
             cnt++;
         }
         if (cnt >= 1) {
@@ -1626,6 +1626,10 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
             if (logger.isDebugEnabled()) {
                 logger.debug("(" + n1.id + "," + n2.id + ") --> xScore = " + p_value);
+            }
+        } else {
+            if (logger.isDebugEnabled()) {
+                logger.debug("No ChiSquare contribution from this merge");
             }
         }
     }

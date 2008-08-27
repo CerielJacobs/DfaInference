@@ -1449,8 +1449,10 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @param observed the fraction of the individual state.
      * @return the chi-square sum element.
      */
-    private static double symScore(double expected, double observed) {
+    private static double symScore(double expected, int observed, int total) {
         double retval;
+        
+        expected /= total;
         if (false) {
             double diff = observed - expected;
             retval = (diff * diff) / expected;
@@ -1514,8 +1516,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if (logger.isDebugEnabled()) {
                     logger.debug("accepting states ...");
                 }
-                double c = ((double)(n1.weight + n2.weight)) / total;
-                score += symScore(total2 * c, n2.weight) + symScore(total1 * c, n1.weight);
+                double c = (double)(n1.weight + n2.weight);
+                score += symScore(total2 * c, n2.weight, total) + symScore(total1 * c, n1.weight, total);
                 cnt++;
             }
         }
@@ -1524,9 +1526,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if (logger.isDebugEnabled()) {
                     logger.debug("contribution for symbol " + i);
                 }
-                double c = ((double)(n1.edgeWeights[i] + n2.edgeWeights[i]))/total;
-                score += symScore(total2 * c, n2.edgeWeights[i])
-                        + symScore(total1 * c, n1.edgeWeights[i]);
+                double c = (double)(n1.edgeWeights[i] + n2.edgeWeights[i]);
+                score += symScore(total2 * c, n2.edgeWeights[i], total)
+                        + symScore(total1 * c, n1.edgeWeights[i], total);
                 cnt++;
             }
         }
@@ -1534,8 +1536,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (logger.isDebugEnabled()) {
                 logger.debug("contribution for pool");
             }
-            double c = ((double)(pool1 + pool2)) / total;
-            score += symScore(total2 * c, pool2) + symScore(total1 * c, pool1);
+            double c = (double)(pool1 + pool2);
+            score += symScore(total2 * c, pool2, total) + symScore(total1 * c, pool1, total);
             cnt++;
         }
         if (cnt >= 1) {
@@ -1611,8 +1613,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if (logger.isDebugEnabled()) {
                     logger.debug("rejecting states ...");
                 }
-                double c = ((double)(n1.weight + n2.weight)) / total;
-                score += symScore(total2 * c, n2.weight) + symScore(total1 * c, n1.weight);
+                double c = (double)(n1.weight + n2.weight);
+                score += symScore(total2 * c, n2.weight, total)
+                        + symScore(total1 * c, n1.weight, total);
                 cnt++;
             }
         }
@@ -1621,9 +1624,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if (logger.isDebugEnabled()) {
                     logger.debug("contribution for symbol " + i);
                 }
-                double c = ((double)(n1.xEdgeWeights[i] + n2.xEdgeWeights[i]))/total;
-                score += symScore(total2 * c, n2.xEdgeWeights[i])
-                        + symScore(total1 * c, n1.xEdgeWeights[i]);
+                double c = (double)(n1.xEdgeWeights[i] + n2.xEdgeWeights[i]);
+                score += symScore(total2 * c, n2.xEdgeWeights[i], total)
+                        + symScore(total1 * c, n1.xEdgeWeights[i], total);
                 cnt++;
             }
         }
@@ -1631,8 +1634,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (logger.isDebugEnabled()) {
                 logger.debug("contribution for pool");
             }
-            double c = ((double)(pool1 + pool2)) / total;
-            score += symScore(total2 * c, pool2) + symScore(total1 * c, pool1);
+            double c = (double)(pool1 + pool2);
+            score += symScore(total2 * c, pool2, total) + symScore(total1 * c, pool1, total);
             cnt++;
         }
         if (cnt >= 1) {

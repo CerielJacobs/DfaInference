@@ -1503,10 +1503,17 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         int total = total1 + total2;
-
+        
+        if (logger.isDebugEnabled()) {
+            logger.debug("Computing ChiSquare for merge of state " + n1 + " and " + n2);
+        }
+        
         if ((n1.accepting & ACCEPTING) != 0 ||
                 (n2.accepting & ACCEPTING) != 0) {
             if (n1.weight >= CHI_MIN && n2.weight >= CHI_MIN) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("accepting states ...");
+                }
                 double c = ((double)(n1.weight + n2.weight)) / total;
                 score += symScore(total2 * c, n2.weight) + symScore(total1 * c, n1.weight);
                 cnt++;
@@ -1514,6 +1521,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         for (int i = 0; i < nsym; i++) {
             if (n1.edgeWeights[i] >= CHI_MIN && n2.edgeWeights[i] >= CHI_MIN) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("contribution for symbol " + i);
+                }
                 double c = ((double)(n1.edgeWeights[i] + n2.edgeWeights[i]))/total;
                 score += symScore(total2 * c, n2.edgeWeights[i])
                         + symScore(total1 * c, n1.edgeWeights[i]);
@@ -1521,6 +1531,9 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
         if (pool1 >= CHI_MIN && pool2 >= CHI_MIN) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("contribution for pool");
+            }
             double c = ((double)(pool1 + pool2)) / total;
             score += symScore(total2 * c, pool2) + symScore(total1 * c, pool1);
             cnt++;
@@ -1559,6 +1572,10 @@ public final class DFA implements java.io.Serializable, Configuration {
         int pool1 = 0;
         int pool2 = 0;
 
+        if (logger.isDebugEnabled()) {
+            logger.debug("Computing XChiSquare for merge of state " + n1 + " and " + n2);
+        }
+        
         if ((n1.accepting & REJECTING) != 0 ||
                 (n2.accepting & REJECTING) != 0) {
             if (n1.weight < CHI_MIN || n2.weight < CHI_MIN) {
@@ -1591,6 +1608,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         if ((n1.accepting & REJECTING) != 0 ||
                 (n2.accepting & REJECTING) != 0) {
             if (n1.weight >= CHI_MIN && n2.weight >= CHI_MIN) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("rejecting states ...");
+                }
                 double c = ((double)(n1.weight + n2.weight)) / total;
                 score += symScore(total2 * c, n2.weight) + symScore(total1 * c, n1.weight);
                 cnt++;
@@ -1598,6 +1618,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         for (int i = 0; i < nsym; i++) {
             if (n1.xEdgeWeights[i] >= CHI_MIN && n2.xEdgeWeights[i] >= CHI_MIN) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("contribution for symbol " + i);
+                }
                 double c = ((double)(n1.xEdgeWeights[i] + n2.xEdgeWeights[i]))/total;
                 score += symScore(total2 * c, n2.xEdgeWeights[i])
                         + symScore(total1 * c, n1.xEdgeWeights[i]);
@@ -1605,6 +1628,9 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
         if (pool1 >= CHI_MIN && pool2 >= CHI_MIN) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("contribution for pool");
+            }
             double c = ((double)(pool1 + pool2)) / total;
             score += symScore(total2 * c, pool2) + symScore(total1 * c, pool1);
             cnt++;

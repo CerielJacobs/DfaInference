@@ -1444,25 +1444,31 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Computes a chi-square sum element: (observed - expected)^2 / expected.
-     * @param expected the fraction of the combined state.
-     * @param observed the fraction of the individual state.
+     * Computes a chi-square sum element.
      * @return the chi-square sum element.
      */
-    private static double symScore(double expected, int observed, int total) {
+    private static double symScore(int total1, int observed1,
+            int total2, int observed2) {
         double retval;
+        int totObserved = observed1 + observed2;
+        int total = total1 + total2;
         
-        expected /= total;
+        double expected1 = ((double)total1) * totObserved / total;
+        double expected2 = ((double)total2) * totObserved / total;
         if (false) {
-            double diff = observed - expected;
-            retval = (diff * diff) / expected;
+            double diff1 = observed1 - expected1;
+            double diff2 = observed2 - expected2;
+            retval = (diff1 * diff1) / expected1 + (diff2 * diff2)/expected2;
         } else {
             // Sicco sais this one is better.
-            retval = 2 * observed * Math.log(observed/expected);
+            retval = 2 * ( observed1 * Math.log(observed1/expected1)
+                    + observed2 * Math.log(observed2/expected2));
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("expected = " + expected
-                    + ", observed = " + observed
+            logger.debug("expected1 = " + expected1
+                    + ", observed1 = " + observed1
+                    + ", expected2 = " + expected2
+                    + ", observed2 = " + observed2
                     + ", sum element = " + retval);
         }
         return retval;
@@ -1503,8 +1509,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (total1 < CHI_MIN || total2 < CHI_MIN) {
             return;
         }
-
-        int total = total1 + total2;
         
         if (logger.isDebugEnabled()) {
             logger.debug("Computing ChiSquare for merge of state " + n1 + " and " + n2);
@@ -1516,8 +1520,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if (logger.isDebugEnabled()) {
                     logger.debug("accepting states ...");
                 }
-                double c = (double)(n1.weight + n2.weight);
-                score += symScore(total2 * c, n2.weight, total) + symScore(total1 * c, n1.weight, total);
+                score += symScore(total1, n1.weight, total2, n2.weight);
                 cnt++;
             }
         }
@@ -1526,9 +1529,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if (logger.isDebugEnabled()) {
                     logger.debug("contribution for symbol " + i);
                 }
-                double c = (double)(n1.edgeWeights[i] + n2.edgeWeights[i]);
-                score += symScore(total2 * c, n2.edgeWeights[i], total)
-                        + symScore(total1 * c, n1.edgeWeights[i], total);
+                score += symScore(total1, n1.edgeWeights[i], total2, n2.edgeWeights[i]);
                 cnt++;
             }
         }
@@ -1536,8 +1537,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (logger.isDebugEnabled()) {
                 logger.debug("contribution for pool");
             }
-            double c = (double)(pool1 + pool2);
-            score += symScore(total2 * c, pool2, total) + symScore(total1 * c, pool1, total);
+            score += symScore(total1, pool1, total2, pool2);
             cnt++;
         }
         if (cnt >= 1) {
@@ -1605,17 +1605,13 @@ public final class DFA implements java.io.Serializable, Configuration {
             return;
         }
 
-        int total = total1 + total2;
-
         if ((n1.accepting & REJECTING) != 0 ||
                 (n2.accepting & REJECTING) != 0) {
             if (n1.weight >= CHI_MIN && n2.weight >= CHI_MIN) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("rejecting states ...");
                 }
-                double c = (double)(n1.weight + n2.weight);
-                score += symScore(total2 * c, n2.weight, total)
-                        + symScore(total1 * c, n1.weight, total);
+                score += symScore(total1, n1.weight, total2, n2.weight);
                 cnt++;
             }
         }
@@ -1624,9 +1620,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if (logger.isDebugEnabled()) {
                     logger.debug("contribution for symbol " + i);
                 }
-                double c = (double)(n1.xEdgeWeights[i] + n2.xEdgeWeights[i]);
-                score += symScore(total2 * c, n2.xEdgeWeights[i], total)
-                        + symScore(total1 * c, n1.xEdgeWeights[i], total);
+                score += symScore(total1, n1.xEdgeWeights[i], total2, n2.xEdgeWeights[i]);
                 cnt++;
             }
         }
@@ -1634,8 +1628,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (logger.isDebugEnabled()) {
                 logger.debug("contribution for pool");
             }
-            double c = (double)(pool1 + pool2);
-            score += symScore(total2 * c, pool2, total) + symScore(total1 * c, pool1, total);
+            score += symScore(total1, pool1, total2, pool2);
             cnt++;
         }
         if (cnt >= 1) {

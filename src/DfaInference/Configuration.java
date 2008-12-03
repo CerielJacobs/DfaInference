@@ -50,14 +50,16 @@ public interface Configuration {
      * 0: code DFA as two-dimensional array with state and sym index,
      *    state value.
      * 1: code DFA as list of edges.
-     * 2: whichever gives the lowest score.
-     * 3: whichever gives the highest score.
+     * 2: code DFA as two-dimensional array of bits indicating presence/absence
+     *    of edge, code edges as just destination state.
+     * 3: whichever gives the lowest score.
+     * 4: whichever gives the highest score.
      */
     static final int DFA_SCORING =
-        tp.getIntProperty("DFAScoring", 2);
+        tp.getIntProperty("DFAScoring", 3);
 
     static final boolean USE_ADJACENCY =
-        tp.getBooleanProperty("Adjacency", true);
+        tp.getBooleanProperty("Adjacency", false);
     
     /** Limits adjacency checks to begin and end of sentence. */
     static final boolean ONLY_CHECK_BEGIN_AND_END_ADJACENCY =

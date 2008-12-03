@@ -11,7 +11,7 @@ import java.io.Writer;
  * The choices themselves are implicitly determined by the search heuristic
  * used.
  */
-public class ControlResultPair implements Comparable, java.io.Serializable {
+public class ControlResultPair implements Comparable<ControlResultPair>, java.io.Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -47,8 +47,7 @@ public class ControlResultPair implements Comparable, java.io.Serializable {
      * @return comparison value. Lower means that the current object
      * is better.
      */
-    public int compareTo(Object o) {
-        ControlResultPair p = (ControlResultPair) o;
+    public int compareTo(ControlResultPair p) {
         if (score != p.score) {
             return (score - p.score > 0) ? 1 : -1;
         }

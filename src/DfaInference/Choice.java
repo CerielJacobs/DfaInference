@@ -7,7 +7,7 @@ import java.io.IOException;
  * A <code>Choice</code> object represents a merge pair and a corresponding
  * DFA score and number of states.
  */
-public class Choice implements Comparable, java.io.Serializable {
+public class Choice implements Comparable<Choice>, java.io.Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -85,9 +85,7 @@ public class Choice implements Comparable, java.io.Serializable {
         freeList = c;
     }
     
-    public int compareTo(Object o) {
-        Choice p = (Choice) o;
-
+    public int compareTo(Choice p) {
         if (p.score == score) {
             if (p.nstates == nstates) {
                 if (p.s1 == s1) {

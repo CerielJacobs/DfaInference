@@ -621,6 +621,14 @@ public final class DFA implements java.io.Serializable, Configuration {
             maxlen = dfa2.maxlen;
         }
 
+        // For now, kill the entrance sets. It is not clear how to deal with them.
+        for (State s : entranceStates) {
+            if (s == state1 || s == state2) {
+                continue;
+            }
+            // warn for ignored entrance state.
+            logger.warn("Ignored entrance state during DFA merging");
+        }
         if (exact) {
             exactMerge(state1, state2);
         } else {
@@ -631,6 +639,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             startState = new State(state1, merges, new State[idMap.length],
                     idMap, new Numberer());
         }
+        entranceStates.clear();
+        entranceStates.add(startState);
 
         dfaComputations(true);
 
@@ -638,13 +648,31 @@ public final class DFA implements java.io.Serializable, Configuration {
         double d1Rejected = dfa1.computeTotalRecognized(maxlen, REJECTING);
         double d2Accepted = dfa2.computeTotalRecognized(maxlen, ACCEPTING);
         double d2Rejected = dfa2.computeTotalRecognized(maxlen, REJECTING);
-
+        
         double newAccepted = computeTotalRecognized(maxlen, ACCEPTING);
         double newRejected = computeTotalRecognized(maxlen, REJECTING);
         
         double acceptedOverlap = d1Accepted + d2Accepted - newAccepted;
         double rejectedOverlap = d1Rejected + d2Rejected - newRejected;
         
+/*        
+        double d1AcceptedOld = dfa1.computeTotalRecognized(dfa1.maxlen, ACCEPTING);
+        double d1RejectedOld = dfa1.computeTotalRecognized(dfa1.maxlen, REJECTING);
+        double d2AcceptedOld = dfa2.computeTotalRecognized(dfa2.maxlen, ACCEPTING);
+        double d2RejectedOld = dfa2.computeTotalRecognized(dfa2.maxlen, REJECTING);
+        
+        double d1NumRecognized = dfa1.numRecognized * (d1Accepted / Math.max(1.0, d1AcceptedOld));
+        double d1NumRejected = dfa1.numRejected * (d1Rejected / Math.max(1.0, d1RejectedOld));
+        double d2NumRecognized = dfa2.numRecognized * (d2Accepted / Math.max(1.0, d2AcceptedOld));
+        double d2NumRejected = dfa2.numRejected * (d2Rejected / Math.max(1.0, d2RejectedOld));
+        numRecognized = (int) ((d1NumRecognized + d2NumRecognized)
+                * (1 - acceptedOverlap/(d1Accepted + d2Accepted)));
+        if (newRejected != 0) {
+            numRejected = (int) ((d1NumRejected + d2NumRejected)
+                    * (1 - rejectedOverlap/(d1Rejected + d2Rejected)));
+        }
+*/
+
         // Make a guess for numRecognized. We cannot just add the ones from
         // dfa1 and dfa2, because there may be overlap, and we have no way
         // of knowing. The best we can do is estimate, by incorporating
@@ -655,6 +683,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             numRejected = (int) ((dfa1.numRejected + dfa2.numRejected)
                     * (1 - rejectedOverlap/(d1Rejected + d2Rejected)));
         }
+        System.out.println("numRecognized = " + numRecognized);
+        System.out.println("totalRecognized = " + newAccepted);
         
         if (USE_ADJACENCY) {
             computeAdjacency();
@@ -718,9 +748,11 @@ public final class DFA implements java.io.Serializable, Configuration {
         initial.set(state1.id);
         initial.set(state2.id);
         workList.add(initial);
+
         startState = new State(nsym);
         startState.accepting = (byte)(state1.accepting | state2.accepting);
         startState.weight = state1.weight + state2.weight;
+
         if (USE_CHISQUARE) {
             for (int i = 0; i < nsym; i++) {
                 startState.edgeWeights[i] = state1.edgeWeights[i] + state2.edgeWeights[i];
@@ -1882,7 +1914,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      * Computes the number of bits needed to encode the DFA. Assumed is the presence
      * of a special accepting state A, and a special rejecting state R, and
      * a special end-marker symbol.
-     * There are two ways of encoding: 
+     * There are three ways of encoding: 
      * 1. a two-dimensional array of (nStates * nsym) size, where each entry
      * contains a destination state. Each entry needs enough bits to encode a state
      * number. This assumes a fixed start state. Note that any permutation of
@@ -1894,39 +1926,51 @@ public final class DFA implements java.io.Serializable, Configuration {
      * state. With redundancy compensation. N*(1+2log(S+1)) +
      * E*(2log(S)+2log(N)) - 2log((N-1)!) This encoding is much much better for
      * sparse DFAs (like Prefix Tree Acceptors :-).
-     * We compute both, and use the best one.
+     * 3. a table of nsym * nstates consisting of single bits: either there is an
+     *    edge or there is not. Then, for each edge the destination state.
+     *    
+     * In all representations, end states are encoded as a transition on a special
+     * symbol to a special state.
+     * 
      * @return the actual sum for the DFA.
      */
     public double getDFAComplexity() {
         if (DFAScore == 0) {
             double score1 = 0.0;
             double score2 = 0.0;
+            double score3 = 0.0;
             if (USE_PRODUCTIVE) {
                 double redundancy;
                 if ((NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
-                    int nXs = nXProductiveStates + 1;
+                    int nXs = nXProductiveStates + 1;   // number of states + special rejecting state.
                     redundancy = sumLog(nXs - 1) / LOG2;
                     score1 += nXs * (nsym+1) * log2(nXs + 1) - redundancy;
                     score2 += nXs * log2(nsym + 2) 
                                 + (nXProductiveEdges + nRejecting) * (log2(nsym+1) + log2(nXs+1))
-                                - redundancy;                 
+                                - redundancy;
+                    score3 += nXs * (nsym+1)
+                                + (nXProductiveEdges + nRejecting) * log2(nXs+1) - redundancy;
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs)); (if nsym = 2).
                 }
-                int ns = nProductiveStates + 1;
+                int ns = nProductiveStates + 1; // number of states + special accepting state.
                 redundancy = sumLog(ns - 1) / LOG2;
                 score1 += ns * (nsym+1) * log2(ns+1) - redundancy;
                 score2 += ns * log2(nsym+2)
                             + (nProductiveEdges + nAccepting) * (log2(nsym+1) + log2(ns+1))
-                            - redundancy;             
+                            - redundancy;
+                score3 += ns * (nsym+1)
+                            + (nProductiveEdges + nAccepting) * log2(ns+1) - redundancy;
                 // DFAScore += ns * (1.5 + log2(ns));
             } else {
-                int ns = nStates + 2;
+                int ns = nStates + 2;   // number of states + special accepting/rejecting states.
                 double redundancy = sumLog(ns - 1) / LOG2;
                 score1 += ns * (nsym+1) * log2(ns+1) - redundancy;
                 score2 += ns * log2(nsym+2)
                             + (nEdges + nAccepting + nRejecting) * (log2(nsym+1) + log2(ns+1))
                             - redundancy;
+                score3 += ns * (nsym+1)
+                            + (nEdges + nAccepting + nRejecting) * log2(ns+1) - redundancy;
                 // DFAScore = ns * (1.5 + log2(ns));
             }
             if (DFA_SCORING == 0) {
@@ -1934,16 +1978,24 @@ public final class DFA implements java.io.Serializable, Configuration {
             } else if (DFA_SCORING == 1) {
                 DFAScore = score2;
             } else if (DFA_SCORING == 2) {
+                DFAScore = score3;
+            } else if (DFA_SCORING == 3) {
                 if (score1 > score2) {
                     DFAScore = score2;
                 } else {
                     DFAScore = score1;
                 }
-            } else if (DFA_SCORING == 3) {
+                if (score3 < DFAScore) {
+                    DFAScore = score3;
+                }
+            } else if (DFA_SCORING == 4) {
                 if (score1 < score2) {
                     DFAScore = score2;
                 } else {
                     DFAScore = score1;
+                }
+                if (score3 > DFAScore) {
+                    DFAScore = score3;
                 }
             }
         }

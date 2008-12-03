@@ -8,7 +8,7 @@ import java.util.HashMap;
  * Representation of a state in a DFA.
  */
 public final class State implements java.io.Serializable, Configuration,
-        Comparable {
+        Comparable<State> {
 
     private static final long serialVersionUID = 1L;
     
@@ -250,8 +250,7 @@ public final class State implements java.io.Serializable, Configuration,
         }
     }
     
-    public int compareTo(Object o) {
-        State s = (State) o;
+    public int compareTo(State s) {
         if (s.depth == depth) {
             return s.id - id;
         }

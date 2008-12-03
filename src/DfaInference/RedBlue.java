@@ -277,11 +277,11 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
     private void handlePromotions() {
         int sz = toPromote.size();
         while (sz != 0) {
-            Iterator iter = toPromote.iterator();
+            Iterator<State> iter = toPromote.iterator();
             // Find the shallowest state to promote.
-            State shallowestState = (State) iter.next();
+            State shallowestState = iter.next();
             while (iter.hasNext()) {
-                State s = (State) iter.next();
+                State s = iter.next();
                 if (s.depth < shallowestState.depth ||
                         (s.depth == shallowestState.depth
                          && s.id < shallowestState.id)) {
@@ -391,6 +391,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
             }
         } else {
             promoteToRed(s2);
+            handlePromotions();
         }
 
         Arrays.sort(mergeCandidates, 0, numCandidates);
@@ -580,8 +581,6 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
                 }
             }
         }
-
-        handlePromotions();
     }
 
     /**

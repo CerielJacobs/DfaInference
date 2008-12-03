@@ -215,7 +215,7 @@ public class ExhSearch implements java.io.Serializable {
            }
            }
            */
-        DFA dfa = new DFA(symbols, learningSamples);
+        DFA dfa = new DFA(new Samples(symbols, learningSamples, null));
         if (logger.isInfoEnabled()) {
             logger.info("Max = " + max + ", initial DFA has complexity "
                     + dfa.getMDLComplexity());

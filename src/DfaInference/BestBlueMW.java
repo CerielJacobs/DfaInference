@@ -144,8 +144,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
      * @return the new control/result pair.
      */
     void tryExtending(ControlResultPair p, int depth, int targetDepth) {
-        DFA dfa = new DFA(samples.symbols, samples.learningSamples);
-        dfa.setConflicts(samples.conflicts);
+        DFA dfa = new DFA(samples);
         // DFA dfa = new DFA(initialDFA);
         Guidance g;
         g = new IntGuidance(p.control);
@@ -388,9 +387,10 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
 
         Symbols symbols = new Symbols();
         int[][] iSamples = symbols.convert2learn(samples);
-        DFA initialDFA = new DFA(symbols, iSamples);
+        Samples ls = new Samples(symbols, iSamples, null);
+        DFA initialDFA = new DFA(ls);
         BitSet[] conflicts = initialDFA.computeConflicts();
-        initialDFA.setConflicts(conflicts);
+
         Samples learningSamples = new Samples(symbols, iSamples, conflicts);
 
         BestBlueMW b = new BestBlueMW(f);

@@ -95,8 +95,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * @param learningSamples the sample from which the initial DFA is built.
      */
     public void init(Samples learningSamples) {
-        DFA dfa = new DFA(learningSamples.symbols, learningSamples.learningSamples);
-        dfa.setConflicts(learningSamples.conflicts);
+        DFA dfa = new DFA(learningSamples);
         init(dfa);
     }
 
@@ -871,8 +870,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      */
     public Choice[] getOptions(Samples learningSamples, Guidance guide,
             int perc) {
-        DFA dfa = new DFA(learningSamples.symbols, learningSamples.learningSamples);
-        dfa.setConflicts(learningSamples.conflicts);
+        DFA dfa = new DFA(learningSamples);
         return getOptions(dfa, guide, perc);
     }
 

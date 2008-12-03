@@ -1,5 +1,7 @@
 package DfaInference;
 
+import java.util.BitSet;
+
 
 /**
  * Collects information that allows for the undoing of a state merge.
@@ -9,29 +11,31 @@ public final class UndoInfo implements Configuration {
     /** Undo info per state. */
     private static class StateInfo {
         /** Free list of <code>StateInfo</code> objects. */
-        static StateInfo freeList;
+        private static StateInfo freeList;
 
         /** Links <code>StateInfo</code> objects */
-        StateInfo next;
+        private StateInfo next;
 
         /** The original State object. */
-        State orig;
+        private State orig;
 
         /** The accepting field of the object to be saved. */
-        byte accepting;
+        private byte accepting;
 
         /** The productive field of the object to be saved. */
-        byte productive;
+        private byte productive;
 
         /** The depth field of the object to be saved. */
-        int depth;
+        private int depth;
 
         /** The weight field of the object to be saved. */
-        int weight;
+        private int weight;
         
-        int[] edgeWeights;
+        private int[] edgeWeights;
         
-        int[] xEdgeWeights;
+        private int[] xEdgeWeights;
+        
+        private BitSet entrySyms;
 
 
         /**
@@ -47,6 +51,9 @@ public final class UndoInfo implements Configuration {
             if (USE_CHISQUARE) {
                 edgeWeights = (int[]) s.edgeWeights.clone();
                 xEdgeWeights = (int[]) s.xEdgeWeights.clone();
+            }
+            if (USE_ADJACENCY) {
+                entrySyms = (BitSet) s.entrySyms.clone();
             }
         }
 
@@ -98,6 +105,8 @@ public final class UndoInfo implements Configuration {
                 orig.weight = last.weight;
                 orig.edgeWeights = last.edgeWeights;
                 orig.xEdgeWeights = last.xEdgeWeights;
+                orig.entrySyms = last.entrySyms;
+                last.entrySyms = null;
                 last.edgeWeights = null;
                 last.xEdgeWeights = null;
                 n = last.next;
@@ -111,19 +120,19 @@ public final class UndoInfo implements Configuration {
     /** Undo info per edge. */
     private static class EdgeInfo {
         /** Free list of <code>EdgeInfo</code> objects. */
-        static EdgeInfo freeList;
+        private static EdgeInfo freeList;
 
         /** Links <code>EdgeInfo</code> objects */
-        EdgeInfo next;
+        private EdgeInfo next;
 
         /** The original State object. */
-        State orig;
+        private State orig;
 
         /** The symbol labeling the saved edge. */
-        int sym;
+        private int sym;
 
         /** The target state of the edge. */
-        State target;
+        private State target;
 
         /**
          * Constructor that saves an edge.
@@ -187,19 +196,19 @@ public final class UndoInfo implements Configuration {
     /** Undo info per parent set. */
     private static class ParentSetInfo {
         /** Free list of <code>ParentSetInfo</code> objects. */
-        static ParentSetInfo freeList;
+        private static ParentSetInfo freeList;
 
         /** Links <code>ParentSetInfo</code> objects */
-        ParentSetInfo next;
+        private ParentSetInfo next;
 
         /** the state from which the parent set to restore. */
-        State dest;
+        private State dest;
 
         /** The state to be added/removed. */
-        State state;
+        private State state;
 
         /** Indicates whether the state should be added or removed. */
-        boolean toAdd;
+        private  boolean toAdd;
 
         /**
          * Constructor that stores undo information for parent sets.
@@ -295,10 +304,10 @@ public final class UndoInfo implements Configuration {
     private double DFAScore;
 
     /** Saved number of productive states. */
-    int nProductiveStates;
+    private int nProductiveStates;
 
     /** Saved number of productive states in rejecting DFA. */
-    int nXProductiveStates;
+    private int nXProductiveStates;
 
     /** Saved number of productive edges. */
     private int nProductiveEdges;
@@ -322,13 +331,13 @@ public final class UndoInfo implements Configuration {
     private ParentSetInfo savedSets;
 
     /** Storage for saving counts. */
-    double[] counts;
+    private double[] counts;
 
     /** Set when counts field is initialized. */
-    boolean countsInitialized;
+    private boolean countsInitialized;
 
     /** DFA for which stuff was saved. */
-    DFA dfa;
+    private DFA dfa;
 
     /**
      * Obtains an <code>UndoInfo</code> object,

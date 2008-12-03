@@ -196,7 +196,8 @@ public class BeamFold {
             throw new Error("Could not instantiate " + folder, e);
         }
 
-        DFA dfa = new DFA(symbols, iSamples);
+        Samples sl = new Samples(symbols, iSamples, null);
+        DFA dfa = new DFA(sl);
         BitSet[] conflicts = dfa.computeConflicts();
         Samples learningSamples = new Samples(symbols, iSamples, conflicts);
 

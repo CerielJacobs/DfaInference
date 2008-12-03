@@ -183,31 +183,44 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Conflicts of initial DFA. */
     private transient BitSet[] conflicts;
 
+    /** Adjacency tables. */
+    private BitSet[] adjacencyComplement = null;
+
     private boolean mustRecomputeProductive;
 
     private int markCounter = 2;     // Used for state marker
+    
+    private ArrayList<State> entranceStates;
 
     /**
      * Basic constructor, creates an empty DFA.
      * @param nsym the number of symbols used.
      */
-    public DFA(int nsym) {
+    private DFA(int nsym) {
         nStates = 1;
         nEdges = 0;
         this.nsym = nsym;
         startState = new State(nsym);
         symbols = new Symbols();
+        entranceStates = new ArrayList<State>();
+        entranceStates.add(startState);
     }
 
     /**
      * Constructor, creates a DFA recognizing the specified samples.
      * @param samples the samples
      */
-    public DFA(Symbols symbols, int[][] samples2) {
-        this(symbols.nSymbols());
-        this.symbols = symbols;
+    public DFA(Samples samples) {
+        this(samples.symbols.nSymbols());
+        if (USE_ADJACENCY) {
+            startState.entrySyms.set(nsym);
+        }
+        this.symbols = samples.symbols;
+        if (USE_ADJACENCY) {
+            this.adjacencyComplement = samples.adjacencyComplement;
+        }
 
-        addSample(samples2);
+        addSample(samples.learningSamples);
 
         if (logger.isDebugEnabled()) {
             if (! checkDFA()) {
@@ -232,8 +245,10 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (logger.isInfoEnabled()) {
             logger.info("PTAScore = " + getMDLComplexity());
             logger.info("trivialScore = "
-                    + approximate2LogNoverK(nsentences, samples.size()));
+                    + approximate2LogNoverK(nsentences, this.samples.size()));
         }
+        
+        conflicts = samples.conflicts;
     }
 
     private static class IntArrayComparator implements Comparator<int[]> {
@@ -296,13 +311,17 @@ public final class DFA implements java.io.Serializable, Configuration {
         idMap = startState.breadthFirst();
         saved = new State[nStates];
         conflicts = dfa.conflicts;
-
+        adjacencyComplement = dfa.adjacencyComplement;
         if (logger.isDebugEnabled()) {
             logger.debug("Creating a DFA copy");
             if (! checkDFA()) {
                 logger.error("From dfa copy constructor: exit");
                 System.exit(1);
             }
+        }
+        entranceStates = new ArrayList<State>();
+        for (State s : dfa.entranceStates) {
+            entranceStates.add(getState(s.id));
         }
     }
 
@@ -375,6 +394,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                                 "File format error: number of tokens not specified before startnode defined");
                     }
                     startState = new State(nsym);
+                    if (USE_ADJACENCY) {
+                        startState.entrySyms.set(nsym);
+                    }
                     nodes.put(startNodeId, startState);
                     nStates = 1;
                     nEdges = 0;
@@ -439,7 +461,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
                     State d = (State) nodes.get(toVal);
                     if (d == null) {
-                        d = s.addDestination(label);
+                        d = s.addDestination(true, label);
                         nodes.put(toVal, d);
                         nStates++;
                     } else {
@@ -474,7 +496,12 @@ public final class DFA implements java.io.Serializable, Configuration {
             throw new Error(E.toString());
         }
 
-        dfaComputations();
+        dfaComputations(true);
+        entranceStates = new ArrayList<State>();
+        entranceStates.add(startState);
+        if (USE_ADJACENCY) {
+            computeAdjacency();
+        }
 
         if (logger.isDebugEnabled()) {
             if (!checkDFA()) {
@@ -484,17 +511,31 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
     }
 
-    private void dfaComputations() {
-        startState.id = -1;
-        idMap = startState.breadthFirst();
-        nStates = idMap.length;
+    private void dfaComputations(boolean reIndex) {
+        State[] states;
+        
+        if (reIndex) {
+            startState.id = -1;
+            idMap = startState.breadthFirst();
+            nStates = idMap.length;
+            states = idMap;
+            conflicts = null;
+        } else {
+            states = startState.breadthFirst();
+        }
         nAccepting = 0;
         nRejecting = 0;
-        for (int i = 0; i < nStates; i++) {
-            if (idMap[i].isRejecting()) {
+        nEdges = 0;
+        for (State s : states) {            
+            if (s.isRejecting()) {
                 nRejecting++;
-            } else if (idMap[i].isAccepting()) {
+            } else if (s.isAccepting()) {
                 nAccepting++;
+            }
+            for (int i = 0; i < nsym; i++) {
+                if (s.children[i] != null) {
+                    nEdges++;
+                }
             }
         }
         startState.computeDepths();
@@ -555,11 +596,19 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         // Then, copy and states and possibly re-index the children arrays.
         Numberer numberer = new Numberer();
+        HashMap<State, State> map = new HashMap<State, State>();
         State state1 = new State(dfa1.startState, null,
-                new HashMap<State, State>(), null, numberer, nsym);
+                map, null, numberer, dfa1.symbols.nSymbols(), nsym);
         State state2 = new State(dfa2.startState, null,
-                new HashMap<State, State>(), dfa2SymbolMap, numberer, nsym);
+                map, dfa2SymbolMap, numberer, 0, nsym);
 
+        entranceStates = new ArrayList<State>();
+        for (State s : dfa1.entranceStates) {
+            entranceStates.add(map.get(s));               
+        }
+        for (State s : dfa2.entranceStates) {
+            entranceStates.add(map.get(s));               
+        }
         // compute a new idMap array.
         nStates = dfa1.nStates + dfa2.nStates;
         nAccepting = dfa1.nAccepting + dfa2.nAccepting;
@@ -583,7 +632,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     idMap, new Numberer());
         }
 
-        dfaComputations();
+        dfaComputations(true);
 
         double d1Accepted = dfa1.computeTotalRecognized(maxlen, ACCEPTING);
         double d1Rejected = dfa1.computeTotalRecognized(maxlen, REJECTING);
@@ -606,6 +655,10 @@ public final class DFA implements java.io.Serializable, Configuration {
             numRejected = (int) ((dfa1.numRejected + dfa2.numRejected)
                     * (1 - rejectedOverlap/(d1Rejected + d2Rejected)));
         }
+        
+        if (USE_ADJACENCY) {
+            computeAdjacency();
+        }
      
         if (logger.isDebugEnabled()) {
             if (!checkDFA()) {
@@ -626,7 +679,23 @@ public final class DFA implements java.io.Serializable, Configuration {
         BitSet[] merges = merge(s1, s2);
         startState = new State(startState, merges, new State[idMap.length],
                 idMap, new Numberer());
-        dfaComputations();
+        dfaComputations(true);
+        if (USE_ADJACENCY) {
+            for (State s : idMap) {
+                for (int i = 0; i < nsym; i++) {
+                    if (s.children[i] != null) {
+                        if (s.entrySyms.intersects(adjacencyComplement[i])) {
+                            throw new ConflictingMerge("Adjacency");
+                        }
+                    }
+                }
+                if (s.isAccepting()) {
+                    if (s.entrySyms.intersects(adjacencyComplement[nsym])) {
+                        throw new ConflictingMerge("Adjacency");
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -848,6 +917,52 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         l.addFirst((BitSet) s.clone());
     }
+    
+    private void computeAdjacency() {
+        
+        State[] list = startState.breadthFirst();
+
+        // Allocate entry symbol sets for all states.
+        for (State s : list) {
+            s.entrySyms = new BitSet(nsym+1);
+        }
+             
+        // And compute its contents.
+        startState.entrySyms.set(nsym);
+        for (State s : list) {
+            State[] c = s.children;
+            for (int i = 0; i < nsym; i++) {
+                if (c[i] != null) {
+                    c[i].entrySyms.set(i);
+                }
+            }
+        }
+ 
+        // Now compute adjacencies. First allocate sets.
+        BitSet[] adjacency = new BitSet[nsym+1];
+        for (int i = 0; i <= nsym; i++) {
+            adjacency[i] = new BitSet(nsym+1);
+        }
+        
+        // Then, compute.
+        for (State s : list) {
+            State[] c = s.children;
+            for (int i = 0; i < nsym; i++) {
+                if (c[i] != null) {
+                    adjacency[i].or(s.entrySyms);
+                }
+            }
+            if (s.isAccepting()) {
+                adjacency[nsym].or(s.entrySyms);
+            }
+        }
+        
+        // And compute complements.
+        adjacencyComplement = adjacency;
+        for (BitSet b : adjacencyComplement) {
+            b.flip(0, nsym+1);
+        }
+    }
 
     /**
      * Computes the number of edges that are needed to make the DFA functionally
@@ -881,19 +996,10 @@ public final class DFA implements java.io.Serializable, Configuration {
         int sum = 0;
 
         for (int i = 0; i < map.length; i++) {
-            sum += map[i].productiveEdges(flag);
+            int cnt = map[i].productiveEdges(flag);
+            sum += cnt;
         }
         return sum;
-    }
-
-    /**
-     * Sets the initial conflicts.
-     * 
-     * @param conflicts
-     *            the initial conflict sets.
-     */
-    public void setConflicts(BitSet[] conflicts) {
-        this.conflicts = conflicts;
     }
 
     /**
@@ -941,9 +1047,12 @@ public final class DFA implements java.io.Serializable, Configuration {
         for (int i = 1; i < symbols.length; i++) {
             State target = n.traverseEdge(symbols[i]);
             if (target == null) {
-                target = n.addDestination(symbols[i]);
+                target = n.addDestination(! reject, symbols[i]);
                 nStates++;
                 nEdges++;
+            }
+            if (USE_ADJACENCY && n == startState) {
+                target.entrySyms.set(nsym);
             }
             if (USE_CHISQUARE) {
                 if (reject) {
@@ -999,7 +1108,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         for (int i = 0; i < samples.length; i++) {
             addString(samples[i]);
         }
-        dfaComputations();
+        dfaComputations(true);
     }
 
     /**
@@ -1204,6 +1313,14 @@ public final class DFA implements java.io.Serializable, Configuration {
         State[] pch = parent.children;
         for (int j = 0; j < nsym; j++) {
             if (pch[j] == blue) {
+                if ((blue.productive & ACCEPTING) == 0
+                        && (red.productive & ACCEPTING) != 0) {
+                    nProductiveEdges++;
+                }
+                if ((blue.productive & REJECTING) == 0
+                        && (red.productive & REJECTING) != 0) {
+                    nXProductiveEdges++;
+                }
                 addEdge(undo, parent, j, red);
             }
         }
@@ -1298,6 +1415,48 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         return undo;
     }
+    
+    private boolean givesAdjacencyConflict(State s1, State s2) {
+        for (int j = 0; j < nsym; j++) {
+            if (s1.children[j] == null) {
+                if (s2.children[j] != null) {
+                    // Check if all entry symbols of state s1 can be
+                    // adjacent to symbol j. The adjacencyComplement sets
+                    // already contain the complement of the (in front of)
+                    // adjacency set. This complement set must have no symbols
+                    // in common with the entry symbols of s1, or the entry
+                    // symbols of s1 are not a subset of the adjacency set!
+                    if (ONLY_CHECK_BEGIN_AND_END_ADJACENCY) {
+                        if (s1.entrySyms.get(nsym) && adjacencyComplement[j].get(nsym)) {
+                            return true;
+                        }
+                    } else if (s1.entrySyms.intersects(adjacencyComplement[j])) {
+                        return true;
+                    }
+                }
+            } else if (s2.children[j] == null) {
+                if (ONLY_CHECK_BEGIN_AND_END_ADJACENCY) {
+                    if (s2.entrySyms.get(nsym) && adjacencyComplement[j].get(nsym)) {
+                        return true;
+                    }
+                } else if (s2.entrySyms.intersects(adjacencyComplement[j])) {
+                    return true;
+                }
+            }
+        }
+        if (! s1.isAccepting()) {
+            if (s2.isAccepting()) {
+                if (s1.entrySyms.intersects(adjacencyComplement[nsym])) {
+                    return true;
+                }
+            }
+        } else if (! s2.isAccepting()) {
+            if (s2.entrySyms.intersects(adjacencyComplement[nsym])) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private void saveState(State s, UndoInfo undo) {
         if (savedIndex <= s.savedIndex || saved[s.savedIndex] != s) {
@@ -1326,10 +1485,29 @@ public final class DFA implements java.io.Serializable, Configuration {
      *            Will collect information for undoing this merge.
      */
     private void walkTreeMerge(State n1, State n2, UndoInfo undo) {
+        
+        logger.debug("Merging " + n1 + " and " + n2);
 
+        if (USE_ADJACENCY) {
+            if (givesAdjacencyConflict(n1, n2)) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Merge of state " + n1 + ", " + n2
+                            + " rejected because of adjacency");
+                }
+                conflict = true;
+                return;
+            }
+        }
+        
         saveState(n1, undo);
 
         if ((n1.accepting & n2.accepting) != 0) {
+            if (USE_CHISQUARE) {
+                computeChiSquare(n1, n2);
+                if (NEGATIVES) {
+                    computeXChiSquare(n1, n2);
+                }
+            }
             labelScore++;
             if (n1.isAccepting()) {
                 nAccepting--;
@@ -1906,11 +2084,11 @@ public final class DFA implements java.io.Serializable, Configuration {
             for (int i = 0; i < samples.size(); i++) {
                 int[] sample = samples.get(i);
                 if (sample[0] == 1 && !recognize(sample)) {
-                    logger.error("Did not recognize sample " + i);
+                    logger.debug("Did not recognize sample " + i);
                     ok = false;
                 }
                 if (sample[0] == 0 && recognize(sample)) {
-                    logger.error("Did recognize sample " + i);
+                    logger.debug("Did recognize sample " + i);
                     ok = false;
                 }
             }
@@ -1920,18 +2098,16 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         int nprod = startState.computeProductiveStates(ACCEPTING);
         if (nProductiveStates != nprod) {
-            logger.error("nProductiveStates = " + nProductiveStates + ", size = "
-                    + nprod
-                    + ", DFA = \n" + dumpDFA());
+            logger.debug("nProductiveStates = " + nProductiveStates + ", size = "
+                    + nprod + ", DFA = \n" + dumpDFA());
             ok = false;
         }
         
 
         int nedges = computeProductiveEdges(l, ACCEPTING);
         if (nProductiveEdges != nedges) {
-            logger.error("nProductiveEdges = " + nProductiveEdges + ", size = "
-                    + nedges
-                    + ", DFA = \n" + dumpDFA());
+            logger.debug("nProductiveEdges = " + nProductiveEdges + ", size = "
+                    + nedges + ", DFA = \n" + dumpDFA());
             ok = false;
         }
 
@@ -1950,7 +2126,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         }
                     }
                     if (!present) {
-                        logger.error("State " + s2
+                        logger.debug("State " + s2
                                 + " is present in the parent "
                                 + "set of state " + s + ", but should not be.");
 
@@ -1960,7 +2136,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 for (int j = 0; j < nsym; j++) {
                     State s2 = s.children[j];
                     if (s2 != null && !s2.parents.contains(s)) {
-                        logger.error("State " + s
+                        logger.debug("State " + s
                                 + " is not present in the parent "
                                 + "set of state " + s2 + ", but should be.");
                         ok = false;
@@ -2153,8 +2329,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 // Compute counts
                 for (int k = 1; k <= l; k++) {
                     BitSet h2 = new BitSet(idMap.length);
-                    for (int i = h.nextSetBit(0); i >= 0; i = h
-                            .nextSetBit(i + 1)) {
+                    for (int i = h.nextSetBit(0); i >= 0; i = h.nextSetBit(i + 1)) {
                         State s = idMap[i];
                         for (State si : s.parents) {
                             for (int j = 0; j < nsym; j++) {
@@ -2403,7 +2578,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
 
-        dfaComputations();
+        dfaComputations(true);
 
         MDLScore = 0;
         DFAScore = 0;
@@ -2470,5 +2645,120 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     public void setSamples(ArrayList<int[]> samples) {
         this.samples = samples;
+    }
+    
+    /**
+     * Ties up two DFAs and returns the result. This means: if dfa1 has
+     * an edge to an endstate on symbol s, and dfa2 has an outgoing edge
+     * from its start state on that same symbol s, the two edges are replaced
+     * by a single edge from the source of the first edge to the destination
+     * of the second edge.
+     * 
+     * TODO: what to do with states from dfa2 that become unreachable?
+     *  
+     * @param dfa1 
+     * @param dfa2
+     * @return the resulting DFA.
+     */
+    public static DFA tieUp(DFA dfa1, DFA dfa2) {
+
+        logger.info("Tie up dfas");
+
+        DFA result = new DFA(dfa1);
+
+        // First merge symbol sets.
+        int[] dfa2SymbolMap = result.symbols.addSymbols(dfa2.symbols);
+        result.nsym = result.symbols.nSymbols();
+
+        // Kill samples. 
+        result.samples = null;
+
+        // Then, copy and states and possibly re-index the children arrays.
+        Numberer numberer = new Numberer();
+        HashMap<State, State> map = new HashMap<State, State>();
+        State state1 = new State(dfa1.startState, null,
+                map, null, numberer, dfa1.symbols.nSymbols(), result.nsym);
+        State state2 = new State(dfa2.startState, null,
+                map, dfa2SymbolMap, numberer, 0, result.nsym);
+        
+        result.entranceStates = new ArrayList<State>();
+        for (State s : dfa1.entranceStates) {
+            result.entranceStates.add(map.get(s));               
+        }
+        for (State s : dfa2.entranceStates) {
+            result.entranceStates.add(map.get(s));               
+        }
+
+        result.nStates = dfa1.nStates + dfa2.nStates;
+        result.idMap = new State[result.nStates];
+        state1.fillIdMap(result.idMap);
+        state2.fillIdMap(result.idMap);
+        result.startState = state1;
+        result.maxlen = dfa1.maxlen + dfa2.maxlen - 1;
+
+        State[] list1 = state1.breadthFirst();
+        boolean added = false;
+        for (int i = 0; i < result.nsym; i++) {
+            if (state2.children[i] != null) {
+                State state2Target = state2.children[i];
+                boolean done = false;
+                for (State s : list1) {
+                    if (s.children[i] != null && s.children[i].isAccepting()) {
+                        State endState = s.children[i];
+                        s.children[i] = state2Target;
+                        // Deal with outgoing edges from endState ...
+                        for (int j = 0; j < endState.children.length; j++) {
+                            if (endState.children[j] != null) {
+                                if (state2Target.children[j] == null) {
+                                    state2Target.children[j] = endState.children[j];
+                                } else {
+                                    // What to do here???
+                                    // TODO: Refuse this tieUp?
+                                }
+                            }
+                        }
+                        done = true;
+                        state2.children[i] = null;
+                    }
+                }
+                if (! done && ! added) {
+                    // Startstate of DFA2 has outgoing edges that don't match any
+                    // edge to an endstate of DFA1.
+                    // For now, we leave them alone. But, the startstate of DFA2
+                    // may become unreachable. 
+                    // Solution: add it to entranceStates!
+                    result.entranceStates.add(state2);
+                    added = true;
+                }
+            }
+        }
+
+        result.dfaComputations(! added);
+        
+        double dfa1Fraction = dfa1.numRecognized
+                /  dfa1.computeTotalRecognized(dfa1.maxlen, ACCEPTING);
+        double dfa2Fraction = dfa2.numRecognized
+                /  dfa2.computeTotalRecognized(dfa2.maxlen, ACCEPTING);
+        double resultTotal = result.computeTotalRecognized(result.maxlen, ACCEPTING);
+        // Estimate numRecognized. After all, we don't have samples anymore.
+        result.numRecognized = (int) (resultTotal * (dfa1Fraction + dfa2Fraction) / 2);
+          
+        if (USE_ADJACENCY) {
+            result.computeAdjacency();
+        }
+
+        if (logger.isDebugEnabled()) {
+            if (!result.checkDFA()) {
+                System.out.println(result.dumpDFA());
+                logger.error("From dfa merging constructor: exit");
+                System.exit(1);
+            }
+            logger.debug("TiedUp DFA: nstates = " + result.nStates + ", nProductiveStates = " + result.nProductiveStates);
+        }
+        return result;
+    }
+    
+    public State[] getEntranceStates() {
+        return entranceStates.toArray(new State[entranceStates.size()]);
     }
 }

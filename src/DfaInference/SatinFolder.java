@@ -92,8 +92,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
     public ControlResultPair[] examineChoice(int[] pcontrol, int windex,
             int percentage, Samples learningSamples) {
 
-        DFA dfa = new DFA(learningSamples.symbols, learningSamples.learningSamples);
-        dfa.setConflicts(learningSamples.conflicts);
+        DFA dfa = new DFA(learningSamples);
         Guidance g = new IntGuidance(pcontrol);
         Choice[] choice = folder.getOptions(dfa, g, percentage);
 
@@ -139,8 +138,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
                         learningSamples);
             }
             else {
-                DFA dfa = new DFA(learningSamples.symbols, learningSamples.learningSamples);
-                dfa.setConflicts(learningSamples.conflicts);
+                DFA dfa = new DFA(learningSamples);
                 ControlResultPair p = l[i];
                 Guidance g = new IntGuidance(p.control);
                 Choice[] choice = folder.getOptions(dfa, g, percentage);

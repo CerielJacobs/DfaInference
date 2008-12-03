@@ -69,13 +69,15 @@ public class Symbols implements java.io.Serializable {
      * @return the mapping.
      */
     public int[] addSymbols(Symbols s) {
+        int ns = s.int2sym.size();
         for (String str : s.int2sym) {
             addSymbol(str);
         }
-        int[] retval = new int[s.int2sym.size()];
-        for (int i = 0; i < s.int2sym.size(); i++) {
+        int[] retval = new int[ns + 1];
+        for (int i = 0; i < ns; i++) {
             retval[i] = sym2int.get(s.int2sym.get(i));
         }
+        retval[ns] = int2sym.size();
         return retval;
     }
 

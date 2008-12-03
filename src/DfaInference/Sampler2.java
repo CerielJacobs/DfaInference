@@ -23,7 +23,8 @@ public class Sampler2 extends EdFold {
 
     Sampler2(Symbols symbols, int[][] learningSamples, Choice[] initial) {
         super();
-        DFA dfa = new DFA(symbols, learningSamples);
+        Samples sl = new Samples(symbols, learningSamples, null);
+        DFA dfa = new DFA(sl);
         BitSet[] conflicts = dfa.computeConflicts();
         init(new Samples(symbols, learningSamples, conflicts));
         this.initial = initial;

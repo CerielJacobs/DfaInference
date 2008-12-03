@@ -56,6 +56,13 @@ public interface Configuration {
     static final int DFA_SCORING =
         tp.getIntProperty("DFAScoring", 2);
 
+    static final boolean USE_ADJACENCY =
+        tp.getBooleanProperty("Adjacency", true);
+    
+    /** Limits adjacency checks to begin and end of sentence. */
+    static final boolean ONLY_CHECK_BEGIN_AND_END_ADJACENCY =
+        tp.getBooleanProperty("LimitedAdjacency", false);
+  
     /**
      * Bit that indicates accepting state or state of DFA that recognizes
      * positive samples.

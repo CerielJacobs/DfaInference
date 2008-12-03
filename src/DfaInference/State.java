@@ -73,6 +73,8 @@ public final class State implements java.io.Serializable, Configuration,
 
     /** Index in array of saved states. */
     int savedIndex = 0;
+    
+    BitSet entrySyms;
 
     /**
      * Constructor that specifies the number of symbols.
@@ -87,6 +89,9 @@ public final class State implements java.io.Serializable, Configuration,
         if (USE_PARENT_SETS) {
             parents = new ArrayList<State>();
         }
+        if (USE_ADJACENCY) {
+            entrySyms = new BitSet(nsym+1);
+        }
     }
 
     /**
@@ -99,7 +104,7 @@ public final class State implements java.io.Serializable, Configuration,
      * @param nsym the new number of symbols.
      */
     State(State s, State parent, HashMap<State, State> h, int[] map,
-            Numberer numberer, int nsym) {
+            Numberer numberer, int old_nsym, int nsym) {
         productive = s.productive;
         accepting = s.accepting;
         depth = s.depth;
@@ -111,6 +116,23 @@ public final class State implements java.io.Serializable, Configuration,
         weight = s.weight;
         if (USE_PARENT_SETS) {
             parents = new ArrayList<State>();
+        }
+        if (USE_ADJACENCY) {
+            BitSet set = s.entrySyms;
+            entrySyms = new BitSet(nsym+1);
+            if (map == null) {
+                // Just remap implicit start symbol.
+                entrySyms.or(set);
+                if (set.get(old_nsym)) {
+                    entrySyms.clear(old_nsym);
+                    entrySyms.set(nsym);
+                }
+            } else {
+                // remap complete set.
+                for (int i = set.nextSetBit(0); i >= 0; i = set.nextSetBit(i+1)) {
+                    entrySyms.set(map[i]);
+                }
+            }
         }
         this.parent = parent;
         //        if (s.conflicting != null) {
@@ -126,7 +148,7 @@ public final class State implements java.io.Serializable, Configuration,
             if (s.children[i] != null) {
                 State cp = h.get(s.children[i]);
                 if (cp == null) {
-                    cp = new State(s.children[i], this, h, map, numberer, nsym);
+                    cp = new State(s.children[i], this, h, map, numberer, old_nsym, nsym);
                 }
                 if (map == null) {
                     children[i] = cp;
@@ -175,6 +197,10 @@ public final class State implements java.io.Serializable, Configuration,
         if (USE_PARENT_SETS) {
             parents = new ArrayList<State>();
         }
+        if (USE_ADJACENCY) {
+            entrySyms =  (BitSet) s.entrySyms.clone();
+        }
+        
         if (mergeSets[s.id] == null) {
             // No states equivalent to this one. Just merge in the edges
             // and data.
@@ -186,7 +212,10 @@ public final class State implements java.io.Serializable, Configuration,
             for (int n = mergeSets[s.id].nextSetBit(0); n != -1; n = mergeSets[s.id].nextSetBit(n+1)) {
                 map[n] = this;
                 mergeIn(oldStates[n], mergeSets, map, oldStates, numberer);
-            }
+                if (USE_ADJACENCY) {
+                    entrySyms.or(oldStates[n].entrySyms);
+                }
+            }            
         }
     }
     
@@ -196,6 +225,9 @@ public final class State implements java.io.Serializable, Configuration,
         accepting |= s.accepting;
         weight += s.weight;
 
+        if (USE_ADJACENCY) {
+            entrySyms.or(s.entrySyms);
+        }
         for (int i = 0; i < children.length; i++) {
             if (USE_CHISQUARE) {
                 edgeWeights[i] += s.edgeWeights[i];
@@ -314,7 +346,7 @@ public final class State implements java.io.Serializable, Configuration,
      * @param accept wether the input is a positive sample.
      * @return the new state.
      */
-    public State addDestination(int symbol) {
+    public State addDestination(boolean accept, int symbol) {
         State dest = new State(children.length);
         dest.parent = this;
         if (USE_PARENT_SETS) {
@@ -324,6 +356,9 @@ public final class State implements java.io.Serializable, Configuration,
         }
         dest.depth = depth + 1;
         children[symbol] = dest;
+        if (USE_ADJACENCY && accept) {
+            dest.entrySyms.set(symbol);
+        }
         return dest;
     }
 
@@ -345,6 +380,9 @@ public final class State implements java.io.Serializable, Configuration,
     public void addEdge(State dest, int symbol) {
         children[symbol] = dest;
         dest.parent = this;
+        if (USE_ADJACENCY) {
+            dest.entrySyms.set(symbol);
+        }
         if (USE_PARENT_SETS) {
             if (! dest.parents.contains(this)) {
                 dest.parents.add(this);
@@ -357,7 +395,7 @@ public final class State implements java.io.Serializable, Configuration,
      * @return the copy.
      */
     public State copy() {
-        return new State(this, null, new HashMap<State, State>(), null, null, children.length);
+        return new State(this, null, new HashMap<State, State>(), null, null, children.length, children.length);
     }
 
     /**
@@ -610,6 +648,10 @@ public final class State implements java.io.Serializable, Configuration,
 
     public boolean isAccepting(){
         return accepting==ACCEPTING;
+    }
+    
+    public boolean isProductive() {
+        return (productive & ACCEPTING) != 0;
     }
 
     /**

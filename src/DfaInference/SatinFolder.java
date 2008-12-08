@@ -453,7 +453,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
             }
         }
 
-        Class cl;
+        Class<?> cl;
         try {
             cl = Class.forName(folder);
         } catch(ClassNotFoundException e) {

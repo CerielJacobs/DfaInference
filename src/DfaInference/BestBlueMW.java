@@ -343,7 +343,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
             maxDepth = minDepth;
         }
 
-        Class cl;
+        Class<?> cl;
         try {
             cl = Class.forName(folder);
         } catch(ClassNotFoundException e) {

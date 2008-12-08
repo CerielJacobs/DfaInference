@@ -43,7 +43,7 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
 
     /**
      * Comparison for sorting purposes.
-     * @param o the object to compare to.
+     * @param p the object to compare to.
      * @return comparison value. Lower means that the current object
      * is better.
      */

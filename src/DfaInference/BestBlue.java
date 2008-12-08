@@ -256,7 +256,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             maxdepth = mindepth;
         }
 
-        Class cl;
+        Class<?> cl;
         try {
             cl = Class.forName(folder);
         } catch(ClassNotFoundException e) {

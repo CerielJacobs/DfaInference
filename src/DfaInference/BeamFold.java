@@ -14,7 +14,7 @@ public class BeamFold {
     private static Logger logger = Logger.getLogger(BeamFold.class.getName());
 
     /** Class representing a score/controlstring pair. */
-    private static class Pair implements Comparable {
+    private static class Pair implements Comparable<Pair> {
         double score;
         boolean[] control;
 
@@ -23,8 +23,7 @@ public class BeamFold {
             this.control = control;
         }
 
-        public int compareTo(Object o) {
-            Pair p = (Pair) o;
+        public int compareTo(Pair p) {
             if (score == p.score) {
                 return 0;
             }
@@ -181,7 +180,7 @@ public class BeamFold {
         Symbols symbols = new Symbols();
         int[][] iSamples = symbols.convert2learn(samples);
 
-        Class cl;
+        Class<?> cl;
         try {
             cl = Class.forName(folder);
         } catch(ClassNotFoundException e) {

@@ -34,6 +34,24 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /** Precomputed sums of logs. */
     private static double[] sumLogs;
+    
+    static {
+        sumLogs = new double[65536];
+        sumLogs[0] = 0.0;
+        for (int i = 1; i < sumLogs.length; i++) {
+            sumLogs[i] = Math.log(i) + sumLogs[i-1];
+        }
+    }
+    
+    /** Precomputed 2logs. */
+    private static double[] logs;
+    
+    static {
+        logs = new double[65536];
+        for (int i = 1; i < logs.length; i++) {
+            logs[i] = Math.log(i) / LOG2;
+        } 
+    }
 
     /** Log4j logger. */
     static Logger logger = Logger.getLogger(DFA.class.getName());
@@ -2124,8 +2142,11 @@ public final class DFA implements java.io.Serializable, Configuration {
         return score;
     }
 
-    private double log2(double d) {
-        return Math.log(d)/LOG2;
+    private static double log2(int d) {
+        if (d >= logs.length) {
+            return Math.log(d)/LOG2;
+        }
+        return logs[d];
     }
 
     /**

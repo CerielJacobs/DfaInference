@@ -1944,33 +1944,36 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if ((NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
                     int nXs = nXProductiveStates + 1;   // number of states + special rejecting state.
                     redundancy = sumLog(nXs - 1) / LOG2;
-                    score1 += nXs * (nsym+1) * log2(nXs + 1) - redundancy;
-                    score2 += nXs * log2(nsym + 2) 
-                                + (nXProductiveEdges + nRejecting) * (log2(nsym+1) + log2(nXs+1))
+                    score1 += nXs * (nsym+1) * log2(nXs) - redundancy;
+                    score2 += nXs * log2(nsym + 2)
+                                + (nXProductiveEdges + nRejecting) * (log2(nsym+1) + log2(nXs))
                                 - redundancy;
                     score3 += nXs * (nsym+1)
-                                + (nXProductiveEdges + nRejecting) * log2(nXs+1) - redundancy;
+                                + (nXProductiveEdges + nRejecting) * log2(nXs) - redundancy;
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs)); (if nsym = 2).
                 }
                 int ns = nProductiveStates + 1; // number of states + special accepting state.
                 redundancy = sumLog(ns - 1) / LOG2;
-                score1 += ns * (nsym+1) * log2(ns+1) - redundancy;
-                score2 += ns * log2(nsym+2)
-                            + (nProductiveEdges + nAccepting) * (log2(nsym+1) + log2(ns+1))
+                score1 += ns * (nsym+1) * log2(ns) - redundancy;
+                score2 += ns * log2(nsym + 2)
+                            + (nProductiveEdges + nAccepting) * (log2(nsym+1) + log2(ns))
                             - redundancy;
                 score3 += ns * (nsym+1)
-                            + (nProductiveEdges + nAccepting) * log2(ns+1) - redundancy;
+                            + (nProductiveEdges + nAccepting) * log2(ns) - redundancy;
                 // DFAScore += ns * (1.5 + log2(ns));
             } else {
                 int ns = nStates + 2;   // number of states + special accepting/rejecting states.
                 double redundancy = sumLog(ns - 1) / LOG2;
-                score1 += ns * (nsym+1) * log2(ns+1) - redundancy;
-                score2 += ns * log2(nsym+2)
-                            + (nEdges + nAccepting + nRejecting) * (log2(nsym+1) + log2(ns+1))
+                // nsym+1 because of the transitions to special accepting/rejecting states.
+                // These transitions are transitions on a special, new, symbol.
+                score1 += ns * (nsym+1) * log2(ns) - redundancy;
+                // nsym+2 because the number of outgoing edges ranges from 0 to nsym+1.
+                score2 += ns * log2(nsym + 2)
+                            + (nEdges + nAccepting + nRejecting) * (log2(nsym+1) + log2(ns))
                             - redundancy;
                 score3 += ns * (nsym+1)
-                            + (nEdges + nAccepting + nRejecting) * log2(ns+1) - redundancy;
+                            + (nEdges + nAccepting + nRejecting) * log2(ns) - redundancy;
                 // DFAScore = ns * (1.5 + log2(ns));
             }
             if (DFA_SCORING == 0) {

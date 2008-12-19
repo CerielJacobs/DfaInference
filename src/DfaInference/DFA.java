@@ -1536,8 +1536,9 @@ public final class DFA implements java.io.Serializable, Configuration {
      */
     private void walkTreeMerge(State n1, State n2, UndoInfo undo) {
         
-        logger.debug("Merging " + n1 + " and " + n2);
-
+        if (logger.isDebugEnabled()) {
+            logger.debug("Merging " + n1 + " and " + n2);
+        }
         if (USE_ADJACENCY) {
             if (givesAdjacencyConflict(n1, n2)) {
                 if (logger.isDebugEnabled()) {
@@ -2028,29 +2029,25 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Precomputes the sum of logs. Approximates if c > 2^16
-     * @param c logs up until this number are needed, but we may compute more.
+     * Computes the sum of logs. Approximates if c > 2^16
+     * @param c logs up until this number are needed.
      */
     private static final double sumLog(double c) {
         double retval;
-        if (sumLogs == null) {
-            sumLogs = new double[65536];
-            sumLogs[0] = 0.0;
-            for (int i = 1; i < sumLogs.length; i++) {
-                sumLogs[i] = Math.log(i) + sumLogs[i-1];
-            }
-        }
+
         if (c >= sumLogs.length) {
             // Uses the approximation ln(n!) ~ n.ln(n) - n.
             retval = c * Math.log(c) - c;
         } else {
             retval = sumLogs[(int)c];
         }
-        logger.debug("sumlog(" + c + ") = " + retval);
+        if (logger.isDebugEnabled()) {
+            logger.debug("sumlog(" + c + ") = " + retval);
+        }
         return retval;
     }
 
-    private double approximate2LogNoverK(double n, int k) {
+    private static final double approximate2LogNoverK(double n, int k) {
         if (k > n) {
             return 0.0;
         }
@@ -2111,7 +2108,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                     }
                     score += sc;
                 }
-                logger.debug("totalCount = " + totalCount);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("totalCount = " + totalCount);
+                }
                 MDLScore = score;
             } else {
                 double n = computeNStrings(maxlen, counts, ACCEPTING,
@@ -2452,7 +2451,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @return an array containing the endstates.
      */
     private State[] reachCount() {
-        int c1, c2;
+        int c1;
         HashSet<State> h = new HashSet<State>();
         if (l1 == null) {
             l1 = new State[idMap.length];
@@ -2473,7 +2472,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         // Compute counts
         for (int k = 1; k <= maxlen; k++) {
             int mark = getMark();
-            c2 = 0;
+            int c2 = 0;
             double[] countk = counts[k];
             double[] countkm1 = counts[k - 1];
             for (int i = 0; i < c1; i++) {

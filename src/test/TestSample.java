@@ -53,28 +53,35 @@ public class TestSample {
             }
         }
 
+        testSample(machinefile, baseDFAFile, testInput);
+    }
+
+    static void testSample(String machinefile, String baseDFAFile, String testInput) {
+
         FileReader fr = null;
+        DFA dfa = null;
 
         // Read the DFA.
         try {
             fr = new FileReader(machinefile);
+            dfa = new DFA(fr);
+            fr.close();
         } catch(Exception e) {
             logger.fatal("Could not open input file " + machinefile);
             System.exit(1);
         }
-
-        DFA dfa = new DFA(fr);
 
         DFA baseDFA = null;
 
         if (baseDFAFile != null) {
             try {
                 fr = new FileReader(baseDFAFile);
+                baseDFA = new DFA(fr);
+                fr.close();
             } catch(Exception e) {
                 logger.fatal("Could not open input file " + baseDFAFile);
                 System.exit(1);
             }
-            baseDFA = new DFA(fr);
         }
 
         AbbaDingoString[] samples = null;

@@ -36,6 +36,8 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
                 sum += dfa.xChiSquareSum;
             }
             if (count != 0) {
+                // System.out.println("Scores for merge of " + r + " and "
+                //      + b + ": count = " + count + ", sum = " + sum);
                 if (! Double.isInfinite(sum)) {
                     try {
                         fisherScore = 1.0 - Gamma.regularizedGammaP(count, -sum);

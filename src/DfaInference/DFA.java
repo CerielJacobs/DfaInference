@@ -1982,7 +1982,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                             + (nProductiveEdges + nAccepting) * log2(ns) - redundancy;
                 // DFAScore += ns * (1.5 + log2(ns));
             } else {
-                int ns = nStates + 2;   // number of states + special accepting/rejecting states.
+                int ns = nStates + (nRejecting > 0 ? 2 : 1);   // number of states + special accepting/rejecting states.
                 double redundancy = sumLog(ns - 1) / LOG2;
                 // nsym+1 because of the transitions to special accepting/rejecting states.
                 // These transitions are transitions on a special, new, symbol.

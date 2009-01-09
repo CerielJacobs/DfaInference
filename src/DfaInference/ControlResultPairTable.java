@@ -79,6 +79,10 @@ public class ControlResultPairTable implements Runnable {
                 v = new ControlResultPair(0, null, 0, 0);
                 l.add(p.control[i], v);
             }
+            if (v.control != null) {
+                // Already have a result higher up. Ignore this one.
+                return;
+            }
             if (i == p.control.length - 1) {
                 v.control = p.control.clone();
                 v.fromChoiceIndex = p.fromChoiceIndex;

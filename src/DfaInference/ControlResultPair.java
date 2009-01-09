@@ -3,6 +3,7 @@ package DfaInference;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
 
 /**
  * This class represents a branch of the search by means of its guidance,
@@ -26,6 +27,9 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
 
     /** Index in the array of choices from which this branch originates. */
     int fromChoiceIndex;
+    
+    /** To organize ControlResultPairs in a tree (see ControlResultPairTable). */
+    transient ArrayList<ControlResultPair> table = null;
 
     /**
      * Constructor initializing from the specified values.
@@ -66,9 +70,14 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
         str += score + "\n";
         str += fromWindowIndex + "\n";
         str += fromChoiceIndex + "\n";
-        str += control.length + "\n";
-        for (int i = 0; i < control.length; i++) {
-            str += control[i] + "\n";
+        if (control == null) {
+            str += "-1\n";
+        }
+        else {
+            str += control.length + "\n";
+            for (int i = 0; i < control.length; i++) {
+                str += control[i] + "\n";
+            }
         }
         return str;
     }
@@ -80,6 +89,20 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
      */
     public void write(Writer w) throws IOException {
         w.write(toString());
+        if (table != null) {
+            w.write("" + table.size() + "\n");
+            for (int i = 0; i < table.size(); i++) {
+                ControlResultPair p = table.get(i);
+                if (p == null) {
+                    w.write("0\n");
+                } else {
+                    w.write("1\n");
+                    p.write(w);
+                }
+            }
+        } else {
+            w.write("-1\n");
+        }
     }
 
     /**
@@ -95,10 +118,28 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
         fromChoiceIndex = (new Integer(line)).intValue();
         line = r.readLine();
         int len = (new Integer(line)).intValue();
-        control = new int[len];
-        for (int i = 0; i < len; i++) {
-            line = r.readLine();
-            control[i] = (new Integer(line)).intValue();
+        if (len >= 0) {
+            control = new int[len];
+            for (int i = 0; i < len; i++) {
+                line = r.readLine();
+                control[i] = (new Integer(line)).intValue();
+            }
+        } else {
+            control = null;
+        }
+        line = r.readLine();
+        int tableLength = (new Integer(line)).intValue();
+        if (tableLength >= 0) {
+            table = new ArrayList<ControlResultPair>();
+            for (int i = 0; i < tableLength; i++) {
+                line = r.readLine();
+                int hasEntry = (new Integer(line)).intValue();
+                if (hasEntry != 0) {
+                    table.add(new ControlResultPair(r));
+                } else {
+                    table.add(null);
+                }
+            }
         }
     }
 }

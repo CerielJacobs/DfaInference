@@ -70,7 +70,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
                 }
                 l = p.table;
             } else {
-                return null;
+                break;
             }
         }
         return null;
@@ -135,12 +135,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
         w.write("" + table.size() + "\n");
         for (int i = 0; i < table.size(); i++) {
             ControlResultPair p = table.get(i);
-            if (p.control == null) {
-                w.write("0\n");
-            } else {
-                w.write("1\n");
-                p.write(w);
-            }
+            p.write(w);
         }
     }
 
@@ -155,14 +150,8 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
             fix = new ControlResultPair(r);
         }
         int tableLength = (new Integer(line)).intValue();
-        for (int i = 0; i < tableLength; i++) {
-            line = r.readLine();
-            int hasEntry = (new Integer(line)).intValue();
-            if (hasEntry != 0) {
-                table.add(new ControlResultPair(r));
-            } else {
-                table.add(new ControlResultPair(0, null, 0, 0));
-            }
+        for (int i = 0; i < tableLength; i++) {          
+            table.add(new ControlResultPair(r));
         }
     }
     

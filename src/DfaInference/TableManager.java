@@ -1,6 +1,7 @@
 package DfaInference;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import ibis.ipl.Ibis;
 import ibis.ipl.IbisCapabilities;
@@ -35,14 +36,17 @@ public class TableManager implements MessageUpcall {
     private ReceivePort receivePort = null;
     
     public TableManager() throws IbisCreationFailedException {
+        Properties props = new Properties();
+        props.setProperty("ibis.pool.name", "Another_" + System.getProperty("ibis.pool.name"));
+
         // Create an ibis instance.
-        ibis = IbisFactory.createIbis(ibisCapabilities, null, portType);
+        ibis = IbisFactory.createIbis(ibisCapabilities, props, true, null, portType);
     }
     
     public void master(ControlResultPairTable table) throws IOException {
         master = ibis.registry().elect("Master");
         this.table = table; 
-        receivePort = ibis.createReceivePort(portType, "Master");
+        receivePort = ibis.createReceivePort(portType, "Master", this);
         receivePort.enableConnections();
         receivePort.enableMessageUpcalls();
     }
@@ -82,6 +86,8 @@ public class TableManager implements MessageUpcall {
     
     public void upcall(ReadMessage m) throws IOException,
             ClassNotFoundException {
-        table.putResult((ControlResultPair) m.readObject());
+        ControlResultPair p = (ControlResultPair) m.readObject();
+        m.finish();
+        table.putResult(p);
     }
 }

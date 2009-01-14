@@ -9,8 +9,9 @@ interface BestBlueInterface extends ibis.satin.Spawnable, java.io.Serializable {
      * @param r the search branch.
      * @param depth the current depth.
      * @param learningSamples the samples to learn from.
+     * @param table the table of already known results from an earlier run.
      * @return the resulting search branch.
      */
     public ControlResultPair buildPair(ControlResultPair r,
-            Samples learningSamples, int depth);
+            Samples learningSamples, ControlResultPairTable table, int depth);
 }

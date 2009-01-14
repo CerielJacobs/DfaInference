@@ -1,12 +1,8 @@
 package DfaInference;
 
+import ibis.ipl.IbisCreationFailedException;
 import ibis.satin.SatinObject;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -28,10 +24,20 @@ import abbadingo.AbbaDingoString;
 public class BestBlue extends SatinObject implements BestBlueInterface {
 
     private static final long serialVersionUID = 1L;
-
+    
+    private static TableManager tableManager = null;
+    
     /** Log4j logger. */
     private static Logger logger = Logger.getLogger(BestBlue.class.getName());
-
+        
+    static {
+        try {
+            tableManager = new TableManager();
+        } catch (IbisCreationFailedException e) {
+            logger.warn("Could not create table manager");
+        }
+    }
+    
     /** The heuristic used. */
     private RedBlue folder;
 
@@ -50,15 +56,30 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
     }
 
     public ControlResultPair buildPair(ControlResultPair p,
-            Samples learningSamples, int depth) {
+            Samples learningSamples, ControlResultPairTable table, int depth) {
+        if (tableManager != null) {
+            try {
+                tableManager.client();
+            } catch (IOException e) {
+                // ignored
+            }
+        }
         if (logger.isDebugEnabled()) {
             logger.debug("buildPair: " + p);
         }
         if (depth >= maxDepth) {
             p.score = tryControl(p.control, learningSamples);
-            return p;
+        } else {
+            p = tryExtending(p, depth, learningSamples, table);
         }
-        return tryExtending(p, depth, learningSamples);
+        if (tableManager != null) {
+            try {
+                tableManager.sendResult(p);
+            } catch (IOException e) {
+                // ignored
+            }
+        }
+        return p;
     }
 
     /**
@@ -67,10 +88,11 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
      * @param p the current control/result pair.
      * @param depth indicates the current depth.
      * @param learningSamples the samples to learn from.
+     * @param table table of already known results from an earlier run.
      * @return the new control/result pair.
      */
     ControlResultPair tryExtending(ControlResultPair p, int depth,
-            Samples learningSamples) {
+            Samples learningSamples, ControlResultPairTable table) {
         ControlResultPair[] pairs;
         DFA dfa = new DFA(learningSamples);
         Guidance g;
@@ -88,10 +110,12 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             int[] control = new int[p.control.length+1];
             System.arraycopy(p.control, 0, control, 0, p.control.length);
             control[p.control.length] = k;
-
-            pairs[k] = new ControlResultPair(-1, control, -1,
-                    control[p.control.length]);
-            pairs[k] = buildPair(pairs[k], learningSamples, depth+1);
+            pairs[k] = table.getResult(control);
+            if (pairs[k] == null) {
+                pairs[k] = new ControlResultPair(-1, control, -1,
+                        control[p.control.length]);
+                pairs[k] = buildPair(pairs[k], learningSamples, table, depth+1);
+            }
         }
 
         sync(); // wait for all spawned jobs.
@@ -116,55 +140,35 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
      * Overall search process driver.
      * @param samples the samples to learn from.
      */
-    ControlResultPair doSearch(Samples samples, int minD, int maxD,
-            File dumpfile) {
+    ControlResultPair doSearch(Samples samples, int minD, int maxD, ControlResultPairTable table) {
 
         ControlResultPair pop = null;
+        int[] control = new int[0];
 
         samples.exportObject();
-
-        if (dumpfile != null) {
-            try {
-                BufferedReader br = new BufferedReader(new FileReader(dumpfile));
-                pop = new ControlResultPair(br);
-            } catch(Exception e) {
-                // ignored
-            }
-        }
+        table.exportObject();
 
         for (int i = minD; i <= maxD; i++) {
-            int fixD = i - minD;
+            
             maxDepth = i;
-            int[] control = new int[fixD];
-            if (pop != null) {
-                if (pop.control.length >= i) {
-                    continue;
-                }
+
+            pop = tryExtending(new ControlResultPair(Integer.MAX_VALUE, control, 0, 0),
+                    i - minD, samples, table);
+            if (i < maxD) {
+                int fixD = i - minD + 1;
                 System.out.print("Fixing up until depth " + fixD + ":");
+                control = new int[fixD];
                 for (int j = 0; j < fixD; j++) {
                     control[j] = pop.control[j];
                     System.out.print(" " + control[j]);
                 }
                 System.out.println("");
                 System.out.println("Score: " + pop.score);
-            }
-            pop = tryExtending(new ControlResultPair(Integer.MAX_VALUE, control, 0, 0),
-                    fixD, samples);
-
-            if (dumpfile != null) {
-                try {
-                    File temp = File.createTempFile("dfa", "dmp", new File("."));
-                    BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
-                    pop.write(bw);
-                    bw.close();
-                    if (! temp.renameTo(dumpfile)) {
-                        throw new IOException("rename failed");
-                    }
-                } catch(IOException e) {
-                    logger.warn("Could not write dump ...", e);
-                }
+                pop.control = control;
+                table.fix(pop);
             }
         }
+        
         return pop;
     }
 
@@ -181,7 +185,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         int mindepth = 5;
         int maxdepth = -1;
         PickBlueStrategy strategy;
-        File dumpfile = null;
+        String dumpfile = null;
         boolean maxDepthSpecified = false;
 
         long startTime = System.currentTimeMillis();
@@ -232,7 +236,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
                     logger.fatal("-dump option requires filename");
                     System.exit(1);
                 }
-                dumpfile = new File(args[i]);
+                dumpfile = args[i];
             } else if (args[i].equals("-output")) {
                 i++;
                 if (i >= args.length) {
@@ -312,9 +316,23 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         BestBlue b = new BestBlue(f, mindepth);
 
         long initializationTime = System.currentTimeMillis();
+        
+        ControlResultPairTable table;
+        
+        if (dumpfile != null) {
+            table = new ControlResultPairTable(dumpfile);
+        } else {
+            table = new ControlResultPairTable();
+        }
+        if (tableManager != null) {
+            try {
+                tableManager.master(table);
+            } catch (IOException e) {
+                // ignored
+            }
+        }
 
-        ControlResultPair p = b.doSearch(learningSamples, mindepth, maxdepth,
-                dumpfile);
+        ControlResultPair p = b.doSearch(learningSamples, mindepth, maxdepth, table);
 
         long searchTime = System.currentTimeMillis();
 

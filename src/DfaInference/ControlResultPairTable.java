@@ -9,8 +9,11 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 
-public class ControlResultPairTable implements Runnable {
+public class ControlResultPairTable extends ibis.satin.SharedObject 
+        implements Runnable, java.io.Serializable {
     
+    private static final long serialVersionUID = 8456707383205600263L;
+
     /** The entries in this table, organized according to their first control-entry. */
     private final ArrayList<ControlResultPair> table = new ArrayList<ControlResultPair>();
     
@@ -21,16 +24,16 @@ public class ControlResultPairTable implements Runnable {
     private int fixOffset = 0;
     
     /** Filename to read from/write to. */
-    private final String filename;
+    private final File file;
     
     /**
      * Constructor.
      * @param fn file to read from/write to.
      */
     public ControlResultPairTable(String fn) {
-        filename = fn;
+        file = new File(fn);
         try {
-            BufferedReader br = new BufferedReader(new FileReader(filename));
+            BufferedReader br = new BufferedReader(new FileReader(file));
             read(br);
         } catch (Throwable e) {
             // ignored, does not matter.
@@ -38,6 +41,10 @@ public class ControlResultPairTable implements Runnable {
         Thread t = new Thread(this);
         t.setDaemon(true);
         t.start();
+    }
+    
+    public ControlResultPairTable() {
+        file = null;
     }
     
     /**
@@ -106,6 +113,7 @@ public class ControlResultPairTable implements Runnable {
         fix = p;
         fixOffset = p.control.length;
         table.clear();
+        doWrite();
     }
     
     /**
@@ -156,24 +164,27 @@ public class ControlResultPairTable implements Runnable {
      * Initiates a dump, every 60 seconds.
      */
     public void run() {
-        File f = new File(filename);
         for (;;) {
             try {
                 Thread.sleep(60000);
             } catch (Throwable e) {
                 // ignored
             }
-            try {
-                File temp = File.createTempFile("dfa", "dmp", new File("."));
-                BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
-                write(bw);
-                bw.close();
-                if (! temp.renameTo(f)) {
-                    throw new IOException("rename failed");
-                }
-            } catch(IOException e) {
-                System.err.println("Warning: could not write dump");
+            doWrite();
+        }
+    }
+    
+    private synchronized void doWrite() {
+        try {
+            File temp = File.createTempFile("dfa", "dmp", new File("."));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
+            write(bw);
+            bw.close();
+            if (! temp.renameTo(file)) {
+                throw new IOException("rename failed");
             }
+        } catch(IOException e) {
+            System.err.println("Warning: could not write dump");
         }
     }
 

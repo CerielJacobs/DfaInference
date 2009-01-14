@@ -82,6 +82,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
      */
     public synchronized void putResult(ControlResultPair p) {
         ArrayList<ControlResultPair> l = table;
+        System.out.println("putResult: " + p);
         for (int i = fixOffset; i < p.control.length; i++) {
 
            while (p.control[i] >= l.size()) {

@@ -49,14 +49,16 @@ public class TableManager implements MessageUpcall {
         receivePort = ibis.createReceivePort(portType, "Master", this);
         receivePort.enableConnections();
         receivePort.enableMessageUpcalls();
+        System.out.println("Master!");
     }
     
     public synchronized void client() throws IOException {
         if (master == null) {
             master = ibis.registry().getElectionResult("Master");
+            System.out.println("Client!");
+            sendPort = ibis.createSendPort(portType);
+            sendPort.connect(master, "Master");
         }
-        sendPort = ibis.createSendPort(portType);
-        sendPort.connect(master, "Master");
     }
 
     public void finalize() {
@@ -87,7 +89,7 @@ public class TableManager implements MessageUpcall {
     public void upcall(ReadMessage m) throws IOException,
             ClassNotFoundException {
         ControlResultPair p = (ControlResultPair) m.readObject();
-        m.finish();
+        // m.finish();
         table.putResult(p);
     }
 }

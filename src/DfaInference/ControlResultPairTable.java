@@ -91,10 +91,11 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
         
             ControlResultPair v = l.get(p.control[i]);
 
-            if (v.control != null) {
+            if (v.control != null && i != fixOffset) {
                 // Already have a result higher up. Ignore this one.
                 return;
             }
+            
             if (i == p.control.length - 1) {
                 v.control = p.control.clone();
                 v.fromChoiceIndex = p.fromChoiceIndex;

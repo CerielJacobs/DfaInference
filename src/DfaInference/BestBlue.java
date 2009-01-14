@@ -152,6 +152,8 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         if (control == null) {
             control = new int[0];
         }
+        System.out.print("Was fixed with depth " + control.length);   
+        
         for (int i = minD + control.length; i <= maxD; i++) {
             
             maxDepth = i;
@@ -341,6 +343,10 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         long searchTime = System.currentTimeMillis();
 
         DFA bestDFA = f.doFold(learningSamples, new IntGuidance(p.control), 0);
+        
+        if (dumpfile != null) {
+            table.doWrite();
+        }
 
         long endTime = System.currentTimeMillis();
 

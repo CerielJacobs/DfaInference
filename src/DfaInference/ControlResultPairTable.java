@@ -66,10 +66,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
             if (control[i] < l.size()) {
                 ControlResultPair p = l.get(control[i]);
                 if (i == control.length - 1 && p.control != null) {
-                    if (p.control != null) {
-                        return p;
-                    }
-                    return null;
+                    return p;
                 }
                 l = p.table;
             } else {
@@ -86,14 +83,13 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
     public synchronized void putResult(ControlResultPair p) {
         ArrayList<ControlResultPair> l = table;
         for (int i = fixOffset; i < p.control.length; i++) {
+
            while (p.control[i] >= l.size()) {
-                l.add(null);
+                l.add(new ControlResultPair(0, null, 0, 0));
             }
+        
             ControlResultPair v = l.get(p.control[i]);
-            if (v == null) {
-                v = new ControlResultPair(0, null, 0, 0);
-                l.add(p.control[i], v);
-            }
+
             if (v.control != null) {
                 // Already have a result higher up. Ignore this one.
                 return;
@@ -137,7 +133,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
         w.write("" + table.size() + "\n");
         for (int i = 0; i < table.size(); i++) {
             ControlResultPair p = table.get(i);
-            if (p == null) {
+            if (p.control == null) {
                 w.write("0\n");
             } else {
                 w.write("1\n");
@@ -163,7 +159,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
             if (hasEntry != 0) {
                 table.add(new ControlResultPair(r));
             } else {
-                table.add(null);
+                table.add(new ControlResultPair(0, null, 0, 0));
             }
         }
     }
@@ -182,7 +178,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
         }
     }
     
-    private synchronized void doWrite() {
+    public synchronized void doWrite() {
         try {
             File temp = File.createTempFile("dfa", "dmp", new File("."));
             BufferedWriter bw = new BufferedWriter(new FileWriter(temp));

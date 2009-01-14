@@ -35,6 +35,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
             read(br);
+            br.close();
         } catch (Throwable e) {
             // ignored, does not matter.
         }
@@ -45,6 +46,13 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
     
     public ControlResultPairTable() {
         file = null;
+    }
+    
+    public int[] getFixControl() {
+        if (fix != null) {
+            return fix.control.clone();
+        }
+        return null;
     }
     
     /**

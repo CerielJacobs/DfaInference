@@ -143,12 +143,16 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
     ControlResultPair doSearch(Samples samples, int minD, int maxD, ControlResultPairTable table) {
 
         ControlResultPair pop = null;
-        int[] control = new int[0];
+        int[] control;
 
         samples.exportObject();
         table.exportObject();
 
-        for (int i = minD; i <= maxD; i++) {
+        control = table.getFixControl();
+        if (control == null) {
+            control = new int[0];
+        }
+        for (int i = minD + control.length; i <= maxD; i++) {
             
             maxDepth = i;
 

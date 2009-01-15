@@ -1,12 +1,148 @@
 <project
     name="DFA Inference"
-    default="jar"
+    default="build"
     basedir=".">
+
+    <description>
+	Ibis Dfa inference satin application build
+    </description>
 
     <property name="satinc-flags" value="-keep"/>
 
     <property name="satin-classes" value="DfaInference.SatinFolder DfaInference.BestBlue DfaInference.BestBlueMW, DfaInference.SatinRunner, DfaInference.Samples"/>
-    <import file="build-satin-app.xml"/>
+
+    <!--
+        Requires definition of 'satin-classes': a comma-separated list of class
+	    names that must be rewritten.
+	Optional definition of 'satinc-flags': extra options to be supplied
+	    to Ibisc.
+	Backwards compatibility: instead of 'satin-classes', 'satin-main-class'
+	    and 'satin-so-class' are also recognized.
+    -->
+
+    <property environment="env"/>
+    <property name="myclasspath" value="${env.CLASSPATH}"/>
+
+    <property name="tmp"         value="tmp"/>
+    <property name="lib"         value="lib"/>
+
+    <basename file="." property="application-name" />
+
+    <target name="set-classpath" unless="classpath.initialized">
+	<path id="default.classpath">
+	    <pathelement path="${tmp}"/>
+	    <pathelement path="${user-classpath}"/>
+	    <pathelement path="${myclasspath}"/>
+	    <fileset dir="lib">
+		<include name="*.jar"/>
+	    </fileset>
+	</path>
+	<echo	message="Now set default.classpath to ${default.classpath}"
+		level="verbose"/>
+	<property name="classpath.initialized" value="true"/>
+    </target>
+
+    <target name="property-init"
+	    depends="set-classpath">
+    </target>
+
+    <target name="init" depends="property-init">
+        <tstamp />
+        <mkdir dir="${tmp}" />
+        <mkdir dir="${lib}" />
+    </target>
+
+    <target name="compile" depends="clean,init,copy-included-satin"
+	    description="Compile application without any bytecode rewriting">
+	<javac destdir="${tmp}" debug="true" srcdir=".">
+	    <classpath refid="default.classpath" />
+	    <!--
+	    <compilerarg value="-Xlint:unchecked"/>
+	    -->
+            <include name="**/*.java" />
+        </javac>
+    </target>
+
+    <target name="satin-internal">
+	<java	classname="ibis.compile.Ibisc"
+		taskname="Ibisc"
+		dir="${tmp}"
+		failonerror="true"
+		maxmemory="512M"
+		fork="true">
+		<arg line="${satinc-flags.value} ${satin-so} ${satin-main} ${satin-classes.value} ."/>
+		<classpath refid="default.classpath"/>
+	</java>
+
+    </target>
+
+    <target name="set-satinc-flags-set" if="satinc-flags">
+	<property name="satinc-flags.value" value="${satinc-flags}"/>
+    </target>
+
+    <target name="set-satinc-flags-notset" unless="satinc-flags">
+	<property name="satinc-flags.value" value=""/>
+    </target>
+
+    <target name="set-satinc-main" if="satin-main-class">
+	<property name="satin-main" value="-satin &quot;${satin-main-class}&quot;"/>
+    </target>
+
+    <target name="set-satinc-main-notset" unless="satin-main-class">
+	<property name="satin-main" value=""/>
+    </target>
+
+    <target name="set-satinc-so" if="satin-so-class">
+	<property name="satin-so" value="-satin &quot;${satin-so-class}&quot;"/>
+    </target>
+
+    <target name="set-satinc-so-notset" unless="satin-so-class">
+	<property name="satin-so" value=""/>
+    </target>
+
+    <target name="set-satinc-classes" if="satin-classes">
+	<property name="satin-classes.value" value="-satin &quot;${satin-classes}&quot;"/>
+    </target>
+
+    <target name="set-satinc-classes-notset" unless="satin-classes">
+	<property name="satin-classes.value" value=""/>
+    </target>
+
+    <target name="satin"
+	depends="set-satinc-flags-set,set-satinc-flags-notset,set-satinc-main-notset,set-satinc-main,set-satinc-classes,set-satinc-classes-notset,set-satinc-so-notset,set-satinc-so,satin-internal">
+    </target>
+
+    <!-- copy external dependancies to lib, including provided Satin -->
+    <target name="copy-included-satin">
+	<mkdir dir="${lib}" />
+	<copy todir="${lib}">
+	    <fileset dir="external/satin" />
+	    <fileset dir="external">
+		<include name="*.jar"/>
+	    </fileset>
+	</copy>
+    </target>
+
+    <target name="build"
+	description="Compile Satin application for parallel execution"
+	depends="jar"/>
+
+    <target name="jar" depends="compile,satin" description="Build a Jar file for an application">
+	<jar destfile="${lib}/${application-name}.jar" basedir="${tmp}" includes="**/*.class">
+        </jar>
+        <delete dir="${tmp}" />
+    </target>
+
+    <target name="compile-jar" depends="compile" description="Build a Jar file for an application">
+	<jar destfile="${lib}/${application-name}.jar" basedir="${tmp}" includes="**/*.class">
+        </jar>
+        <delete dir="${tmp}" />
+    </target>
+
+    <target name="clean" description="Clean up the build">
+        <delete dir="${tmp}" />
+        <delete dir="${lib}" />
+    </target>
 
     <target name="test"
 	    depends="compile"

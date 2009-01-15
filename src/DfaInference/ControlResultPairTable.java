@@ -149,6 +149,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
         if (fixOffset > 0) {
             fix = new ControlResultPair(r);
         }
+        line = r.readLine();
         int tableLength = (new Integer(line)).intValue();
         for (int i = 0; i < tableLength; i++) {          
             table.add(new ControlResultPair(r));

@@ -71,15 +71,10 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             p.score = tryControl(p.control, learningSamples);
         } else {
             p = tryExtending(p, depth, learningSamples, table);
-            int[] control = p.control;
-            p.control = new int[depth];
-            for (int i = 0; i < p.control.length; i++) {
-                p.control[i] = control[i];
-            }
         }
         if (tableManager != null) {
             try {
-                tableManager.sendResult(p);
+                tableManager.sendResult(depth, p);
             } catch (IOException e) {
                 // ignored
             }

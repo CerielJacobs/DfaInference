@@ -74,20 +74,21 @@ public class TableManager implements MessageUpcall {
         }
     }
     
-    public void sendResult(ControlResultPair p) throws IOException {
+    public void sendResult(int depth, ControlResultPair p) throws IOException {
         if (sendPort != null) {
             WriteMessage w = sendPort.newMessage();
+            w.writeInt(depth);
             w.writeObject(p);
             w.finish();
         } else if (table != null) {
-            table.putResult(p);
+            table.putResult(depth, p);
         }
     }
     
     public void upcall(ReadMessage m) throws IOException,
             ClassNotFoundException {
+        int depth = m.readInt();
         ControlResultPair p = (ControlResultPair) m.readObject();
-        // m.finish();
-        table.putResult(p);
+        table.putResult(depth, p);
     }
 }

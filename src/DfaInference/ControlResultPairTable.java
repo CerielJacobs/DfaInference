@@ -81,9 +81,14 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
      * Adds the specified result to the table.
      * @param p the result to be added.
      */
-    public synchronized void putResult(ControlResultPair p) {
+    public synchronized void putResult(int depth, ControlResultPair p) {
+
         ArrayList<ControlResultPair> l = table;
-        for (int i = fixOffset; i < p.control.length; i++) {
+
+        System.out.print("PutResult, depth = " + depth + ", control = {");
+
+        for (int i = fixOffset; i < depth; i++) {
+            System.out.print(" " + p.control[i]);
 
            while (p.control[i] >= l.size()) {
                 l.add(new ControlResultPair(0, null, 0, 0));
@@ -93,10 +98,11 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
 
             if (v.control != null && i != fixOffset) {
                 // Already have a result higher up. Ignore this one.
+                System.out.println("} ignored");
                 return;
             }
             
-            if (i == p.control.length - 1) {
+            if (i == depth-1) {
                 v.control = p.control.clone();
                 v.fromChoiceIndex = p.fromChoiceIndex;
                 v.fromWindowIndex = p.fromWindowIndex;
@@ -109,6 +115,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
                 l = v.table;
             }
         }
+        System.out.println("}");
     }
     
     /**

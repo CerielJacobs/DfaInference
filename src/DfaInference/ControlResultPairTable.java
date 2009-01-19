@@ -66,6 +66,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
             if (control[i] < l.size()) {
                 ControlResultPair p = l.get(control[i]);
                 if (i == control.length - 1 && p.control != null) {
+                    System.out.println("Found saved result with score " + p.score);
                     return p;
                 }
                 l = p.table;
@@ -82,7 +83,6 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
      */
     public synchronized void putResult(ControlResultPair p) {
         ArrayList<ControlResultPair> l = table;
-        System.out.println("putResult: " + p);
         for (int i = fixOffset; i < p.control.length; i++) {
 
            while (p.control[i] >= l.size()) {

@@ -49,13 +49,11 @@ public class TableManager implements MessageUpcall {
         receivePort = ibis.createReceivePort(portType, "Master", this);
         receivePort.enableConnections();
         receivePort.enableMessageUpcalls();
-        System.out.println("Master!");
     }
     
     public synchronized void client() throws IOException {
         if (master == null) {
             master = ibis.registry().getElectionResult("Master");
-            System.out.println("Client!");
             sendPort = ibis.createSendPort(portType);
             sendPort.connect(master, "Master");
         }

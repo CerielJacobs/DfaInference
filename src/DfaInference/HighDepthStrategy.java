@@ -11,7 +11,7 @@ public class HighDepthStrategy implements PickBlueStrategy {
     /**
      * Determines the next blue to be dealt with. The parameter specifies
      * the possibilities, both merges and promotions. From this list, this
-     * method chooses the blue state with the lowest depth.
+     * method chooses the blue state with the highest depth.
      * @param dfa the DFA.
      * @param choices the merge and promotion possibilities.
      * @return the state number of the blue state to be dealt with next.

@@ -1215,6 +1215,15 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
+     * Obtains the number of productive states.
+     * 
+     * @return number of productive states
+     */
+    public int getNumProductiveStates() {
+        return nProductiveStates;
+    }
+
+    /**
      * Obtains the start state for this DFA.
      * 
      * @return the start state of this DFA.

@@ -12,6 +12,6 @@ interface BestBlueInterface extends ibis.satin.Spawnable, java.io.Serializable {
      * @param table the table of already known results from an earlier run.
      * @return the resulting search branch.
      */
-    public ControlResultPair buildPair(ControlResultPair r,
+    public ControlResultPair buildPair(int fixDepth, ControlResultPair r,
             Samples learningSamples, ControlResultPairTable table, int depth);
 }

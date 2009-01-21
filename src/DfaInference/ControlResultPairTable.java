@@ -10,9 +10,10 @@ import java.io.Writer;
 import java.util.ArrayList;
 
 public class ControlResultPairTable extends ibis.satin.SharedObject 
-        implements Runnable, java.io.Serializable {
+        implements ControlResultPairTableInterface, Runnable,
+        java.io.Serializable {
     
-    private static final long serialVersionUID = 8456707383205600263L;
+    private static final long serialVersionUID = -1L;
 
     /** The entries in this table, organized according to their first control-entry. */
     private final ArrayList<ControlResultPair> table = new ArrayList<ControlResultPair>();
@@ -24,7 +25,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
     private int fixOffset = 0;
     
     /** Filename to read from/write to. */
-    private final File file;
+    private transient final File file;
     
     /**
      * Constructor.
@@ -62,11 +63,13 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
      */
     public synchronized ControlResultPair getResult(int[] control) {
         ArrayList<ControlResultPair> l = table;
+        System.out.print("GetResult {");
         for (int i = fixOffset; l != null && i < control.length; i++) {
+            System.out.print(" " + control[i]);
             if (control[i] < l.size()) {
                 ControlResultPair p = l.get(control[i]);
                 if (i == control.length - 1 && p.control != null) {
-                    System.out.println("Found saved result with score " + p.score);
+                    System.out.println(" } found, score " + p.score);
                     return p;
                 }
                 l = p.table;
@@ -74,6 +77,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
                 break;
             }
         }
+        System.out.println("} not found");
         return null;
     }
     
@@ -81,7 +85,12 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
      * Adds the specified result to the table.
      * @param p the result to be added.
      */
-    public synchronized void putResult(int depth, ControlResultPair p) {
+    public synchronized void putResult(int off, int depth, ControlResultPair p) {
+        if (off < fixOffset) {
+            // This may happen because we may receive results that are from
+            // before a fix.
+            return;
+        }
 
         ArrayList<ControlResultPair> l = table;
 
@@ -115,7 +124,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
                 l = v.table;
             }
         }
-        System.out.println("}");
+        System.out.println("}, score = " + p.score);
     }
     
     /**
@@ -123,10 +132,14 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
      * @param p the base.
      */
     public synchronized void fix(ControlResultPair p) {
-        fix = p;
-        fixOffset = p.control.length;
-        table.clear();
+        sharedWrite(p);
         doWrite();
+    }
+
+    public void sharedWrite(ControlResultPair p) {
+        fix = p;
+        table.clear();
+        fixOffset = p.control.length;       
     }
     
     /**
@@ -161,6 +174,10 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
         for (int i = 0; i < tableLength; i++) {          
             table.add(new ControlResultPair(r));
         }
+    }
+
+    public int getFixOffset() {
+        return fixOffset;
     }
     
     /**

@@ -55,7 +55,12 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         this.maxDepth = maxDepth;
     }
 
-    public ControlResultPair buildPair(ControlResultPair p,
+    public boolean guard_buildPair(int fixOffset, ControlResultPair p,
+            Samples learningSamples, ControlResultPairTable table, int depth) {
+        return fixOffset == table.getFixOffset();
+    }
+
+    public ControlResultPair buildPair(int fixOffset, ControlResultPair p,
             Samples learningSamples, ControlResultPairTable table, int depth) {
         if (tableManager != null) {
             try {
@@ -70,11 +75,11 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         if (depth >= maxDepth) {
             p.score = tryControl(p.control, learningSamples);
         } else {
-            p = tryExtending(p, depth, learningSamples, table);
+            p = tryExtending(fixOffset, p, depth, learningSamples, table);
         }
         if (tableManager != null) {
             try {
-                tableManager.sendResult(depth, p);
+                tableManager.sendResult(fixOffset, depth, p);
             } catch (IOException e) {
                 // ignored
             }
@@ -91,7 +96,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
      * @param table table of already known results from an earlier run.
      * @return the new control/result pair.
      */
-    ControlResultPair tryExtending(ControlResultPair p, int depth,
+    ControlResultPair tryExtending(int fixOffset, ControlResultPair p, int depth,
             Samples learningSamples, ControlResultPairTable table) {
         ControlResultPair[] pairs;
         DFA dfa = new DFA(learningSamples);
@@ -114,7 +119,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             if (pairs[k] == null) {
                 pairs[k] = new ControlResultPair(-1, control, -1,
                         control[p.control.length]);
-                pairs[k] = buildPair(pairs[k], learningSamples, table, depth+1);
+                pairs[k] = buildPair(fixOffset, pairs[k], learningSamples, table, depth+1);
             }
         }
 
@@ -158,7 +163,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             
             maxDepth = i;
 
-            pop = tryExtending(new ControlResultPair(Integer.MAX_VALUE, control, 0, 0),
+            pop = tryExtending(control.length, new ControlResultPair(Integer.MAX_VALUE, control, 0, 0),
                     i - minD, samples, table);
             if (i < maxD) {
                 int fixD = i - minD + 1;

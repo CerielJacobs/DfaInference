@@ -29,7 +29,7 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
     int fromChoiceIndex;
     
     /** To organize ControlResultPairs in a tree (see ControlResultPairTable). */
-    transient ArrayList<ControlResultPair> table = null;
+    ArrayList<ControlResultPair> table = null;
 
     /**
      * Constructor initializing from the specified values.

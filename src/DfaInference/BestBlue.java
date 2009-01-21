@@ -64,7 +64,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             Samples learningSamples, ControlResultPairTable table, int depth) {
         if (tableManager != null) {
             try {
-                tableManager.client();
+                tableManager.client(table);
             } catch (IOException e) {
                 // ignored
             }
@@ -179,6 +179,8 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
                 table.fix(pop);
             }
         }
+        
+        table.finish();
         
         return pop;
     }

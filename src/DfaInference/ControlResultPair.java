@@ -88,12 +88,21 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
      * @param w the writer.
      */
     public void write(Writer w) throws IOException {
-        w.write(toString());
+        w.write(score + "\n");
+        w.write(fromWindowIndex + "\n");
+        w.write(fromChoiceIndex + "\n");
+        if (control == null) {
+            w.write("-1\n");
+        } else {
+            w.write(control.length + "\n");
+            for (int i = 0; i < control.length; i++) {
+                w.write(control[i] + "\n");
+            }
+        }
         if (table != null) {
-            w.write("" + table.size() + "\n");
+            w.write(table.size() + "\n");
             for (int i = 0; i < table.size(); i++) {
-                ControlResultPair p = table.get(i);
-                p.write(w);
+                 table.get(i).write(w);
             }
         } else {
             w.write("-1\n");

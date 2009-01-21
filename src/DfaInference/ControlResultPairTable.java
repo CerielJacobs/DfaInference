@@ -27,6 +27,8 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
     /** Filename to read from/write to. */
     private transient final File file;
     
+    private transient TableManager manager;
+    
     /**
      * Constructor.
      * @param fn file to read from/write to.
@@ -43,6 +45,10 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
         Thread t = new Thread(this);
         t.setDaemon(true);
         t.start();
+    }
+    
+    public void setManager(TableManager manager) {
+        this.manager = manager;
     }
     
     public ControlResultPairTable() {
@@ -105,8 +111,9 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
         
             ControlResultPair v = l.get(p.control[i]);
 
-            if (v.control != null && i != fixOffset) {
+            if (v.control != null) {
                 // Already have a result higher up. Ignore this one.
+                // This may happen if we get results out of order.
                 System.out.println("} ignored");
                 return;
             }
@@ -140,6 +147,10 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
         fix = p;
         table.clear();
         fixOffset = p.control.length;       
+    }
+    
+    public void finish() {
+        manager.done();
     }
     
     /**
@@ -181,12 +192,12 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
     }
     
     /**
-     * Initiates a dump, every 60 seconds.
+     * Initiates a dump, every 20 seconds.
      */
     public void run() {
         for (;;) {
             try {
-                Thread.sleep(60000);
+                Thread.sleep(20000);
             } catch (Throwable e) {
                 // ignored
             }

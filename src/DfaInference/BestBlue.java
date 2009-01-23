@@ -6,6 +6,7 @@ import ibis.satin.SatinObject;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Random;
 
 import org.apache.log4j.Logger;
 
@@ -73,7 +74,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             logger.debug("buildPair: " + p);
         }
         if (depth >= maxDepth) {
-            p.score = tryControl(p.control, learningSamples);
+            p = randomShooter(p.control, learningSamples);
         } else {
             p = tryExtending(fixOffset, p, depth, learningSamples, table);
         }
@@ -85,6 +86,14 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             }
         }
         return p;
+    }
+    
+    public ControlResultPair randomShooter(int[] control, Samples learningSamples, Random r) {
+        
+        DFA dfa = new DFA(learningSamples);
+        Guidance g = new IntGuidance(control);
+        control = folder.doFold(dfa, g, 10, r);
+        return new ControlResultPair(folder.getScore(), control, 0, 0);
     }
 
     /**
@@ -100,8 +109,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             Samples learningSamples, ControlResultPairTable table) {
         ControlResultPair[] pairs;
         DFA dfa = new DFA(learningSamples);
-        Guidance g;
-        g = new IntGuidance(p.control);
+        Guidance g = new IntGuidance(p.control);
         Choice[] choice = folder.getOptions(dfa, g, 100);
 
         if (logger.isInfoEnabled()) {
@@ -117,8 +125,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             control[p.control.length] = k;
             pairs[k] = table.getResult(control);
             if (pairs[k] == null) {
-                pairs[k] = new ControlResultPair(-1, control, -1,
-                        control[p.control.length]);
+                pairs[k] = new ControlResultPair(-1, control, 0, 0);
                 pairs[k] = buildPair(fixOffset, pairs[k], learningSamples, table, depth+1);
             }
         }
@@ -127,6 +134,25 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
 
         Arrays.sort(pairs);
 
+        return pairs[0];
+    }
+
+    ControlResultPair randomShooter(int[] control, Samples learningSamples) {
+        ControlResultPair[] pairs = new ControlResultPair[10];        
+        DFA dfa = new DFA(learningSamples);
+        Guidance g = new IntGuidance(control);
+        dfa = folder.doFold(dfa, g, 0);
+        
+        Random r = new Random(12345);
+        double score = folder.getScore();
+        
+        pairs[0] = new ControlResultPair(score, control, 0, 0);
+        
+        for (int i = 1; i < pairs.length; i++) {
+            pairs[i] = randomShooter(control, learningSamples, r);
+        }
+        Arrays.sort(pairs);
+        System.out.println("heuristic score = " + score + ", shooter score = " + pairs[0].score);
         return pairs[0];
     }
 

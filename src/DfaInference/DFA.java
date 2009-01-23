@@ -770,6 +770,8 @@ public final class DFA implements java.io.Serializable, Configuration {
         startState = new State(nsym);
         startState.accepting = (byte)(state1.accepting | state2.accepting);
         startState.weight = state1.weight + state2.weight;
+        startState.traffic = state1.traffic + state2.traffic;
+        startState.xTraffic = state1.xTraffic + state2.xTraffic;
 
         if (USE_CHISQUARE) {
             for (int i = 0; i < nsym; i++) {
@@ -796,6 +798,8 @@ public final class DFA implements java.io.Serializable, Configuration {
 
                 byte accepting = 0;
                 int weight = 0;
+                int traffic = 0;
+                int xTraffic = 0;
                 int[] edgeWeights = null;
                 int[] xEdgeWeights = null;
                 if (USE_CHISQUARE) {
@@ -810,6 +814,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                         target.set(child.id);
                         accepting |= child.accepting;
                         weight += child.weight;
+                        traffic += child.traffic;
+                        xTraffic += child.xTraffic;
                         if (USE_CHISQUARE) {
                             for (int j = 0; j < nsym; j++) {
                                 edgeWeights[j] += child.edgeWeights[j];
@@ -835,6 +841,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                     newTarget = new State(nsym);
                     newTarget.accepting = accepting;
                     newTarget.weight = weight;
+                    newTarget.traffic = traffic;
+                    newTarget.xTraffic = xTraffic;
                     newTarget.edgeWeights = edgeWeights;
                     newTarget.xEdgeWeights = xEdgeWeights;
                     workList.add(target);
@@ -1100,6 +1108,11 @@ public final class DFA implements java.io.Serializable, Configuration {
                 target = n.addDestination(! reject, symbols[i]);
                 nStates++;
                 nEdges++;
+            }
+            if (reject) {
+                target.xTraffic++;
+            } else {
+                target.traffic++;
             }
             if (USE_ADJACENCY && n == startState) {
                 target.entrySyms.set(nsym);
@@ -1598,6 +1611,8 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         n1.weight += n2.weight;
+        n1.traffic += n2.traffic;
+        n1.xTraffic += n2.xTraffic;
         if (USE_CHISQUARE) {
             for (int j = 0; j < nsym; j++) {
                 n1.edgeWeights[j] += n2.edgeWeights[j];
@@ -2094,12 +2109,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
             if (REFINED_MDL) {
                 double score = 0;
-                /*
-                 * State[] myStates = startState.breadthFirst(); for (int i = 0;
-                 * i < myStates.length; i++) { if (myStates[i].weight != 0) {
-                 * int id = myStates[i].id; for (int j = 0; j <= maxlen; j++) {
-                 * counts[j][id] = 0; } } }
-                 */
                 State[] myStates = reachCount();
                 int totalCount = 0;
                 for (int i = 0; i < myStates.length; i++) {
@@ -2631,6 +2640,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             ind = p.nextSetBit(ind + 1);
             while (ind >= 0) {
                 states[i].weight += idMap[ind].weight;
+                states[i].traffic += idMap[ind].traffic;
+                states[i].xTraffic += idMap[ind].xTraffic;
                 if (USE_CHISQUARE) {
                     for (int j = 0; j < nsym; j++) {
                         states[i].edgeWeights[j] += idMap[ind].edgeWeights[j];

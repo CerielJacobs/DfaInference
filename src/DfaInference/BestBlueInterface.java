@@ -14,4 +14,5 @@ interface BestBlueInterface extends ibis.satin.Spawnable, java.io.Serializable {
      */
     public ControlResultPair buildPair(int fixDepth, ControlResultPair r,
             Samples learningSamples, ControlResultPairTable table, int depth);
+    
 }

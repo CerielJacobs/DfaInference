@@ -57,6 +57,16 @@ public final class State implements java.io.Serializable, Configuration,
      */
     int weight = 0;
 
+    /**
+     * The number of times we pass this state when processing the positive samples.
+     */
+    int traffic = 0;
+
+    /**
+     * The number of times we pass this state when processing the negative samples.
+     */
+    int xTraffic = 0;
+
     /** Number of positive samples that pass through this edge. */
     int[] edgeWeights;
     

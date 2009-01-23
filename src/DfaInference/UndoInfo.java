@@ -30,6 +30,10 @@ public final class UndoInfo implements Configuration {
 
         /** The weight field of the object to be saved. */
         private int weight;
+
+        private int traffic;
+
+        private int xTraffic;
         
         private int[] edgeWeights;
         
@@ -48,6 +52,8 @@ public final class UndoInfo implements Configuration {
             productive = s.productive;
             depth = s.depth;
             weight = s.weight;
+            traffic = s.traffic;
+            xTraffic = s.xTraffic;
             if (USE_CHISQUARE) {
                 edgeWeights = (int[]) s.edgeWeights.clone();
                 xEdgeWeights = (int[]) s.xEdgeWeights.clone();
@@ -103,6 +109,8 @@ public final class UndoInfo implements Configuration {
                 orig.productive = last.productive;
                 orig.depth = last.depth;
                 orig.weight = last.weight;
+                orig.traffic = last.traffic;
+                orig.xTraffic = last.xTraffic;
                 orig.edgeWeights = last.edgeWeights;
                 orig.xEdgeWeights = last.xEdgeWeights;
                 orig.entrySyms = last.entrySyms;

@@ -38,8 +38,6 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
     private static final long serialVersionUID = 1L;
     /** Log4j logger. */
     private static Logger logger = Logger.getLogger(SatinFolder.class.getName());
-    
-    private static final int MAX_STEPS = Configuration.tp.getIntProperty("MaxSteps", 0);
 
     /** The heuristic used. */
     private RedBlue folder;
@@ -86,7 +84,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
         if (logger.isDebugEnabled()) {
             logger.debug("buildPair: " + p);
         }
-        return tryControl(p.control, learningSamples, MAX_STEPS);
+        return tryControl(p.control, learningSamples);
     }
 
     public ControlResultPair[] examineChoice(int[] pcontrol, int windex,
@@ -228,8 +226,8 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
      * @param learningSamples the samples to learn from.
      * @return the resulting score.
      */
-    double tryControl(int[] control, Samples learningSamples, int maxSteps) {
-        folder.doFold(learningSamples, new IntGuidance(control), maxSteps);
+    double tryControl(int[] control, Samples learningSamples) {
+        folder.doFold(learningSamples, new IntGuidance(control), 0);
         double score = folder.getScore();
         /* TODO: look at this.
         if (maxSteps != 0) {
@@ -261,7 +259,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
         if (depth == 0) {
             pop = new ControlResultPair[1];
             int[] control = new int[0];
-            pop[0] = new ControlResultPair(tryControl(control, samples, 0),
+            pop[0] = new ControlResultPair(tryControl(control, samples),
                     control, 0, 0);
         }
         else {

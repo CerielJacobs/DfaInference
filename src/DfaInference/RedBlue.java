@@ -2,10 +2,12 @@ package DfaInference;
 
 import ibis.util.Stats;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Random;
 
 import org.apache.log4j.Logger;
 
@@ -806,6 +808,101 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
         }
         return bestDFA;
     }
+    
+    /**
+     * Applies merges and promotions as indicated by the guide.
+     * All possibilities are computed at each step, the guide decides between
+     * the possibilities.
+     * @param guide decides between the possibilities at each step.
+     * @return the control sequence.
+     */
+    protected int[] doFold(Guidance guide, int randomSteps, Random r) {
+
+        if (printInfo && logger.isDebugEnabled()) {
+            logger.debug("Initial DFA has score " + getScore()
+                    + ", #states = " + dfa.nStates
+                    + ", DFA score = " + dfa.getDFAComplexity());
+        }
+
+        getCandidates();
+
+        int numSteps = 0;
+        int count = 0;
+        ArrayList<Integer> steps = new ArrayList<Integer>();
+
+        for (;;) {
+            boolean print = false;
+
+            if (printInfo && logger.isInfoEnabled()) {
+                logger.info("numCandidates = " + numCandidates);
+            }
+
+            if (numCandidates == 0) {
+                break;
+            }
+
+            getStatistics();
+
+            if (pickBlueStrategy != null && (! guide.exhausted() || numSteps < randomSteps)) {
+                Choice[] choices = applyBluePicker();
+                int decision;
+                if (! guide.exhausted()) {
+                    decision = guide.getDecision(choices.length);
+                } else {
+                    decision = r.nextInt(choices.length);
+                    numSteps++;
+                }
+                steps.add(decision);
+                doStep(choices[decision]);
+            } else {
+                boolean exhausted = guide.exhausted();
+                if (printInfo && ! exhausted) {
+                    print = true;
+                    if (printInfo && logger.isDebugEnabled()) {
+                        printCandidates();
+                    }
+                }
+                int decision = guide.getDecision(numCandidates);
+                if (exhausted) {
+                    if (numSteps < randomSteps) {
+                        decision = r.nextInt(numCandidates);
+                    }
+                    numSteps++;
+                }
+                if (! exhausted || numSteps <= randomSteps) {
+                    steps.add(decision);
+                }
+                if (! exhausted && logger.isInfoEnabled()) {
+                    logger.info("Guide: " + count
+                            + ": " + mergeCandidates[decision].readable());
+                }
+                if (print) {
+                    System.out.println("Choice = " + decision);
+                } else if (printInfo) {
+                    System.out.print("Decision: "); 
+                    printCandidate(mergeCandidates[decision]);
+                }
+                doStep(mergeCandidates[decision]);
+
+                /*
+                if (! exhausted && guide.exhausted()) {
+                    disableChoices = false;
+                    getCandidates();
+                }
+                */
+            }
+            count++;
+        }
+
+        dfa.minimize();
+        int[] result = new int[steps.size()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = steps.get(i);
+        }
+
+        return result;
+    }
+
 
     private void getStatistics() {
         if (printInfo && logger.isInfoEnabled()) {
@@ -854,6 +951,23 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
     public DFA doFold(DFA dfa, Guidance guide, int maxSteps) {
         init(dfa);
         return doFold(guide, maxSteps);
+    }
+    
+    /**
+     * Initializes from the specified DFA, and applies merges and promotions
+     * as indicated by the guide.
+     * All possibilities are computed at each step, the guide decides between
+     * the possibilities.
+     * @param dfa the initial DFA
+     * @param guide decides between the possibilities at each step
+     * @param randomSteps the number of random steps to be taken after following
+     *          the guide.
+     * @param r the random number generator to use.
+     * @return the control sequence.
+     */
+    public int[] doFold(DFA dfa, Guidance guide, int randomSteps, Random r) {
+        init(dfa);
+        return doFold(guide, randomSteps, r);
     }
 
     /**

@@ -1114,9 +1114,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             } else {
                 target.traffic++;
             }
-            if (USE_ADJACENCY && n == startState) {
-                target.entrySyms.set(nsym);
-            }
+
             if (USE_CHISQUARE) {
                 if (reject) {
                     n.xEdgeWeights[symbols[i]]++;
@@ -1172,6 +1170,9 @@ public final class DFA implements java.io.Serializable, Configuration {
             addString(samples[i]);
         }
         dfaComputations(true);
+        if (USE_ADJACENCY) {
+            startState.entrySyms.set(nsym);
+        }
     }
 
     /**

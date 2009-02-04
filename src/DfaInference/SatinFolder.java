@@ -302,8 +302,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
             String str = "";
             for (int i = 0; i < pop.length; i++) {
                 str += " " + pop[i].score
-                    + "(" + pop[i].fromWindowIndex
-                    + ", " + pop[i].fromChoiceIndex + ")";
+                    + "(" + pop[i].fromChoiceIndex + ")";
             }
             logger.info("dump at depth " + currentDepth + ", scores:" + str);
         }

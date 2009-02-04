@@ -121,7 +121,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
             if (i == depth-1) {
                 v.control = p.control.clone();
                 v.fromChoiceIndex = p.fromChoiceIndex;
-                v.fromWindowIndex = p.fromWindowIndex;
+                v.depth = depth;
                 v.score = p.score;
                 v.table = null;
             } else {

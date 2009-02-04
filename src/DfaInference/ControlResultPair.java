@@ -22,8 +22,7 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
     /** The guidance that leads to this branch. */
     int[] control;
 
-    /** Index in the window from which this branch originates. */
-    int fromWindowIndex;
+    int depth;
 
     /** Index in the array of choices from which this branch originates. */
     int fromChoiceIndex;
@@ -35,13 +34,12 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
      * Constructor initializing from the specified values.
      * @param score value for <code>score</code>.
      * @param control value for <code>control</code>.
-     * @param w value for <code>fromWindowIndex</code>.
      * @param c value for <code>fromChoiceIndex</code>.
      */
-    public ControlResultPair(double score, int[] control, int w, int c) {
+    public ControlResultPair(double score, int[] control, int d, int c) {
         this.score = score;
         this.control = control;
-        this.fromWindowIndex = w;
+        this.depth = d;
         this.fromChoiceIndex = c;
     }
 
@@ -55,9 +53,6 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
         if (score != p.score) {
             return (score - p.score > 0) ? 1 : -1;
         }
-        if (fromWindowIndex != p.fromWindowIndex) {
-            return fromWindowIndex - p.fromWindowIndex;
-        }
         return fromChoiceIndex - p.fromChoiceIndex;
     }
 
@@ -68,7 +63,7 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
     public String toString() {
         String str = "";
         str += score + "\n";
-        str += fromWindowIndex + "\n";
+        str += depth + "\n";
         str += fromChoiceIndex + "\n";
         if (control == null) {
             str += "-1\n";
@@ -89,7 +84,7 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
      */
     public void write(Writer w) throws IOException {
         w.write(score + "\n");
-        w.write(fromWindowIndex + "\n");
+        w.write(depth + "\n");
         w.write(fromChoiceIndex + "\n");
         if (control == null) {
             w.write("-1\n");
@@ -117,7 +112,7 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
         String line = r.readLine();
         score = (new Double(line)).doubleValue();
         line = r.readLine();
-        fromWindowIndex = (new Integer(line)).intValue();
+        depth = (new Integer(line)).intValue();
         line = r.readLine();
         fromChoiceIndex = (new Integer(line)).intValue();
         line = r.readLine();

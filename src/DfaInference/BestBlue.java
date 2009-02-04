@@ -74,7 +74,8 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             logger.debug("buildPair: " + p);
         }
         if (depth >= maxDepth) {
-            p = randomShooter(p.control, learningSamples);
+            // p = randomShooter(p.control, learningSamples);
+            p.score = tryControl(p.control, learningSamples);
         } else {
             p = tryExtending(fixOffset, p, depth, learningSamples, table);
         }
@@ -92,7 +93,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         
         DFA dfa = new DFA(learningSamples);
         Guidance g = new IntGuidance(control);
-        control = folder.doFold(dfa, g, 10, r);
+        control = folder.doFold(dfa, g, 24, r);
         return new ControlResultPair(folder.getScore(), control, 0, 0);
     }
 
@@ -138,7 +139,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
     }
 
     ControlResultPair randomShooter(int[] control, Samples learningSamples) {
-        ControlResultPair[] pairs = new ControlResultPair[10];        
+        ControlResultPair[] pairs = new ControlResultPair[64];        
         DFA dfa = new DFA(learningSamples);
         Guidance g = new IntGuidance(control);
         dfa = folder.doFold(dfa, g, 0);

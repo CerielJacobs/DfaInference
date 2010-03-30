@@ -56,7 +56,7 @@ public interface Configuration {
      * 4: whichever gives the highest score.
      */
     static final int DFA_SCORING =
-        tp.getIntProperty("DFAScoring", 2);
+        tp.getIntProperty("DFAScoring", 3);
 
     static final boolean USE_ADJACENCY =
         tp.getBooleanProperty("Adjacency", false);

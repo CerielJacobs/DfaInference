@@ -5,7 +5,8 @@ import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 
-import abbadingo.AbbaDingoString;
+import sample.SampleString;
+
 
 /**
  * Class mapping symbols to integers, and vice versa.
@@ -107,7 +108,7 @@ public class Symbols implements java.io.Serializable {
      * @param s the string to convert.
      * @return an array with token numbers.
      */
-    public int[] abbaToSym(AbbaDingoString s) {
+    public int[] abbaToSym(SampleString s) {
         String[] str = s.getString();
         int[] tokens = new int[str.length+1];
         
@@ -127,7 +128,7 @@ public class Symbols implements java.io.Serializable {
      * @param samples the samples as they are read.
      * @return the array of symbol number strings.
      */
-    public int[][] convert2learn(AbbaDingoString[] samples) {
+    public int[][] convert2learn(SampleString[] samples) {
         int len = samples.length;
 
         int[][] result = new int[len][];

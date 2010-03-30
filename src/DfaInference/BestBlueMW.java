@@ -15,8 +15,9 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleString;
+
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 /**
  * This class implements a search strategy that, up to a certain depth,
@@ -372,7 +373,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
 
         f.setBlueStrategy(strategy);
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

@@ -1,8 +1,10 @@
 package DfaInference;
 
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
+
 import org.apache.commons.math.special.Gamma;
+
+import sample.SampleString;
 
 public class FisherFold extends RedBlue implements java.io.Serializable {
 
@@ -18,7 +20,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
         boolean foundMerge = false;
 
         if (r == null) {
-            addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(), -PROBABILITY_THRESHOLD));
+            addChoice(Choice.getChoice(-1, b.getId(), dfa.getNumStates(), -PROBABILITY_THRESHOLD));
             return true;
         }
 
@@ -50,7 +52,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
             }
 
             if (fisherScore > LIMIT) {
-                addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
+                addChoice(Choice.getChoice(r.getId(), b.getId(), dfa.getNumStates(),
                         -fisherScore));
                 foundMerge = true;
             }
@@ -101,7 +103,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
             }
         }
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

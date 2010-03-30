@@ -1,7 +1,7 @@
 package DfaInference;
 
+import sample.SampleString;
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 /**
  * This state folder implements a search strategy that first selects the merge
@@ -15,16 +15,16 @@ public class StateFold extends RedBlue implements java.io.Serializable {
         boolean foundMerge = false;
 
         if (r == null) {
-            addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(),
+            addChoice(Choice.getChoice(-1, b.getId(), dfa.getNumStates(),
                         dfa.getNumStates()));
             return true;
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("testMerge " + r.id + ", " + b.id);
+            logger.debug("testMerge " + r.getId() + ", " + b.getId());
         }
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
         if (! dfa.conflict) {
-            addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
+            addChoice(Choice.getChoice(r.getId(), b.getId(), dfa.getNumStates(),
                         dfa.getNumStates()));
             foundMerge = true;
         }
@@ -69,7 +69,7 @@ public class StateFold extends RedBlue implements java.io.Serializable {
             }
         }
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

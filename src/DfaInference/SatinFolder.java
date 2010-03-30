@@ -14,8 +14,9 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleString;
+
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 /**
  * This class implements a "top N" search strategy. The current best N
@@ -466,7 +467,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
             throw new Error("Could not instantiate " + folder, e);
         }
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

@@ -1,4 +1,4 @@
-package generate;
+package abbadingo;
 
 import java.io.BufferedWriter;
 import java.io.FileReader;
@@ -8,9 +8,10 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleString;
+
 import DfaInference.DFA;
 import DfaInference.Symbols;
-import abbadingo.AbbaDingoString;
 
 /**
  * Utility to generate learning set and test for a specified DFA.
@@ -103,8 +104,8 @@ public class GenerateSampleAndTest {
      * @param flag the flag.
      * @return the AbbaDingoString.
      */
-    private static AbbaDingoString cvt2AbbaDingo(Symbols symbols, int[] str, int flag) {
-        AbbaDingoString s = new AbbaDingoString(str.length, flag);
+    private static SampleString cvt2AbbaDingo(Symbols symbols, int[] str, int flag) {
+        SampleString s = new AbbaDingoString(str.length, flag);
 
         for (int i = 0; i < str.length; i++) {
             s.addToken(symbols.getSymbol(str[i]));

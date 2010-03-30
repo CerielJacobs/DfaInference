@@ -170,12 +170,12 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
         if (! disableChoices) {
             return true;
         }
-        BitSet bs = noMerges[r == null ? (noMerges.length-1) : r.id];
+        BitSet bs = noMerges[r == null ? (noMerges.length-1) : r.getId()];
         if (bs != null) {
             if (printInfo && logger.isDebugEnabled()) {
-                logger.debug("b.id = " + b.id + ", bs = " + bs);
+                logger.debug("b.id = " + b.getId() + ", bs = " + bs);
             }
-            return ! bs.get(b.id);
+            return ! bs.get(b.getId());
         }
         return true;
     }
@@ -186,13 +186,13 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * @param b the blue state of the specified merge.
      */
     private void addNoMerge(State r, State b) {
-        int ri = r == null ? (noMerges.length-1) : r.id;
+        int ri = r == null ? (noMerges.length-1) : r.getId();
         BitSet bs = noMerges[ri];
         if (bs == null) {
             bs = new BitSet();
             noMerges[ri] = bs;
         }
-        bs.set(b.id);
+        bs.set(b.getId());
         if (printInfo && logger.isDebugEnabled()) {
             logger.debug("noMerges[" + ri + "] becomes " + noMerges[ri]);
         }
@@ -286,7 +286,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
                 State s = iter.next();
                 if (s.depth < shallowestState.depth ||
                         (s.depth == shallowestState.depth
-                         && s.id < shallowestState.id)) {
+                         && s.getId() < shallowestState.getId())) {
                     shallowestState = s;
                  }
             }
@@ -306,7 +306,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
     private String getSet(State[] states, int count) {
         String str = "";
         for (int i = 0; i < count; i++) {
-            str += " " + states[i].id;
+            str += " " + states[i].getId();
         }
         return str;
     }
@@ -361,10 +361,10 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
                 }
                 if (printInfo && logger.isDebugEnabled()) {
                     if (s1 != null) {
-                        logger.debug("Merge between " + s1.id + " and " + s2.id
+                        logger.debug("Merge between " + s1.getId() + " and " + s2.getId()
                                 + " prevented");
                     } else {
-                        logger.debug("Explicit promotion of state " + s2.id
+                        logger.debug("Explicit promotion of state " + s2.getId()
                                 + " prevented");
                     }
                 }
@@ -529,7 +529,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
     protected void promoteToRed(State r) {
 
         if (printInfo && logger.isInfoEnabled()) {
-            logger.info("Promoting blue state " + r.id + " to red");
+            logger.info("Promoting blue state " + r.getId() + " to red");
         }
 
         // Add it to the red states.
@@ -547,7 +547,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
         // Remove any merge candidates that have it as a blue state.
         for (int i = 0; i < numCandidates; i++) {
             Choice ch = mergeCandidates[i];
-            if (ch.s2 == r.id) {
+            if (ch.s2 == r.getId()) {
                 numCandidates--;
                 Choice.release(mergeCandidates[i]);
                 mergeCandidates[i] = mergeCandidates[numCandidates];
@@ -602,7 +602,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
         dfa.treeMerge(red, blue, false, redStates, numRedStates);
 
         if (printInfo && logger.isInfoEnabled()) {
-            logger.info("Merging blue state " + blue.id + " into " + red.id
+            logger.info("Merging blue state " + blue.getId() + " into " + red.getId()
                     + " gives score " + getScore());
         }
 
@@ -629,7 +629,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
 
         for (int j = 0; j < oldnum; j++) {
             Choice ch = oldMergeCandidates[j];
-            if (ch.s2 == blue.id) {
+            if (ch.s2 == blue.getId()) {
                 if (printInfo && logger.isDebugEnabled()) {
                     logger.debug("Removing choice " + ch.s1 + " " + ch.s2);
                 }
@@ -660,7 +660,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
                 boolean ok = false;
                 for (int j = 0; j < numCandidates; j++) {
                     Choice ch = mergeCandidates[j];
-                    if (ch.s2 == b.id) {
+                    if (ch.s2 == b.getId()) {
                         if (ch.s1 >= 0) {
                             // Found a real merge opportunity.
                             ok = true;
@@ -689,7 +689,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
                 State s = blueStates[i];
                 if (getIndex(oldBlueStates, oldBlueStates.length, s) < 0) {
                     if (printInfo && logger.isDebugEnabled()) {
-                        logger.debug("New blue state: " + s.id);
+                        logger.debug("New blue state: " + s.getId());
                     }
                     if (! getMergeCandidates(s)) {
                         // No merge candidates for this new blue state. Promote

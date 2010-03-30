@@ -4,9 +4,10 @@ import java.io.FileReader;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleString;
+
 import DfaInference.DFA;
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 /**
  * Utility to run a test sample through a specified DFA, and produce a single
@@ -84,7 +85,7 @@ public class TestSample {
             }
         }
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             samples = AbbaDingoReader.getStrings(testInput);
         } catch(java.io.IOException e) {

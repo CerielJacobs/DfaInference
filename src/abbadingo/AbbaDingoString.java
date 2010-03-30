@@ -1,5 +1,7 @@
 package abbadingo;
 
+import sample.SampleString;
+
 /**
  * An <code>AbbaDingoString</code> represents an input string. It consists of
  * an array of tokens (each represented by a Java string), and a flag
@@ -9,7 +11,7 @@ package abbadingo;
  * <li>test string.
  * </ul>
  */
-public class AbbaDingoString {
+public class AbbaDingoString implements SampleString {
 
     /** The tokens in the string. */
     private String[] words;
@@ -34,42 +36,37 @@ public class AbbaDingoString {
         words = new String[len];
     }
 
-    /**
-     * Adds a token to the string.
-     * @param s the token to be added.
+    /* (non-Javadoc)
+     * @see abbadingo.SampleString#addToken(java.lang.String)
      */
     public void addToken(String s) {
         words[ix++] = s;
     }
 
-    /**
-     * Returns the string as an array of Java strings.
-     * Creates a copy of the array, so as to prevent access to the internal
-     * data structures.
-     * @return the string.
+    /* (non-Javadoc)
+     * @see abbadingo.SampleString#getString()
      */
     public String[] getString() {
         return (String[]) words.clone();
     }
 
-    /**
-     * Determines if this string should be accepted.
-     * @return <code>true</code> if it should be accepted, <code>false</code>
-     * otherwise (if not or unknown).
+    /* (non-Javadoc)
+     * @see abbadingo.SampleString#isAccepted()
      */
     public boolean isAccepted() {
         return flag > 0;
     }
 
-    /**
-     * Determines if this string should not be accepted.
-     * @return <code>true</code> if it should not be accepted,
-     * <code>false</code> otherwise (if it should be accepted or unknown).
+    /* (non-Javadoc)
+     * @see abbadingo.SampleString#isNotAccepted()
      */
     public boolean isNotAccepted() {
         return flag == 0;
     }
 
+    /* (non-Javadoc)
+     * @see abbadingo.SampleString#toString()
+     */
     public String toString() {
         String str = "";
         str += flag + " " + words.length;

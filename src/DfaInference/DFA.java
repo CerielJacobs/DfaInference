@@ -339,7 +339,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         entranceStates = new ArrayList<State>();
         for (State s : dfa.entranceStates) {
-            entranceStates.add(getState(s.id));
+            entranceStates.add(getState(s.getId()));
         }
     }
 
@@ -533,7 +533,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         State[] states;
         
         if (reIndex) {
-            startState.id = -1;
+            startState.setId(-1);
             idMap = startState.breadthFirst();
             nStates = idMap.length;
             states = idMap;
@@ -763,8 +763,8 @@ public final class DFA implements java.io.Serializable, Configuration {
         nEdges = 0;
 
         // Mimic a new startstate consisting of the union of the two startstates.
-        initial.set(state1.id);
-        initial.set(state2.id);
+        initial.set(state1.getId());
+        initial.set(state2.getId());
         workList.add(initial);
 
         startState = new State(nsym);
@@ -811,7 +811,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     State si = getState(i);
                     State child = si.children[sym];
                     if (child != null) {
-                        target.set(child.id);
+                        target.set(child.getId());
                         accepting |= child.accepting;
                         weight += child.weight;
                         traffic += child.traffic;
@@ -875,14 +875,14 @@ public final class DFA implements java.io.Serializable, Configuration {
         BitSet[] mergeSets = new BitSet[nStates];
 
         BitSet b = new BitSet();
-        b.set(s1.id);
-        b.set(s2.id);
+        b.set(s1.getId());
+        b.set(s2.getId());
 
         for (State s : idMap) {
             if ((s.accepting & ACCEPTING) != 0) {
-                acceptingStates.set(s.id);
+                acceptingStates.set(s.getId());
             } else if ((s.accepting & REJECTING) != 0) {
-                rejectingStates.set(s.id);
+                rejectingStates.set(s.getId());
             }
         }
 
@@ -922,10 +922,10 @@ public final class DFA implements java.io.Serializable, Configuration {
                 for (n = b.nextSetBit(0); n != -1; n = b.nextSetBit(n + 1)) {
                     State t = idMap[n].traverseLink(i);
                     if (t != null) {
-                        if (mergeSets[t.id] != null) {
-                            newMerge.or(mergeSets[t.id]);
+                        if (mergeSets[t.getId()] != null) {
+                            newMerge.or(mergeSets[t.getId()]);
                         } else {
-                            newMerge.set(t.id);
+                            newMerge.set(t.getId());
                         }
                     }
                 }
@@ -1351,8 +1351,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             State[] redStates, int numRedStates) {
         UndoInfo undo = null;
 
-        if (conflicts != null && conflicts[red.id] != null) {
-            if (conflicts[red.id].get(blue.id)) {
+        if (conflicts != null && conflicts[red.getId()] != null) {
+            if (conflicts[red.getId()].get(blue.getId())) {
                 conflict = true;
                 return undo;
             }
@@ -1452,7 +1452,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
                     startState.computeUpdate(maxlen, counts, tempCounts, mark);
                     for (int i = 1; i <= maxlen; i++) {
-                        counts[i][startState.id] = tempCounts[startStateIndex][i];
+                        counts[i][startState.getId()] = tempCounts[startStateIndex][i];
                     }
                     if (NEGATIVES) {
                         for (int i = 0; i < states.length; i++) {
@@ -1461,7 +1461,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         startState.computeUpdate(maxlen, xCounts, tempCounts,
                                 mark);
                         for (int i = 1; i <= maxlen; i++) {
-                            xCounts[i][startState.id] = tempCounts[startStateIndex][i];
+                            xCounts[i][startState.getId()] = tempCounts[startStateIndex][i];
                         }
                     }
                 } else {
@@ -1602,10 +1602,10 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (! REFINED_MDL) {
                 if (n1.accepting != 0) {
                     if (counts != null && (n1.accepting & ACCEPTING) != 0) {
-                        counts[0][n1.id] = 1;
+                        counts[0][n1.getId()] = 1;
                     } 
                     if (xCounts != null && (n1.accepting & REJECTING) != 0) {
-                        xCounts[0][n1.id] = 1;
+                        xCounts[0][n1.getId()] = 1;
                     }
                 }
             }
@@ -1810,7 +1810,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 logger.debug("Oops: MathException? p_value = " + p_value, e);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("(" + n1.id + "," + n2.id + ") --> score = " + p_value);
+                logger.debug("(" + n1.getId() + "," + n2.getId() + ") --> score = " + p_value);
             }
         } else {
             if (logger.isDebugEnabled()) {
@@ -1901,7 +1901,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 logger.debug("Oops: MathException? ", e);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("(" + n1.id + "," + n2.id + ") --> xScore = " + p_value);
+                logger.debug("(" + n1.getId() + "," + n2.getId() + ") --> xScore = " + p_value);
             }
         } else {
             if (logger.isDebugEnabled()) {
@@ -2114,7 +2114,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 int totalCount = 0;
                 for (int i = 0; i < myStates.length; i++) {
                     double cnt = 0;
-                    int id = myStates[i].id;
+                    int id = myStates[i].getId();
                     for (int j = 0; j <= maxlen; j++) {
                         cnt += counts[j][id];
                     }
@@ -2295,7 +2295,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         // add the startstate indicator
         if (allStates) {
-            w.write("S" + startState.id + "\n");
+            w.write("S" + startState.getId() + "\n");
         } else {
             w.write("S0\n");
         }
@@ -2305,7 +2305,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             State s = l[i];
             if (allStates || (s.productive & ACCEPTING) != 0) {
                 // Print the node definition
-                int index = s.id;
+                int index = s.getId();
                 if (!allStates) {
                     index = h.get(s).intValue();
                 }
@@ -2341,7 +2341,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                                 + ":"
                                 + symbols.getSymbol(j)
                                 + ":"
-                                + (allStates ? e.id : ((Integer) h.get(e))
+                                + (allStates ? e.getId() : ((Integer) h.get(e))
                                         .intValue()) + "\n");
                     }
                 }
@@ -2374,10 +2374,10 @@ public final class DFA implements java.io.Serializable, Configuration {
                 for (int k = 0; k < nsym; k++) {
                     State sk = s.children[k];
                     if (sk != null) {
-                        cnt += countjm1[sk.id];
+                        cnt += countjm1[sk.getId()];
                     }
                 }
-                counts[j][s.id] = cnt;
+                counts[j][s.getId()] = cnt;
             }
         }
     }
@@ -2408,13 +2408,13 @@ public final class DFA implements java.io.Serializable, Configuration {
             for (int i = 0; i < myStates.length; i++) {
                 State s = myStates[i];
                 for (int j = 0; j < count.length; j++) {
-                    count[j][s.id] = 0;
+                    count[j][s.getId()] = 0;
                 }
                 if ((s.accepting & acceptOrReject) != 0) {
                     if (USE_PARENT_SETS) {
-                        h.set(s.id);
+                        h.set(s.getId());
                     }
-                    count[0][s.id] = 1;
+                    count[0][s.getId()] = 1;
                 }
             }
         }
@@ -2428,10 +2428,10 @@ public final class DFA implements java.io.Serializable, Configuration {
                         for (State si : s.parents) {
                             for (int j = 0; j < nsym; j++) {
                                 if (si.children[j] == s) {
-                                    count[k][si.id] += count[k - 1][s.id];
+                                    count[k][si.getId()] += count[k - 1][s.getId()];
                                 }
                             }
-                            h2.set(si.id);
+                            h2.set(si.getId());
                         }
                     }
                     h = h2;
@@ -2450,7 +2450,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         double n = 0;
         for (int i = 0; i <= l; i++) {
-            n += count[i][startState.id];
+            n += count[i][startState.getId()];
         }
 
         if (logger.isDebugEnabled()) {
@@ -2480,10 +2480,10 @@ public final class DFA implements java.io.Serializable, Configuration {
         // Initialize. Only initialize count fields that we are going to use.
         l1[0] = startState;
         c1 = 1;
-        counts[0][startState.id] = 1;
+        counts[0][startState.getId()] = 1;
         if (startState.weight > 0) {
             for (int i = 1; i <= maxlen; i++) {
-                counts[i][startState.id] = 0;
+                counts[i][startState.getId()] = 0;
             }
             h.add(startState);
         }
@@ -2496,24 +2496,24 @@ public final class DFA implements java.io.Serializable, Configuration {
             double[] countkm1 = counts[k - 1];
             for (int i = 0; i < c1; i++) {
                 State s = l1[i];
-                double km1 = countkm1[s.id];
+                double km1 = countkm1[s.getId()];
                 for (int j = 0; j < s.children.length; j++) {
                     State sj = s.children[j];
                     if (sj != null) {
                         if (sj.mark != mark) {
                             l2[c2++] = sj;
                             sj.mark = mark;
-                            countk[sj.id] = 0;
+                            countk[sj.getId()] = 0;
                             if (sj.weight > 0) {
                                 if (!h.contains(sj)) {
                                     h.add(sj);
                                     for (int l = 0; l <= maxlen; l++) {
-                                        counts[l][sj.id] = 0;
+                                        counts[l][sj.getId()] = 0;
                                     }
                                 }
                             }
                         }
-                        countk[sj.id] += km1;
+                        countk[sj.getId()] += km1;
                     }
                 }
             }
@@ -2531,7 +2531,7 @@ public final class DFA implements java.io.Serializable, Configuration {
     public void minimize() {
 
         // Careful! You cannot rely on state ids anymore after this.
-        startState.id = -1;
+        startState.setId(-1);
         idMap = startState.breadthFirst();
         nStates = idMap.length;
         
@@ -2547,24 +2547,24 @@ public final class DFA implements java.io.Serializable, Configuration {
             State s = idMap[i];
             if (!REFINED_MDL) {
                 if (counts != null) {
-                    counts[0][s.id] = 0;
+                    counts[0][s.getId()] = 0;
                 }
                 if (xCounts != null) {
-                    xCounts[0][s.id] = 0;
+                    xCounts[0][s.getId()] = 0;
                 }
             }
             if ((s.accepting & ACCEPTING) != 0) {
                 if (!REFINED_MDL && counts != null) {
-                    counts[0][s.id] = 1;
+                    counts[0][s.getId()] = 1;
                 }
-                partition1.set(s.id);
+                partition1.set(s.getId());
             } else if ((s.accepting & REJECTING) != 0) {
                 if (!REFINED_MDL && xCounts != null) {
-                    xCounts[0][s.id] = 1;
+                    xCounts[0][s.getId()] = 1;
                 }
-                partition2.set(s.id);
+                partition2.set(s.getId());
             } else {
-                partition3.set(s.id);
+                partition3.set(s.getId());
             }
         }
 
@@ -2592,8 +2592,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                 BitSet Ia = new BitSet(nStates);
                 for (int j = 0; j < idMap.length; j++) {
                     State st = idMap[j].traverseLink(i);
-                    if (st != null && S.get(st.id)) {
-                        Ia.set(idMap[j].id);
+                    if (st != null && S.get(st.getId())) {
+                        Ia.set(idMap[j].getId());
                     }
                 }
 
@@ -2651,7 +2651,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
                 ind = p.nextSetBit(ind + 1);
             }
-            if (p.get(startState.id)) {
+            if (p.get(startState.getId())) {
                 startState = states[i];
             }
         }
@@ -2665,7 +2665,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 State st = states[i].traverseLink(j);
                 if (st != null) {
                     for (int k = 0; k < npartitions; k++) {
-                        if (partition[k].get(st.id)) {
+                        if (partition[k].get(st.getId())) {
                             states[i].addEdge(states[k], j);
                             break;
                         }
@@ -2693,7 +2693,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     private void propagateConflict(BitSet[] conflicts, State s1, State s2) {
 
-        addConflict(conflicts, s1.id, s2.id);
+        addConflict(conflicts, s1.getId(), s2.getId());
 
         // Propagate to conflict to parents.
         State ps1 = s1.parent;

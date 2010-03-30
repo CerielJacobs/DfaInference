@@ -8,6 +8,8 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StreamTokenizer;
 
+import sample.SampleString;
+
 /**
  * Reads a file of strings in AbbaDingo format.
  *
@@ -88,13 +90,13 @@ public class AbbaDingoReader {
      * @return the sentence read.
      * @exception IOException on IO error.
      */
-    private AbbaDingoString readString() throws IOException {
+    private SampleString readString() throws IOException {
 
         int flag = readInteger();
         int len = readInteger();
         int t;
 
-        AbbaDingoString s = new AbbaDingoString(len, flag);
+        SampleString s = new AbbaDingoString(len, flag);
 
         for (int i = 0; i < len; i++) {
             t = d.nextToken();
@@ -138,12 +140,12 @@ public class AbbaDingoReader {
      * @return the sentences read.
      * @exception IOException on IO error.
      */
-    private AbbaDingoString[] readStrings() throws IOException {
+    private SampleString[] readStrings() throws IOException {
 
         skipComment();
         readHeader();
 
-        AbbaDingoString[] strs = new AbbaDingoString[numSentences];
+        SampleString[] strs = new SampleString[numSentences];
         for (int i = 0; i < numSentences; i++) {
             skipComment();
             strs[i] = readString();
@@ -166,7 +168,7 @@ public class AbbaDingoReader {
      * @return the sentences read.
      * @exception IOException on I/O error.
      */
-    public static AbbaDingoString[] getStrings(InputStream s)
+    public static SampleString[] getStrings(InputStream s)
             throws java.io.IOException {
         s = new BufferedInputStream(s);
         return getStrings(new InputStreamReader(s));
@@ -178,7 +180,7 @@ public class AbbaDingoReader {
      * @return the sentences read.
      * @exception IOException on I/O error.
      */
-    public static AbbaDingoString[] getStrings(Reader s)
+    public static SampleString[] getStrings(Reader s)
             throws java.io.IOException {
         AbbaDingoReader r = new AbbaDingoReader(s);
         return r.readStrings();
@@ -190,10 +192,10 @@ public class AbbaDingoReader {
      * @return the sentences read.
      * @exception IOException on I/O error.
      */
-    public static AbbaDingoString[] getStrings(String filename)
+    public static SampleString[] getStrings(String filename)
             throws java.io.IOException {
         FileInputStream f = new FileInputStream(filename);
-        AbbaDingoString[] strs = getStrings(f);
+        SampleString[] strs = getStrings(f);
         f.close();
         return strs;
     }

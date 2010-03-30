@@ -1,7 +1,7 @@
 package DfaInference;
 
+import sample.SampleString;
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 public class MDLFold extends RedBlue implements java.io.Serializable {
 
@@ -15,7 +15,7 @@ public class MDLFold extends RedBlue implements java.io.Serializable {
         boolean foundMerge = false;
 
         if (r == null) {
-            addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(), getScore()));
+            addChoice(Choice.getChoice(-1, b.getId(), dfa.getNumStates(), getScore()));
             return true;
         }
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
@@ -26,7 +26,7 @@ public class MDLFold extends RedBlue implements java.io.Serializable {
             // As long as the sample part of the score is less than the best
             // score found sofar, there is hope ...
             if (pickBlueStrategy != null || sc-dfascore < bestScore) {
-                addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(), sc));
+                addChoice(Choice.getChoice(r.getId(), b.getId(), dfa.getNumStates(), sc));
                 foundMerge = true;
             }
         }
@@ -62,7 +62,7 @@ public class MDLFold extends RedBlue implements java.io.Serializable {
             }
         }
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

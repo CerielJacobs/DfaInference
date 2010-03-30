@@ -5,8 +5,9 @@ import java.util.BitSet;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleString;
+
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 public class BeamFold {
 
@@ -164,7 +165,7 @@ public class BeamFold {
             }
         }
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

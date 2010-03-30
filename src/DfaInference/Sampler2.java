@@ -6,8 +6,9 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleString;
+
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 public class Sampler2 extends EdFold {
 
@@ -284,7 +285,7 @@ public class Sampler2 extends EdFold {
             }
         }
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

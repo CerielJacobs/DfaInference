@@ -5,8 +5,9 @@ import java.util.HashSet;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleString;
+
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 public class ExhSearch implements java.io.Serializable {
 
@@ -178,7 +179,7 @@ public class ExhSearch implements java.io.Serializable {
             }
         }
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

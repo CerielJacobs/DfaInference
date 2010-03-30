@@ -10,8 +10,9 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleString;
+
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 /**
  * This class implements a search strategy that, up to a certain depth,
@@ -331,7 +332,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
 
         f.setBlueStrategy(strategy);
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

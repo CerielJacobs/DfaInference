@@ -1,7 +1,7 @@
 package DfaInference;
 
+import sample.SampleString;
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 /**
  * This class implements an evidence-driven state folder.
@@ -18,13 +18,13 @@ public class EdFold extends RedBlue implements java.io.Serializable {
         boolean foundMerge = false;
 
         if (r == null) {
-            addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(), 0));
+            addChoice(Choice.getChoice(-1, b.getId(), dfa.getNumStates(), 0));
             return true;
         }
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
         if (! dfa.conflict) {
-            addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
+            addChoice(Choice.getChoice(r.getId(), b.getId(), dfa.getNumStates(),
                         -dfa.labelScore));
             foundMerge = true;
         }
@@ -69,7 +69,7 @@ public class EdFold extends RedBlue implements java.io.Serializable {
             }
         }
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

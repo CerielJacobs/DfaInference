@@ -76,7 +76,23 @@ public final class State implements java.io.Serializable, Configuration,
     /**
      * Identifying number of this state.
      */
-    int id = -1;
+    private int id = -1;
+
+    public State[] getChildren() {
+        return children;
+    }
+
+    public void setChildren(State[] children) {
+        this.children = children;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 
     /** States with which this state has a conflict. */
     BitSet conflicting = null;
@@ -219,6 +235,9 @@ public final class State implements java.io.Serializable, Configuration,
         } else {
             // There are equivalent states. Merge everything in from
             // all states in this equivalence class.
+            for (int n = mergeSets[s.id].nextSetBit(0); n != -1; n = mergeSets[s.id].nextSetBit(n+1)) {
+                map[n] = this;
+            }
             for (int n = mergeSets[s.id].nextSetBit(0); n != -1; n = mergeSets[s.id].nextSetBit(n+1)) {
                 map[n] = this;
                 mergeIn(oldStates[n], mergeSets, map, oldStates, numberer);
@@ -478,7 +497,7 @@ public final class State implements java.io.Serializable, Configuration,
         mark = 1;
         while (low < high) {
             for (int i = low; i < high; i++) {
-                State s = (State) a.get(i);
+                State s = a.get(i);
                 for (int j = 0; j < s.children.length; j++) {
                     State schj = s.children[j];
                     if (schj != null && schj.mark == 0) {

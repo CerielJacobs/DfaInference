@@ -97,11 +97,11 @@ public final class UndoInfo implements Configuration {
 
                 if (! REFINED_MDL) {
                     if (dfa.counts != null) {
-                        dfa.counts[0][orig.id]
+                        dfa.counts[0][orig.getId()]
                             = ((orig.accepting & ACCEPTING) != 0) ? 1 : 0;
                     }
                     if (dfa.xCounts != null) {
-                        dfa.xCounts[0][orig.id]
+                        dfa.xCounts[0][orig.getId()]
                                 = ((orig.accepting & REJECTING) != 0) ? 1 : 0;
                     }
                 }
@@ -390,13 +390,13 @@ public final class UndoInfo implements Configuration {
             }
             if (dfa.counts != null) {
                 for (int i = 0; i <= dfa.maxlen; i++) {
-                    counts[i] = dfa.counts[i][dfa.startState.id];
+                    counts[i] = dfa.counts[i][dfa.startState.getId()];
                 }
                 countsInitialized = true;
             }
             if (dfa.xCounts != null) {
                 for (int i = 0; i <= dfa.maxlen; i++) {
-                    counts[i+dfa.maxlen+1] = dfa.xCounts[i][dfa.startState.id];
+                    counts[i+dfa.maxlen+1] = dfa.xCounts[i][dfa.startState.getId()];
                 }
                 countsInitialized = true;
             }
@@ -407,12 +407,12 @@ public final class UndoInfo implements Configuration {
         if (countsInitialized) {
             if (dfa.counts != null) {
                 for (int i = 0; i <= dfa.maxlen; i++) {
-                    dfa.counts[i][dfa.startState.id] = counts[i];
+                    dfa.counts[i][dfa.startState.getId()] = counts[i];
                 }
             }
             if (dfa.xCounts != null) {
                 for (int i = 0; i <= dfa.maxlen; i++) {
-                    dfa.xCounts[i][dfa.startState.id] = counts[i+dfa.maxlen+1];
+                    dfa.xCounts[i][dfa.startState.getId()] = counts[i+dfa.maxlen+1];
                 }
             }
         }

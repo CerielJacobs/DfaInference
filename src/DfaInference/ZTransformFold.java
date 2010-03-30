@@ -1,7 +1,7 @@
 package DfaInference;
 
+import sample.SampleString;
 import abbadingo.AbbaDingoReader;
-import abbadingo.AbbaDingoString;
 
 public class ZTransformFold extends RedBlue implements java.io.Serializable {
 
@@ -17,7 +17,7 @@ public class ZTransformFold extends RedBlue implements java.io.Serializable {
         boolean foundMerge = false;
 
         if (r == null) {
-            addChoice(Choice.getChoice(-1, b.id, dfa.getNumStates(), -PROBABILITY_THRESHOLD));
+            addChoice(Choice.getChoice(-1, b.getId(), dfa.getNumStates(), -PROBABILITY_THRESHOLD));
             return true;
         }
 
@@ -40,7 +40,7 @@ public class ZTransformFold extends RedBlue implements java.io.Serializable {
                 score = .8;
             }
             if (score > LIMIT) {
-                addChoice(Choice.getChoice(r.id, b.id, dfa.getNumStates(),
+                addChoice(Choice.getChoice(r.getId(), b.getId(), dfa.getNumStates(),
                         -score));
                 foundMerge = true;
             }
@@ -91,7 +91,7 @@ public class ZTransformFold extends RedBlue implements java.io.Serializable {
             }
         }
 
-        AbbaDingoString[] samples = null;
+        SampleString[] samples = null;
         try {
             if (learningSetFile != null) {
                 samples = AbbaDingoReader.getStrings(learningSetFile);

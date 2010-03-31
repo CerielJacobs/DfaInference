@@ -4,4 +4,4 @@
 # Generates a sample from <DFA>, with <count> sentences, of maximum length
 # <maxlength>.
 
-$DFA_HOME/bin/satin-run -Xmx256M abbadingo.GenerateSampleAndTest -m $1 -count $2 -maxl $3 -prefix $1
+$DFA_HOME/bin/satin-run -Xmx256M abbadingo.GenerateSampleAndTest -m $1 -count $2 -maxl $3 -prefix $1 -testcount 1800

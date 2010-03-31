@@ -4,15 +4,16 @@ ARGS=
 # ARGS="$ARGS -DMissingEdges"
 # ARGS="$ARGS -DUseProductive"
 
-prun -4 CLASSPATH=../../DfaInference.jar:. -v -o learn-7.bb-mw.out \
+prun COMMAND=$SATIN_HOME/bin/satin-run -4 CLASSPATH=../../lib/DfaInference.jar:../../external/commons-math-1.2.jar:. -v -o learn-7.bb-mw.out \
     -rsh ssh \
     -t 0:15:0 \
-    $IBIS_HOME/bin/ibis-prun $1 \
+    ibis-prun $1 \
     -server -Xms512M -Xmx512M \
     -Dibis.name=tcp \
     -Dsatin.closed \
     -Dsatin.alg=MW \
     -Dsatin.closeConnections=false \
+    -Dlog4j.configuration=file:`pwd`/log4j.properties \
     $ARGS \
     DfaInference.BestBlueMW \
     -strategy DfaInference.ChoiceCountStrategy \

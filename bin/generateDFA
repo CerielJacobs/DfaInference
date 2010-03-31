@@ -4,4 +4,11 @@
 # Generates a DFA with about <nstates> states and <nsyms> different tokens,
 # and writes the result to file <file>.
 
-$SATIN_HOME/bin/ibis-satin-run -Xmx256M generate.GenerateDFA -states $1 -syms $2 -f $3
+# Check setting of DFA_HOME
+if [ -z "$DFA_HOME" ];  then
+    DFA_HOME=`pwd`
+fi
+export DFA_HOME
+
+
+$DFA_HOME/bin/satin-run -Xmx256M generate.GenerateDFA -states $1 -syms $2 -f $3

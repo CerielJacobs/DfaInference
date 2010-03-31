@@ -1,0 +1,7 @@
+#! /bin/sh
+ 
+# testSample <size> <version>
+# Runs samples through the LearnedDFAs and the GeneratingDFAs, and prints
+# the correctness ratio.
+
+$DFA_HOME/bin/satin-run -Xmx256M test.TestSamples -s $1 -v $2

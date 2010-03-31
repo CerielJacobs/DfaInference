@@ -4,9 +4,9 @@ ARGS=
 # ARGS="$ARGS -DMissingEdges"
 # ARGS="$ARGS -DUseProductive"
 
-prun -t 0:10:0 -4 CLASSPATH=../../DfaInference.jar:. -v -o learn-7.out \
+prun COMMAND=$SATIN_HOME/bin/satin-run -t 0:10:0 -4 CLASSPATH=../../lib/DfaInference.jar:. -v -o learn-7.mw.out \
     -rsh ssh \
-    $IBIS_HOME/bin/ibis-prun $1 \
+    ibis-prun $1 \
     -server -Xms512M -Xmx512M \
     -Dsatin.closed \
     -Dibis.name=tcp \

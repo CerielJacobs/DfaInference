@@ -1,0 +1,12 @@
+#! /bin/sh
+
+# learn-V4 <name>
+
+ARGS=
+ARGS="$ARGS -DUseProductive"
+ARGS="$ARGS -DRefinedMDL"
+
+name=$1
+
+bin/satin-run -server -Xmx512M $ARGS DfaInference.MDLFold \
+    -input DFAs/DFA-$name -output learned.V4/Learned-$name > out.V4/out-$name 2>&1

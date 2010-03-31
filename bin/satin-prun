@@ -1,0 +1,57 @@
+#!/bin/sh
+
+if [ -z "$DFA_HOME" ];  then
+    echo "please set DFA_HOME to the location of your Satin installation" 1>&2
+    exit 1
+fi
+
+if [ -z "$COMMAND" ]; then
+    COMMAND="$DFA_HOME/bin/satin-run"
+fi
+
+# SGE destroys path, but saves it in SGE_O_PATH. Reset it.
+if [ -z "$SGE_O_PATH" ]
+then	:
+else    export PATH="$SGE_O_PATH"
+fi
+
+# Check if user forgot no-panda flag. In that case, filter rank and nhosts.
+NHOSTS=`echo $PRUN_HOSTNAMES | awk '{print NF}'`
+case "X${1}X$2" in
+X${PRUN_CPU_RANK}X$NHOSTS)
+    shift
+    shift
+    ;;
+esac
+
+# Get the first host.
+for i in $HOSTS
+do
+    serverhost=$i
+    break
+done
+
+# Start an ipl-server on node 0.
+case X$PRUN_CPU_RANK in
+    X0)
+	$DFA_HOME/bin/satin-server < /dev/null > /dev/null 2>&1 &
+esac
+
+
+. "$COMMAND" \
+	-Dibis.pool.size=$NHOSTS \
+	"-Dibis.server.address=$serverhost" \
+	-Dibis.pool.name="$PRUN_ENV" \
+	"$@"
+
+# Kill server 10 seconds after this satin-run terminated.
+# Not nice, but we cannot kill the server immediately, because other
+# instances may still be active. In fact, this only works if all instances
+# finish at about the same time.
+# If this is not good enough, the user should have his own ipl-server.
+
+case X$PRUN_CPU_RANK in
+X0)
+    sleep 10
+    killall -9 java > /dev/null 2>&1
+esac

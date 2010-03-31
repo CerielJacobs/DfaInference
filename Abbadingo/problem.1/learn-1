@@ -15,8 +15,8 @@ else
     ARGS="$DOARGS"
 fi
 
-prun CLASSPATH=../../DfaInference.jar:. -v -o learn-1.out \
-    $IBIS_HOME/bin/ibis-prun 1 \
+prun COMMAND=$SATIN_HOME/bin/satin-run CLASSPATH=../../lib/DfaInference.jar:. -v -o learn-1.out \
+    ibis-prun 1 \
     -server -Xmx512M \
     $ARGS \
     DfaInference.EdFold \

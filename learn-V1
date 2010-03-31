@@ -1,0 +1,12 @@
+#! /bin/sh
+
+# learn-V1 <name>
+
+ARGS=
+ARGS="$ARGS -DIncrementalCounts"
+ARGS="$ARGS -DUseProductive"
+
+name=$1
+
+bin/satin-run -server -Xmx512M $ARGS DfaInference.MDLFold \
+    -input DFAs/DFA-$name -output learned.V1/Learned-$name > out.V1/out-$name 2>&1

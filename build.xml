@@ -116,10 +116,7 @@
     <target name="copy-included-satin">
 	<mkdir dir="${lib}" />
 	<copy todir="${lib}">
-	    <fileset dir="external/satin" />
-	    <fileset dir="external">
-		<include name="*.jar"/>
-	    </fileset>
+	    <fileset dir="external"/>
 	</copy>
     </target>
 

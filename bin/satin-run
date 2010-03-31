@@ -5,9 +5,9 @@
 
 # Check setting of DFA_HOME
 if [ -z "$DFA_HOME" ];  then
-    echo "please set DFA_HOME to the location of your DFA installation" 1>&2
-    exit 1
+    DFA_HOME=`pwd`
 fi
+export DFA_HOME
 
 # Run..
 # Note: this requires Java 6.

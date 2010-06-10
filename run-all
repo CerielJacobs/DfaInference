@@ -4,10 +4,14 @@ export DFA_HOME=`pwd`
 
 for V in EDSM V1 V2 V3 V4 V5
 do
+
+mkdir -p learned.$V
+mkdir -p out.$V
+
 for size in 1500 2000 2500 3000 3500 4000
 do
 prun CLASSPATH="$CLASSPATH" DFA_HOME="$DFA_HOME" -v -4 -o $V.out -rsh ssh -t 8:00:0 \
-    $HOME/bin/satin-prun $nhosts \
+    $DFA_HOME/bin/satin-prun $nhosts \
     -Xmx512M \
     -Dsatin.alg=MW \
     DfaInference.SatinRunner -command ./learn-$V -size $size

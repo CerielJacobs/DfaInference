@@ -47,7 +47,7 @@ public class AbbaDingoString implements SampleString {
      * @see abbadingo.SampleString#getString()
      */
     public String[] getString() {
-        return (String[]) words.clone();
+        return words.clone();
     }
 
     /* (non-Javadoc)

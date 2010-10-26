@@ -388,10 +388,10 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         System.out.println("The winner DFA has MDL complexity "
                 + bestDFA.getMDLComplexity() + " and " + bestDFA.nProductiveStates
                 + " states");
-        System.out.println("Total time     = " + (double)(endTime - startTime) / 1000.0);
-        System.out.println("Initialization = " + (double)(initializationTime - startTime) / 1000.0);
-        System.out.println("Search         = " + (double)(searchTime - initializationTime) / 1000.0);
-        System.out.println("Solution       = " + (double)(endTime - searchTime) / 1000.0);
+        System.out.println("Total time     = " + (endTime - startTime) / 1000.0);
+        System.out.println("Initialization = " + (initializationTime - startTime) / 1000.0);
+        System.out.println("Search         = " + (searchTime - initializationTime) / 1000.0);
+        System.out.println("Solution       = " + (endTime - searchTime) / 1000.0);
 
         if (logger.isInfoEnabled()) {
             logger.info("The winner is:\n" + bestDFA);

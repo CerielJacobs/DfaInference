@@ -471,13 +471,13 @@ public final class DFA implements java.io.Serializable, Configuration {
                     // only from node needs to exist; note that this is
                     // a bug, we should really check if the destination
                     // node exists at the end of the read operation
-                    State s = (State) nodes.get(fromVal);
+                    State s = nodes.get(fromVal);
                     if (s == null) {
                         throw new Error("File format error: E with from "
                                 + "node for which no N line seen yet!");
                     }
 
-                    State d = (State) nodes.get(toVal);
+                    State d = nodes.get(toVal);
                     if (d == null) {
                         d = s.addDestination(true, label);
                         nodes.put(toVal, d);
@@ -491,7 +491,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
                 case 'A': {
                     // Treat accepting indicator (node must be defined)
-                    State d = (State) nodes.get(new Integer(line.substring(1)));
+                    State d = nodes.get(new Integer(line.substring(1)));
                     if (d == null) {
                         throw new Error(
                                 "Trying to set Accept of node for which no N line seen!");
@@ -892,7 +892,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         // Process list of equivalence sets.
         while (l.size() != 0) {
             int n;
-            b = (BitSet) l.removeFirst();
+            b = l.removeFirst();
 
             // Add all states that are known to be equivalent to a state in
             // b to b.
@@ -2341,8 +2341,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                                 + ":"
                                 + symbols.getSymbol(j)
                                 + ":"
-                                + (allStates ? e.getId() : ((Integer) h.get(e))
-                                        .intValue()) + "\n");
+                                + (allStates ? e.getId() : h.get(e).intValue()) + "\n");
                     }
                 }
             }

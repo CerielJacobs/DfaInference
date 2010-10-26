@@ -77,7 +77,7 @@ public class Sampler2 extends EdFold {
             } else {
                 choice2 = random.nextInt(numCandidates);
             }
-            Choice ch = (Choice) mergeCandidates[choice2];
+            Choice ch = mergeCandidates[choice2];
             if (logger.isDebugEnabled()) {
                 logger.debug("Choices: " + mergeChoices2Str()
                         + ", chose " + "(" + ch.s1 + ", " + ch.s2 + ")");

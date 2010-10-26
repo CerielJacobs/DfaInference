@@ -440,8 +440,8 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
             len = 1;
         } else {
             while (len < numCandidates) {
-                Choice ch1 = (Choice) mergeCandidates[len-1];
-                Choice ch2 = (Choice) mergeCandidates[len];
+                Choice ch1 = mergeCandidates[len-1];
+                Choice ch2 = mergeCandidates[len];
                 if (ch1.score != ch2.score) {
                     break;
                 }

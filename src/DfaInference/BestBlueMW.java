@@ -142,7 +142,6 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
      * @param p the current control/result pair.
      * @param depth indicates the current depth.
      * @param learningSamples the samples to learn from.
-     * @return the new control/result pair.
      */
     void tryExtending(ControlResultPair p, int depth, int targetDepth) {
         DFA dfa = new DFA(samples);
@@ -410,10 +409,10 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
         System.out.println("The winner DFA has MDL complexity "
                 + bestDFA.getMDLComplexity() + " and " + bestDFA.getNumStates()
                 + " states");
-        System.out.println("Total time     = " + (double)(endTime - startTime) / 1000.0);
-        System.out.println("Initialization = " + (double)(initializationTime - startTime) / 1000.0);
-        System.out.println("Search         = " + (double)(searchTime - initializationTime) / 1000.0);
-        System.out.println("Solution       = " + (double)(endTime - searchTime) / 1000.0);
+        System.out.println("Total time     = " + (endTime - startTime) / 1000.0);
+        System.out.println("Initialization = " + (initializationTime - startTime) / 1000.0);
+        System.out.println("Search         = " + (searchTime - initializationTime) / 1000.0);
+        System.out.println("Solution       = " + (endTime - searchTime) / 1000.0);
 
         if (logger.isInfoEnabled()) {
             logger.info("The winner is:\n" + bestDFA);

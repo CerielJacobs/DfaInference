@@ -126,7 +126,6 @@ public final class State implements java.io.Serializable, Configuration,
      * @param parent the parent of the newly created state
      * @param h maps states to copies, so that cycles can be dealt with.
      * @param map if non-null, re-orders the symbol numbering.
-     * @param idOffset, to be added to the id.
      * @param nsym the new number of symbols.
      */
     State(State s, State parent, HashMap<State, State> h, int[] map,

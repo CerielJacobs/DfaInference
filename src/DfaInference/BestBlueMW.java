@@ -15,9 +15,8 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleReader;
 import sample.SampleString;
-
-import abbadingo.AbbaDingoReader;
 
 /**
  * This class implements a search strategy that, up to a certain depth,
@@ -268,6 +267,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
         String outputfile = "LearnedDFA";
         String folder = "DfaInference.EdFold";
         String blueStrategy = "DfaInference.ChoiceCountStrategy";
+        String reader = "abbadingo.AbbaDingoReader";
         int minDepth = 5;
         int maxDepth = -1;
         boolean maxDepthSpecified = false;
@@ -316,6 +316,13 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
                     System.exit(1);
                 }
                 folder = args[i];
+            } else if (args[i].equals("-reader")) {
+                i++;
+                if (i >= args.length) {
+                    logger.fatal("-reader option requires class name");
+                    System.exit(1);
+                }
+                reader = args[i];
             } else if (args[i].equals("-output")) {
                 i++;
                 if (i >= args.length) {
@@ -374,11 +381,12 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
 
         SampleString[] samples = null;
         try {
+            SampleReader sampleReader = new SampleReader(reader);
             if (learningSetFile != null) {
-                samples = AbbaDingoReader.getStrings(learningSetFile);
+                samples = sampleReader.getStrings(learningSetFile);
             }
             else {
-                samples = AbbaDingoReader.getStrings(System.in);
+                samples = sampleReader.getStrings(System.in);
             }
         } catch(java.io.IOException e) {
             logger.fatal("IO Exception", e);

@@ -3,6 +3,7 @@ package abbadingo;
 import java.io.IOException;
 import java.io.StringReader;
 
+import sample.SampleReader;
 import sample.SampleString;
 
 import junit.framework.Test;
@@ -18,8 +19,9 @@ public class Tests extends TestCase {
     }
 
     public void testReader() throws IOException {
+        SampleReader sampleReader = new SampleReader("abbadingo.AbbaDingoReader");
         StringReader r = new StringReader(input);
-        SampleString[] strings = AbbaDingoReader.getStrings(r);
+        SampleString[] strings = sampleReader.getStrings(r);
 
         assertTrue(strings.length == 3);
 

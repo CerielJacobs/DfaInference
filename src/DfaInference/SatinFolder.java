@@ -14,9 +14,8 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleReader;
 import sample.SampleString;
-
-import abbadingo.AbbaDingoReader;
 
 /**
  * This class implements a "top N" search strategy. The current best N
@@ -354,6 +353,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
         String  learningSetFile = null;
         String outputfile = "LearnedDFA";
         String folder = "DfaInference.EdFold";
+        String reader = "abbadingo.AbbaDingoReader";
         String dump = null;
         int window = 1;
         int depth = 0;
@@ -427,6 +427,13 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
                     System.exit(1);
                 }
                 folder = args[i];
+            } else if (args[i].equals("-reader")) {
+                i++;
+                if (i >= args.length) {
+                    logger.fatal("-reader option requires class name");
+                    System.exit(1);
+                }
+                reader = args[i];
             } else if (args[i].equals("-output")) {
                 i++;
                 if (i >= args.length) {
@@ -468,14 +475,15 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
         }
 
         SampleString[] samples = null;
-        try {
+        try { 
+            SampleReader sampleReader = new SampleReader(reader);
             if (learningSetFile != null) {
-                samples = AbbaDingoReader.getStrings(learningSetFile);
+                samples = sampleReader.getStrings(learningSetFile);
             }
             else {
-                samples = AbbaDingoReader.getStrings(System.in);
-            }
-        } catch(java.io.IOException e) {
+                samples = sampleReader.getStrings(System.in);
+            }           
+         } catch(java.io.IOException e) {
             logger.fatal("IO Exception", e);
             System.exit(1);
         }

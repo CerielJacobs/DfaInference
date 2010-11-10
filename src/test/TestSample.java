@@ -4,10 +4,10 @@ import java.io.FileReader;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleReader;
 import sample.SampleString;
 
 import DfaInference.DFA;
-import abbadingo.AbbaDingoReader;
 
 /**
  * Utility to run a test sample through a specified DFA, and produce a single
@@ -24,6 +24,7 @@ public class TestSample {
         String machinefile = "LearnedDFA";
         String testInput = "TestSample";
         String baseDFAFile = null;
+        String reader = "abbadingo.AbbaDingoReader";
 
         for (int i = 0; i < args.length; i++) {
             if (false) {
@@ -48,16 +49,23 @@ public class TestSample {
                     System.exit(1);
                 }
                 baseDFAFile = args[i];
+            } else if (args[i].equals("-reader")) {
+                i++;
+                if (i >= args.length) {
+                    logger.fatal("-reader option requires class name");
+                    System.exit(1);
+                }
+                reader = args[i];
             } else {
                 logger.fatal("Unrecognized option: " + args[i]);
                 System.exit(1);
             }
         }
 
-        testSample(machinefile, baseDFAFile, testInput);
+        testSample(machinefile, baseDFAFile, testInput, reader);
     }
 
-    static void testSample(String machinefile, String baseDFAFile, String testInput) {
+    static void testSample(String machinefile, String baseDFAFile, String testInput, String reader) {
 
         FileReader fr = null;
         DFA dfa = null;
@@ -87,7 +95,8 @@ public class TestSample {
 
         SampleString[] samples = null;
         try {
-            samples = AbbaDingoReader.getStrings(testInput);
+            SampleReader sampleReader = new SampleReader(reader);
+            samples = sampleReader.getStrings(testInput);
         } catch(java.io.IOException e) {
             logger.fatal("IO Exception", e);
             System.exit(1);

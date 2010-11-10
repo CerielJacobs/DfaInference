@@ -1,36 +1,41 @@
 package stamina;
 
+import java.util.ArrayList;
+
 import sample.SampleString;
 
 public class StaminaString implements SampleString {
 
-    private final boolean accept;
+    private final ArrayList<String> sample = new ArrayList<String>(); 
+
+    /**
+     * Positive for positive string, 0 for negative string,
+     * negative for unknown.
+     */
+    private char flag;
     
-    public StaminaString(boolean accept) {
-        this.accept = accept;
+    public StaminaString(char flag) {
+        this.flag = flag;
     }
     
     @Override
     public void addToken(String s) {
-        // TODO Auto-generated method stub
+        sample.add(s);
     }
 
     @Override
     public String[] getString() {
-        // TODO Auto-generated method stub
-        return null;
+        return sample.toArray(new String[sample.size()]);
     }
 
     @Override
     public boolean isAccepted() {
-        // TODO Auto-generated method stub
-        return false;
+        return flag == '+';
     }
 
     @Override
     public boolean isNotAccepted() {
-        // TODO Auto-generated method stub
-        return false;
+        return flag == '-';
     }
 
 }

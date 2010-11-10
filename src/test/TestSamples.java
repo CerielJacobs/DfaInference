@@ -16,6 +16,7 @@ public class TestSamples {
 
         String size = "1500";
         String version = "V1";
+        String reader = "abbadingo.AbbaDingoReader";
 
 
         for (int i = 0; i < args.length; i++) {
@@ -34,6 +35,13 @@ public class TestSamples {
                     System.exit(1);
                 }
                 version = args[i];
+            } else if (args[i].equals("-reader")) {
+                i++;
+                if (i >= args.length) {
+                    logger.fatal("-reader option requires class name");
+                    System.exit(1);
+                }
+                reader = args[i];
             } else {
                 logger.fatal("Unrecognized option: " + args[i]);
                 System.exit(1);
@@ -44,7 +52,7 @@ public class TestSamples {
             String s = (i < 10 ? "00" : (i < 100 ? "0" : "")) + i;
             String dfa = "DFAs/DFA-" + s;
             String learned = "learned." + version + "/Learned-" + s + "." + size;
-            TestSample.testSample(learned, dfa, dfa + ".test");
+            TestSample.testSample(learned, dfa, dfa + ".test", reader);
         }
     }
 }

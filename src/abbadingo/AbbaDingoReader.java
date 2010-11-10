@@ -1,13 +1,10 @@
 package abbadingo;
 
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StreamTokenizer;
 
+import sample.ReadSample;
 import sample.SampleString;
 
 /**
@@ -27,7 +24,7 @@ import sample.SampleString;
  * 1 15 1 0 0 1 1 1 1 1 1 0 0 0 1 1 0
  * </pre>
  */
-public class AbbaDingoReader {
+public class AbbaDingoReader implements ReadSample {
 
     /** This StreamTokenizer splits the input into words. */
     private StreamTokenizer d;
@@ -35,17 +32,9 @@ public class AbbaDingoReader {
     /** Number of sentences in the input. */
     private int numSentences;
 
-    /**
-     * Constructor with a reader.
-     * @param in the reader.
-     */
-    private AbbaDingoReader(Reader in) {
-        d = new StreamTokenizer(in);
-        d.resetSyntax();
-        d.wordChars(0,255);
-        d.whitespaceChars(0, ' ');
-        d.eolIsSignificant(true);
+    public AbbaDingoReader() {
     }
+
 
     /**
      * Reads an integer from the stream tokenizer.
@@ -136,12 +125,20 @@ public class AbbaDingoReader {
     }
 
     /**
-     * Reads the AbbaDingo file.
+     * Reads the specified reader, which should be in AbbaDingo format.
+     * @param in the reader.
      * @return the sentences read.
-     * @exception IOException on IO error.
+     * @exception IOException on I/O error.
      */
-    private SampleString[] readStrings() throws IOException {
-
+    public SampleString[] readStrings(Reader in)
+            throws java.io.IOException {
+        
+        d = new StreamTokenizer(in);
+        d.resetSyntax();
+        d.wordChars(0,255);
+        d.whitespaceChars(0, ' ');
+        d.eolIsSignificant(true);
+        
         skipComment();
         readHeader();
 
@@ -159,44 +156,6 @@ public class AbbaDingoReader {
             throw new IOException("EOF expected, got " + d.toString());
         }
 
-        return strs;
-    }
-
-    /**
-     * Reads the specified input stream, which should be in AbbaDingo format.
-     * @param s the input stream.
-     * @return the sentences read.
-     * @exception IOException on I/O error.
-     */
-    public static SampleString[] getStrings(InputStream s)
-            throws java.io.IOException {
-        s = new BufferedInputStream(s);
-        return getStrings(new InputStreamReader(s));
-    }
-
-    /**
-     * Reads the specified reader, which should be in AbbaDingo format.
-     * @param s the reader.
-     * @return the sentences read.
-     * @exception IOException on I/O error.
-     */
-    public static SampleString[] getStrings(Reader s)
-            throws java.io.IOException {
-        AbbaDingoReader r = new AbbaDingoReader(s);
-        return r.readStrings();
-    }
-
-    /**
-     * Reads the specified file, which should be in AbbaDingo format.
-     * @param filename the name of the input file.
-     * @return the sentences read.
-     * @exception IOException on I/O error.
-     */
-    public static SampleString[] getStrings(String filename)
-            throws java.io.IOException {
-        FileInputStream f = new FileInputStream(filename);
-        SampleString[] strs = getStrings(f);
-        f.close();
         return strs;
     }
 }

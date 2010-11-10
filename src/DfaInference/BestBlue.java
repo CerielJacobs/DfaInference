@@ -10,9 +10,8 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleReader;
 import sample.SampleString;
-
-import abbadingo.AbbaDingoReader;
 
 /**
  * This class implements a search strategy that, up to a certain depth,
@@ -222,6 +221,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         String outputfile = "LearnedDFA";
         String folder = "DfaInference.EdFold";
         String blueStrategy = "DfaInference.ChoiceCountStrategy";
+        String reader = "abbadingo.AbbaDingoReader";
         boolean printInfo = false;
         int mindepth = 5;
         int maxdepth = -1;
@@ -277,7 +277,15 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
                     logger.fatal("-dump option requires filename");
                     System.exit(1);
                 }
-                dumpfile = args[i];
+                dumpfile = args[i]; 
+            } else if (args[i].equals("-reader")) {
+                    i++;
+                    if (i >= args.length) {
+                        logger.fatal("-reader option requires class name");
+                        System.exit(1);
+                    }
+                    reader = args[i];
+                
             } else if (args[i].equals("-output")) {
                 i++;
                 if (i >= args.length) {
@@ -334,11 +342,12 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
 
         SampleString[] samples = null;
         try {
+            SampleReader sampleReader = new SampleReader(reader);
             if (learningSetFile != null) {
-                samples = AbbaDingoReader.getStrings(learningSetFile);
+                samples = sampleReader.getStrings(learningSetFile);
             }
             else {
-                samples = AbbaDingoReader.getStrings(System.in);
+                samples = sampleReader.getStrings(System.in);
             }
         } catch(java.io.IOException e) {
             logger.fatal("IO Exception", e);

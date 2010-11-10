@@ -6,9 +6,8 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import sample.SampleReader;
 import sample.SampleString;
-
-import abbadingo.AbbaDingoReader;
 
 public class Sampler2 extends EdFold {
 
@@ -232,6 +231,7 @@ public class Sampler2 extends EdFold {
         int randomDepth = 5000;
         int diversityThreshold = 200;
         int populationRoot = 8;
+        String reader = "abbadingo.AbbaDingoReader";
 
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
 
@@ -279,6 +279,13 @@ public class Sampler2 extends EdFold {
                     System.exit(1);
                 }
                 outputfile = args[i];
+            } else if (args[i].equals("-reader")) {
+                i++;
+                if (i >= args.length) {
+                    logger.fatal("-reader option requires class name");
+                    System.exit(1);
+                }
+                reader = args[i];
             } else {
                 logger.fatal("Unrecognized option: " + args[i]);
                 System.exit(1);
@@ -287,11 +294,12 @@ public class Sampler2 extends EdFold {
 
         SampleString[] samples = null;
         try {
+            SampleReader sampleReader = new SampleReader(reader);
             if (learningSetFile != null) {
-                samples = AbbaDingoReader.getStrings(learningSetFile);
+                samples = sampleReader.getStrings(learningSetFile);
             }
             else {
-                samples = AbbaDingoReader.getStrings(System.in);
+                samples = sampleReader.getStrings(System.in);
             }
         } catch(java.io.IOException e) {
             logger.fatal("IO Exception", e);

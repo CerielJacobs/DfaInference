@@ -38,4 +38,19 @@ public class StaminaString implements SampleString {
         return flag == '-';
     }
 
+    public String toString() {
+        StringBuilder b = new StringBuilder();
+        if (isAccepted()) {
+            b.append("+");
+        } else if (isNotAccepted()) {
+            b.append("-");
+        } else {
+            b.append("?");
+        }
+        for (String s : sample) {
+            b.append(' ');
+            b.append(s);
+        }
+        return b.toString();
+    }
 }

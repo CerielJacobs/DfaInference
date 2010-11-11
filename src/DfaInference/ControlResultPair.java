@@ -42,6 +42,13 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
         this.depth = d;
         this.fromChoiceIndex = c;
     }
+    
+    public ControlResultPair(ControlResultPair p) {
+        this.score = p.score;
+        this.control = p.control;
+        this.depth = p.depth;
+        this.fromChoiceIndex = p.fromChoiceIndex;
+    }
 
     /**
      * Comparison for sorting purposes.

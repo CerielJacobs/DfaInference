@@ -124,10 +124,12 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             int[] control = new int[p.control.length+1];
             System.arraycopy(p.control, 0, control, 0, p.control.length);
             control[p.control.length] = k;
-            pairs[k] = table.getResult(control);
-            if (pairs[k] == null) {
-                pairs[k] = new ControlResultPair(-1, control, 0, 0);
-                pairs[k] = buildPair(fixOffset, pairs[k], learningSamples, table, depth+1);
+            ControlResultPair t = table.getResult(control);
+            if (t == null) {
+                t = new ControlResultPair(-1, control, 0, 0);
+                pairs[k] = buildPair(fixOffset, t, learningSamples, table, depth+1);
+            } else {
+                pairs[k] = t;
             }
         }
 
@@ -175,6 +177,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
     ControlResultPair doSearch(Samples samples, int minD, int maxD, ControlResultPairTable table) {
 
         ControlResultPair pop = null;
+        ControlResultPair result = null;
         int[] control;
 
         samples.exportObject();
@@ -192,7 +195,11 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
 
             pop = tryExtending(control.length, new ControlResultPair(Integer.MAX_VALUE, control, 0, 0),
                     i - minD, samples, table);
-            if (i < maxD) {
+            
+            if (result == null || result.score >= pop.score) {
+                result = new ControlResultPair(pop);
+            }
+            if (i < maxD) {               
                 int fixD = i - minD + 1;
                 System.out.print("Fixing up until depth " + fixD + ":");
                 control = new int[fixD];
@@ -201,7 +208,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
                     System.out.print(" " + control[j]);
                 }
                 System.out.println("");
-                System.out.println("Score: " + pop.score);
+                System.out.println("Best ControlResultPair: " + pop);
                 pop.control = control;
                 table.fix(pop);
             }
@@ -209,7 +216,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         
         table.finish();
         
-        return pop;
+        return result;
     }
 
     /**
@@ -383,6 +390,8 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         }
 
         ControlResultPair p = b.doSearch(learningSamples, mindepth, maxdepth, table);
+        
+        System.out.println("Best ControlResultPair: " + p);
 
         long searchTime = System.currentTimeMillis();
 

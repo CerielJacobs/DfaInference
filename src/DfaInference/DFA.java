@@ -1227,6 +1227,15 @@ public final class DFA implements java.io.Serializable, Configuration {
     public int getNumStates() {
         return nStates;
     }
+    
+    /**
+     * Obtains the number of edges.
+     * 
+     * @return number of edges
+     */
+    public int getNumEdges() {
+        return nEdges;
+    }
 
     /**
      * Obtains the number of productive states.
@@ -1235,6 +1244,15 @@ public final class DFA implements java.io.Serializable, Configuration {
      */
     public int getNumProductiveStates() {
         return nProductiveStates;
+    }
+    
+    /**
+     * Obtains the number of productive edges.
+     * 
+     * @return number of productive edges
+     */
+    public int getNumProductiveEdges() {
+        return nProductiveEdges;
     }
 
     /**
@@ -1806,8 +1824,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             chiSquareSum += Math.log(p_value);
             try {
                 zSum += normal.inverseCumulativeProbability(p_value);
-            } catch(MathException e) {
-                logger.debug("Oops: MathException? p_value = " + p_value, e);
+            } catch(Throwable e) {
+                logger.debug("Oops? p_value = " + p_value, e);
             }
             if (logger.isDebugEnabled()) {
                 logger.debug("(" + n1.getId() + "," + n2.getId() + ") --> score = " + p_value);

@@ -3,7 +3,7 @@ package DfaInference;
 import sample.SampleReader;
 import sample.SampleString;
 
-/** Evidence-driven state merging, but score is determined by number of edges. */
+/** Evidence-driven state merging, but score is also determined by number of edges. */
 public class EdEdgesFold extends RedBlue implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -26,7 +26,7 @@ public class EdEdgesFold extends RedBlue implements java.io.Serializable {
     }
 
     double getScore() {
-        return dfa.getNumProductiveEdges();
+        return dfa.getNumProductiveEdges() + dfa.getNumProductiveStates();
     }
 
     /**

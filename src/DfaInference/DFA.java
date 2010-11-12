@@ -532,6 +532,8 @@ public final class DFA implements java.io.Serializable, Configuration {
     private void dfaComputations(boolean reIndex) {
         State[] states;
         
+        startState.computeDepths();
+
         if (reIndex) {
             startState.setId(-1);
             idMap = startState.breadthFirst();
@@ -556,7 +558,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
             }
         }
-        startState.computeDepths();
         saved = new State[nStates];
         nProductiveStates = startState.computeProductiveStates(ACCEPTING);
         nProductiveEdges = computeProductiveEdges(idMap, ACCEPTING);

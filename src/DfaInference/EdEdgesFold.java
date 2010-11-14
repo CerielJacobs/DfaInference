@@ -18,14 +18,14 @@ public class EdEdgesFold extends RedBlue implements java.io.Serializable {
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
         if (! dfa.conflict) {
             addChoice(Choice.getChoice(r.getId(), b.getId(), dfa.getNumStates(),
-                        -dfa.labelScore));
+                        -(dfa.labelScore - dfa.newEdges)));
             foundMerge = true;
         }
         dfa.undoMerge(u);
         return foundMerge;
     }
 
-    double getScore() {
+    public double getScore() {
         return dfa.getNumProductiveEdges() + dfa.getNumProductiveStates();
     }
 

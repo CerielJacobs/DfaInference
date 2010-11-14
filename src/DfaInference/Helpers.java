@@ -15,7 +15,7 @@ public final class Helpers {
      * Returns a string describing the platform version that is used.
      * @return description string.
      */
-    static String getPlatformVersion()
+    public static String getPlatformVersion()
     {
         java.util.Properties p = System.getProperties();
 

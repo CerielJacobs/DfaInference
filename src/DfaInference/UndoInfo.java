@@ -50,9 +50,9 @@ public final class UndoInfo implements Configuration {
             orig = s;
             accepting = s.accepting;
             productive = s.productive;
-            depth = s.depth;
+            depth = s.getDepth();
             weight = s.weight;
-            traffic = s.traffic;
+            traffic = s.getTraffic();
             xTraffic = s.xTraffic;
             if (USE_CHISQUARE) {
                 edgeWeights = s.edgeWeights.clone();
@@ -107,9 +107,9 @@ public final class UndoInfo implements Configuration {
                 }
 
                 orig.productive = last.productive;
-                orig.depth = last.depth;
+                orig.setDepth(last.depth);
                 orig.weight = last.weight;
-                orig.traffic = last.traffic;
+                orig.setTraffic(last.traffic);
                 orig.xTraffic = last.xTraffic;
                 orig.edgeWeights = last.edgeWeights;
                 orig.xEdgeWeights = last.xEdgeWeights;

@@ -7,7 +7,7 @@ public class MDLEdFold extends RedBlue implements java.io.Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    double getScore() {
+    public double getScore() {
         return dfa.getMDLComplexity();
     }
 

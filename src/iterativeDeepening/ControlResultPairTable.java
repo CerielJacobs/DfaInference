@@ -1,4 +1,5 @@
-package DfaInference;
+package iterativeDeepening;
+
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -8,6 +9,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+
+import DfaInference.ControlResultPair;
 
 public class ControlResultPairTable extends ibis.satin.SharedObject 
         implements ControlResultPairTableInterface, Runnable,
@@ -78,7 +81,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
                     System.out.println(" } found, score " + p.score);
                     return p;
                 }
-                l = p.table;
+                l = p.getTable();
             } else {
                 break;
             }
@@ -120,15 +123,15 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
             
             if (i == depth-1) {
                 v.control = p.control.clone();
-                v.fromChoiceIndex = p.fromChoiceIndex;
-                v.depth = depth;
+                v.setFromChoiceIndex(p.getFromChoiceIndex());
+                v.setDepth(depth);
                 v.score = p.score;
-                v.table = null;
+                v.setTable(null);
             } else {
-                if (v.table == null) {
-                    v.table = new ArrayList<ControlResultPair>();
+                if (v.getTable() == null) {
+                    v.setTable(new ArrayList<ControlResultPair>());
                 }
-                l = v.table;
+                l = v.getTable();
             }
         }
         System.out.println("}, score = " + p.score);

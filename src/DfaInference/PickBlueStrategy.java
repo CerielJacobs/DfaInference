@@ -1,5 +1,6 @@
 package DfaInference;
 
+
 /**
  * Determines the strategy for choosing a blue state that must be dealt with
  * next.

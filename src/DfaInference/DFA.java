@@ -190,7 +190,7 @@ public final class DFA implements java.io.Serializable, Configuration {
     boolean conflict = false;
 
     /** Maps ids to states. */
-    State[] idMap;
+    private State[] idMap;
 
     /** Temporary storage. */
     private State[] saved;
@@ -209,6 +209,8 @@ public final class DFA implements java.io.Serializable, Configuration {
     private int markCounter = 2;     // Used for state marker
     
     private ArrayList<State> entranceStates;
+
+    int newEdges;
 
     /**
      * Basic constructor, creates an empty DFA.
@@ -326,7 +328,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         symbols = new Symbols(symbols);
 
         startState = dfa.startState.copy();
-        idMap = startState.breadthFirst();
+        setIdMap(startState.breadthFirst());
         saved = new State[nStates];
         conflicts = dfa.conflicts;
         adjacencyComplement = dfa.adjacencyComplement;
@@ -536,9 +538,9 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if (reIndex) {
             startState.setId(-1);
-            idMap = startState.breadthFirst();
-            nStates = idMap.length;
-            states = idMap;
+            setIdMap(startState.breadthFirst());
+            nStates = getIdMap().length;
+            states = getIdMap();
             conflicts = null;
         } else {
             states = startState.breadthFirst();
@@ -560,15 +562,15 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         saved = new State[nStates];
         nProductiveStates = startState.computeProductiveStates(ACCEPTING);
-        nProductiveEdges = computeProductiveEdges(idMap, ACCEPTING);
+        nProductiveEdges = computeProductiveEdges(getIdMap(), ACCEPTING);
         if (NEGATIVES || MDL_COMPLEMENT) {
             nXProductiveStates = startState.computeProductiveStates(REJECTING);
-            nXProductiveEdges = computeProductiveEdges(idMap, REJECTING);
+            nXProductiveEdges = computeProductiveEdges(getIdMap(), REJECTING);
         }
 
-        missingEdges = computeMissingEdges(idMap, ACCEPTING);
+        missingEdges = computeMissingEdges(getIdMap(), ACCEPTING);
         if (MDL_COMPLEMENT || NEGATIVES) {
-            missingXEdges = computeMissingEdges(idMap, REJECTING);
+            missingXEdges = computeMissingEdges(getIdMap(), REJECTING);
         }
         counts = null;
         xCounts = null;
@@ -632,9 +634,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         nStates = dfa1.nStates + dfa2.nStates;
         nAccepting = dfa1.nAccepting + dfa2.nAccepting;
         nRejecting = dfa1.nRejecting + dfa2.nRejecting;
-        idMap = new State[nStates];
-        state1.fillIdMap(idMap);
-        state2.fillIdMap(idMap);
+        setIdMap(new State[nStates]);
+        state1.fillIdMap(getIdMap());
+        state2.fillIdMap(getIdMap());
         maxlen = dfa1.maxlen;
         if (dfa2.maxlen > maxlen) {
             maxlen = dfa2.maxlen;
@@ -655,8 +657,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             // indexed by state id. Equivalent states have the same equivalence
             // set.
             BitSet[] merges = merge(state1, state2);
-            startState = new State(state1, merges, new State[idMap.length],
-                    idMap, new Numberer());
+            startState = new State(state1, merges, new State[getIdMap().length],
+                    getIdMap(), new Numberer());
         }
         entranceStates.clear();
         entranceStates.add(startState);
@@ -726,11 +728,11 @@ public final class DFA implements java.io.Serializable, Configuration {
     
     public void fullMerge(State s1, State s2) throws ConflictingMerge {
         BitSet[] merges = merge(s1, s2);
-        startState = new State(startState, merges, new State[idMap.length],
-                idMap, new Numberer());
+        startState = new State(startState, merges, new State[getIdMap().length],
+                getIdMap(), new Numberer());
         dfaComputations(true);
         if (USE_ADJACENCY) {
-            for (State s : idMap) {
+            for (State s : getIdMap()) {
                 for (int i = 0; i < nsym; i++) {
                     if (s.children[i] != null) {
                         if (s.entrySyms.intersects(adjacencyComplement[i])) {
@@ -771,7 +773,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         startState = new State(nsym);
         startState.accepting = (byte)(state1.accepting | state2.accepting);
         startState.weight = state1.weight + state2.weight;
-        startState.traffic = state1.traffic + state2.traffic;
+        startState.setTraffic(state1.getTraffic() + state2.getTraffic());
         startState.xTraffic = state1.xTraffic + state2.xTraffic;
 
         if (USE_CHISQUARE) {
@@ -815,7 +817,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         target.set(child.getId());
                         accepting |= child.accepting;
                         weight += child.weight;
-                        traffic += child.traffic;
+                        traffic += child.getTraffic();
                         xTraffic += child.xTraffic;
                         if (USE_CHISQUARE) {
                             for (int j = 0; j < nsym; j++) {
@@ -842,7 +844,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     newTarget = new State(nsym);
                     newTarget.accepting = accepting;
                     newTarget.weight = weight;
-                    newTarget.traffic = traffic;
+                    newTarget.setTraffic(traffic);
                     newTarget.xTraffic = xTraffic;
                     newTarget.edgeWeights = edgeWeights;
                     newTarget.xEdgeWeights = xEdgeWeights;
@@ -879,7 +881,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         b.set(s1.getId());
         b.set(s2.getId());
 
-        for (State s : idMap) {
+        for (State s : getIdMap()) {
             if ((s.accepting & ACCEPTING) != 0) {
                 acceptingStates.set(s.getId());
             } else if ((s.accepting & REJECTING) != 0) {
@@ -921,7 +923,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             // Find conflicts, i.e. new merge sets.
             for (int i = 0; i < symbols.nSymbols(); i++) {
                 for (n = b.nextSetBit(0); n != -1; n = b.nextSetBit(n + 1)) {
-                    State t = idMap[n].traverseLink(i);
+                    State t = getIdMap()[n].traverseLink(i);
                     if (t != null) {
                         if (mergeSets[t.getId()] != null) {
                             newMerge.or(mergeSets[t.getId()]);
@@ -1072,7 +1074,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (id < 0) {
             return null;
         }
-        return idMap[id];
+        return getIdMap()[id];
     }
 
     /**
@@ -1113,7 +1115,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (reject) {
                 target.xTraffic++;
             } else {
-                target.traffic++;
+                target.setTraffic(target.getTraffic() + 1);
             }
 
             if (USE_CHISQUARE) {
@@ -1266,9 +1268,9 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     private int getMark() {
-        if (markCounter >= Integer.MAX_VALUE - idMap.length) {
-            for (int i = 0; i < idMap.length; i++) {
-                idMap[i].mark = 0;
+        if (markCounter >= Integer.MAX_VALUE - getIdMap().length) {
+            for (int i = 0; i < getIdMap().length; i++) {
+                getIdMap()[i].mark = 0;
             }
             markCounter = 0;
         }
@@ -1419,6 +1421,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         // Recurse while merging ...
         labelScore = 0;
+        newEdges = 0;
         chiSquareSum = 0.0;
         xChiSquareSum = 0.0;
         zSum = 0.0;
@@ -1631,7 +1634,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         n1.weight += n2.weight;
-        n1.traffic += n2.traffic;
+        n1.setTraffic(n1.getTraffic() + n2.getTraffic());
         n1.xTraffic += n2.xTraffic;
         if (USE_CHISQUARE) {
             for (int j = 0; j < nsym; j++) {
@@ -1664,8 +1667,8 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         // A merge may make the depth smaller.
-        if (n1.depth > n2.depth) {
-            n1.depth = n2.depth;
+        if (n1.getDepth() > n2.getDepth()) {
+            n1.setDepth(n2.getDepth());
         }
 
         nStates--;
@@ -1704,6 +1707,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     // Parent of v2 changes, but is recomputed before every
                     // merge.
                     // System.out.println("    v2 = " + v2.id);
+                    newEdges++;
                     addEdge(undo, n1, i, v2);
                     if (USE_PARENT_SETS) {
                         v2.parents.remove(n2);
@@ -2099,7 +2103,7 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     public double computeTotalRecognized(int maxlength, int acceptOrReject) {
-        double[][] counts = new double[maxlength+1][idMap.length];
+        double[][] counts = new double[maxlength+1][getIdMap().length];
         return computeNStrings(maxlength, counts, acceptOrReject, false);       
     }
     
@@ -2116,14 +2120,14 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (counts == null) {
                 counts = new double[maxlen+1][];
                 for (int i = 0; i < counts.length; i++) {
-                    counts[i] = new double[idMap.length];
+                    counts[i] = new double[getIdMap().length];
                 }
             }
             if (NEGATIVES) {
                 if (xCounts == null) {
                     xCounts = new double[maxlen+1][];
                     for (int i = 0; i < xCounts.length; i++) {
-                        xCounts[i] = new double[idMap.length];
+                        xCounts[i] = new double[getIdMap().length];
                     }
                 }
             }
@@ -2419,7 +2423,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             State[] myStates = startState.breadthFirst();
 
             if (USE_PARENT_SETS) {
-                h = new BitSet(idMap.length);
+                h = new BitSet(getIdMap().length);
             }
 
             // Initialize
@@ -2440,9 +2444,9 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (!incremental || !counts_done) {
                 // Compute counts
                 for (int k = 1; k <= l; k++) {
-                    BitSet h2 = new BitSet(idMap.length);
+                    BitSet h2 = new BitSet(getIdMap().length);
                     for (int i = h.nextSetBit(0); i >= 0; i = h.nextSetBit(i + 1)) {
-                        State s = idMap[i];
+                        State s = getIdMap()[i];
                         for (State si : s.parents) {
                             for (int j = 0; j < nsym; j++) {
                                 if (si.children[j] == s) {
@@ -2457,7 +2461,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         } else if (incremental) {
             if (!counts_done) {
-                computeCounts(idMap, count);
+                computeCounts(getIdMap(), count);
             }
         } else {
             // This is faster, and does not need parent administration,
@@ -2491,8 +2495,8 @@ public final class DFA implements java.io.Serializable, Configuration {
         int c1;
         HashSet<State> h = new HashSet<State>();
         if (l1 == null) {
-            l1 = new State[idMap.length];
-            l2 = new State[idMap.length];
+            l1 = new State[getIdMap().length];
+            l2 = new State[getIdMap().length];
         }
 
         // Initialize. Only initialize count fields that we are going to use.
@@ -2550,8 +2554,8 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         // Careful! You cannot rely on state ids anymore after this.
         startState.setId(-1);
-        idMap = startState.breadthFirst();
-        nStates = idMap.length;
+        setIdMap(startState.breadthFirst());
+        nStates = getIdMap().length;
         
         BitSet[] partition = new BitSet[nStates];
         BitSet workList = new BitSet(nStates);
@@ -2561,8 +2565,8 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         counts_done = false;
 
-        for (int i = 0; i < idMap.length; i++) {
-            State s = idMap[i];
+        for (int i = 0; i < getIdMap().length; i++) {
+            State s = getIdMap()[i];
             if (!REFINED_MDL) {
                 if (counts != null) {
                     counts[0][s.getId()] = 0;
@@ -2608,10 +2612,10 @@ public final class DFA implements java.io.Serializable, Configuration {
 
             for (int i = 0; i < nsym; i++) {
                 BitSet Ia = new BitSet(nStates);
-                for (int j = 0; j < idMap.length; j++) {
-                    State st = idMap[j].traverseLink(i);
+                for (int j = 0; j < getIdMap().length; j++) {
+                    State st = getIdMap()[j].traverseLink(i);
                     if (st != null && S.get(st.getId())) {
-                        Ia.set(idMap[j].getId());
+                        Ia.set(getIdMap()[j].getId());
                     }
                 }
 
@@ -2655,16 +2659,17 @@ public final class DFA implements java.io.Serializable, Configuration {
         for (int i = 0; i < npartitions; i++) {
             BitSet p = partition[i];
             int ind = p.nextSetBit(0);
-            states[i] = idMap[ind];
+            states[i] = getIdMap()[ind];
             ind = p.nextSetBit(ind + 1);
             while (ind >= 0) {
-                states[i].weight += idMap[ind].weight;
-                states[i].traffic += idMap[ind].traffic;
-                states[i].xTraffic += idMap[ind].xTraffic;
+                states[i].weight += getIdMap()[ind].weight;
+                states[i].setTraffic(states[i].getTraffic()
+                        + getIdMap()[ind].getTraffic());
+                states[i].xTraffic += getIdMap()[ind].xTraffic;
                 if (USE_CHISQUARE) {
                     for (int j = 0; j < nsym; j++) {
-                        states[i].edgeWeights[j] += idMap[ind].edgeWeights[j];
-                        states[i].xEdgeWeights[j] += idMap[ind].xEdgeWeights[j];
+                        states[i].edgeWeights[j] += getIdMap()[ind].edgeWeights[j];
+                        states[i].xEdgeWeights[j] += getIdMap()[ind].xEdgeWeights[j];
                     }
                 }
                 ind = p.nextSetBit(ind + 1);
@@ -2734,12 +2739,12 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @return the conflict sets.
      */
     public BitSet[] computeConflicts() {
-        BitSet[] conflicts = new BitSet[idMap.length];
-        for (int i = 0; i < idMap.length; i++) {
-            State s1 = idMap[i];
+        BitSet[] conflicts = new BitSet[getIdMap().length];
+        for (int i = 0; i < getIdMap().length; i++) {
+            State s1 = getIdMap()[i];
             if ((s1.accepting & REJECTING) != 0) {
-                for (int j = 0; j < idMap.length; j++) {
-                    State s2 = idMap[j];
+                for (int j = 0; j < getIdMap().length; j++) {
+                    State s2 = getIdMap()[j];
                     if ((s2.accepting & ACCEPTING) != 0) {
                         propagateConflict(conflicts, s1, s2);
                     }
@@ -2804,9 +2809,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         result.nStates = dfa1.nStates + dfa2.nStates;
-        result.idMap = new State[result.nStates];
-        state1.fillIdMap(result.idMap);
-        state2.fillIdMap(result.idMap);
+        result.setIdMap(new State[result.nStates]);
+        state1.fillIdMap(result.getIdMap());
+        state2.fillIdMap(result.getIdMap());
         result.startState = state1;
         result.maxlen = dfa1.maxlen + dfa2.maxlen - 1;
 
@@ -2874,5 +2879,13 @@ public final class DFA implements java.io.Serializable, Configuration {
     
     public State[] getEntranceStates() {
         return entranceStates.toArray(new State[entranceStates.size()]);
+    }
+
+    private void setIdMap(State[] idMap) {
+        this.idMap = idMap;
+    }
+
+    public State[] getIdMap() {
+        return idMap;
     }
 }

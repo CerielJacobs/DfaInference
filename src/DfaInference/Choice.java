@@ -12,10 +12,10 @@ public class Choice implements Comparable<Choice>, java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
     /** The red state of the merge pair. */
-    int s1;
+    public int s1;
 
     /** The blue state of the merge pair. */
-    int s2;
+    public int s2;
 
     /** The number of states resulting after the merge. */
     transient int nstates;

@@ -17,18 +17,18 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
     private static final long serialVersionUID = 1L;
 
     /** The score resulting from this branch. */
-    double score;
+    public double score;
 
     /** The guidance that leads to this branch. */
-    int[] control;
+    public int[] control;
 
-    int depth;
+    private int depth;
 
     /** Index in the array of choices from which this branch originates. */
-    int fromChoiceIndex;
+    private int fromChoiceIndex;
     
     /** To organize ControlResultPairs in a tree (see ControlResultPairTable). */
-    ArrayList<ControlResultPair> table = null;
+    private ArrayList<ControlResultPair> table = null;
 
     /**
      * Constructor initializing from the specified values.
@@ -39,15 +39,15 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
     public ControlResultPair(double score, int[] control, int d, int c) {
         this.score = score;
         this.control = control;
-        this.depth = d;
-        this.fromChoiceIndex = c;
+        this.setDepth(d);
+        this.setFromChoiceIndex(c);
     }
     
     public ControlResultPair(ControlResultPair p) {
         this.score = p.score;
         this.control = p.control;
-        this.depth = p.depth;
-        this.fromChoiceIndex = p.fromChoiceIndex;
+        this.setDepth(p.getDepth());
+        this.setFromChoiceIndex(p.getFromChoiceIndex());
     }
 
     /**
@@ -60,7 +60,7 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
         if (score != p.score) {
             return (score - p.score > 0) ? 1 : -1;
         }
-        return fromChoiceIndex - p.fromChoiceIndex;
+        return getFromChoiceIndex() - p.getFromChoiceIndex();
     }
 
     /**
@@ -70,8 +70,8 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
     public String toString() {
         String str = "";
         str += score + "\n";
-        str += depth + "\n";
-        str += fromChoiceIndex + "\n";
+        str += getDepth() + "\n";
+        str += getFromChoiceIndex() + "\n";
         if (control == null) {
             str += "-1\n";
         }
@@ -91,8 +91,8 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
      */
     public void write(Writer w) throws IOException {
         w.write(score + "\n");
-        w.write(depth + "\n");
-        w.write(fromChoiceIndex + "\n");
+        w.write(getDepth() + "\n");
+        w.write(getFromChoiceIndex() + "\n");
         if (control == null) {
             w.write("-1\n");
         } else {
@@ -101,10 +101,10 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
                 w.write(control[i] + "\n");
             }
         }
-        if (table != null) {
-            w.write(table.size() + "\n");
-            for (int i = 0; i < table.size(); i++) {
-                 table.get(i).write(w);
+        if (getTable() != null) {
+            w.write(getTable().size() + "\n");
+            for (int i = 0; i < getTable().size(); i++) {
+                 getTable().get(i).write(w);
             }
         } else {
             w.write("-1\n");
@@ -119,9 +119,9 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
         String line = r.readLine();
         score = (new Double(line)).doubleValue();
         line = r.readLine();
-        depth = (new Integer(line)).intValue();
+        setDepth((new Integer(line)).intValue());
         line = r.readLine();
-        fromChoiceIndex = (new Integer(line)).intValue();
+        setFromChoiceIndex((new Integer(line)).intValue());
         line = r.readLine();
         int len = (new Integer(line)).intValue();
         if (len >= 0) {
@@ -136,10 +136,42 @@ public class ControlResultPair implements Comparable<ControlResultPair>, java.io
         line = r.readLine();
         int tableLength = (new Integer(line)).intValue();
         if (tableLength >= 0) {
-            table = new ArrayList<ControlResultPair>();
+            setTable(new ArrayList<ControlResultPair>());
             for (int i = 0; i < tableLength; i++) {
-                table.add(new ControlResultPair(r));
+                getTable().add(new ControlResultPair(r));
             }
         }
+    }
+
+    public double getScore() {
+        return score;
+    }
+
+    public void setScore(double score) {
+        this.score = score;
+    }
+
+    public void setFromChoiceIndex(int fromChoiceIndex) {
+        this.fromChoiceIndex = fromChoiceIndex;
+    }
+
+    public int getFromChoiceIndex() {
+        return fromChoiceIndex;
+    }
+
+    public void setDepth(int depth) {
+        this.depth = depth;
+    }
+
+    public int getDepth() {
+        return depth;
+    }
+
+    public void setTable(ArrayList<ControlResultPair> table) {
+        this.table = table;
+    }
+
+    public ArrayList<ControlResultPair> getTable() {
+        return table;
     }
 }

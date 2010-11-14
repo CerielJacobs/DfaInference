@@ -1,4 +1,8 @@
-package DfaInference;
+package iterativeDeepening;
+
+import DfaInference.Choice;
+import DfaInference.DFA;
+import DfaInference.PickBlueStrategy;
 
 /**
  * Implements the strategy for picking the next blue state

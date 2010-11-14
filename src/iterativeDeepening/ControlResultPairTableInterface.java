@@ -1,5 +1,6 @@
-package DfaInference;
+package iterativeDeepening;
 
+import DfaInference.ControlResultPair;
 import ibis.satin.WriteMethodsInterface;
 
 public interface ControlResultPairTableInterface extends WriteMethodsInterface {

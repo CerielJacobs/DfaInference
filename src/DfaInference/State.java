@@ -43,7 +43,7 @@ public final class State implements java.io.Serializable, Configuration,
     int mark;
 
     /** Depth of this state in the DFA. */
-    int depth = 0;
+    private int depth = 0;
 
     /** Index up until which the count is valid. */
     int maxLenComputed = Integer.MAX_VALUE;
@@ -60,7 +60,7 @@ public final class State implements java.io.Serializable, Configuration,
     /**
      * The number of times we pass this state when processing the positive samples.
      */
-    int traffic = 0;
+    private int traffic = 0;
 
     /**
      * The number of times we pass this state when processing the negative samples.
@@ -132,7 +132,7 @@ public final class State implements java.io.Serializable, Configuration,
             Numberer numberer, int old_nsym, int nsym) {
         productive = s.productive;
         accepting = s.accepting;
-        depth = s.depth;
+        setDepth(s.getDepth());
         if (numberer != null) {
             id = numberer.next();
         } else {
@@ -279,10 +279,10 @@ public final class State implements java.io.Serializable, Configuration,
     }
     
     public int compareTo(State s) {
-        if (s.depth == depth) {
+        if (s.getDepth() == getDepth()) {
             return s.id - id;
         }
-        return s.depth - depth;
+        return s.getDepth() - getDepth();
     }
 
     /**
@@ -302,7 +302,7 @@ public final class State implements java.io.Serializable, Configuration,
     }
 
     public int depth() {
-        return depth;
+        return getDepth();
     }
 
     /**
@@ -381,7 +381,7 @@ public final class State implements java.io.Serializable, Configuration,
                 dest.parents.add(this);
             }
         }
-        dest.depth = depth + 1;
+        dest.setDepth(getDepth() + 1);
         children[symbol] = dest;
         if (USE_ADJACENCY && accept) {
             dest.entrySyms.set(symbol);
@@ -429,8 +429,8 @@ public final class State implements java.io.Serializable, Configuration,
      * Recursively initializes the depth field to a large value.
      */
     private void killDepths() {
-        if (depth < Integer.MAX_VALUE) {
-            depth = Integer.MAX_VALUE;
+        if (getDepth() < Integer.MAX_VALUE) {
+            setDepth(Integer.MAX_VALUE);
             for (int i = 0; i < children.length; i++) {
                 if (children[i] != null) {
                     children[i].killDepths();
@@ -444,8 +444,8 @@ public final class State implements java.io.Serializable, Configuration,
      * @param depth the specified depth of this state.
      */
     private void computeDepths(int depth) {
-        if (this.depth > depth) {
-            this.depth = depth;
+        if (this.getDepth() > depth) {
+            this.setDepth(depth);
             for (int i = 0; i < children.length; i++) {
                 if (children[i] != null) {
                     children[i].computeDepths(depth+1);
@@ -470,7 +470,7 @@ public final class State implements java.io.Serializable, Configuration,
         this.mark = 0;
         for (int j = 0; j < children.length; j++) {
             State chj = children[j];
-            if (chj != null && chj.depth > depth) {
+            if (chj != null && chj.getDepth() > getDepth()) {
                 chj.clearMarks();
             }
         }
@@ -589,7 +589,7 @@ public final class State implements java.io.Serializable, Configuration,
         maxLenComputed = 0;
         for (int i = 0; i < children.length; i++) {
             State s = children[i];
-            if (s != null && s.depth > depth) {
+            if (s != null && s.getDepth() > getDepth()) {
                 s.initCount();
             }
         }
@@ -687,5 +687,21 @@ public final class State implements java.io.Serializable, Configuration,
      */
     public String toString() {
         return "State" + id;
+    }
+
+    public void setDepth(int depth) {
+        this.depth = depth;
+    }
+
+    public int getDepth() {
+        return depth;
+    }
+
+    public void setTraffic(int traffic) {
+        this.traffic = traffic;
+    }
+
+    public int getTraffic() {
+        return traffic;
     }
 }

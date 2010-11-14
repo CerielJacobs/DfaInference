@@ -60,7 +60,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
         return foundMerge;
     }
 
-    double getScore() {
+    public double getScore() {
         return dfa.getNumStates();
     }
 

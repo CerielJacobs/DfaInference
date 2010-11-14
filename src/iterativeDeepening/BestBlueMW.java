@@ -1,4 +1,4 @@
-package DfaInference;
+package iterativeDeepening;
 
 import ibis.satin.SatinObject;
 
@@ -14,6 +14,17 @@ import java.util.BitSet;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
+
+import DfaInference.Choice;
+import DfaInference.ControlResultPair;
+import DfaInference.DFA;
+import DfaInference.Guidance;
+import DfaInference.Helpers;
+import DfaInference.IntGuidance;
+import DfaInference.PickBlueStrategy;
+import DfaInference.RedBlue;
+import DfaInference.Samples;
+import DfaInference.Symbols;
 
 import sample.SampleReader;
 import sample.SampleString;

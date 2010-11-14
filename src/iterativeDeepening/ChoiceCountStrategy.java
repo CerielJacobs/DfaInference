@@ -1,4 +1,9 @@
-package DfaInference;
+package iterativeDeepening;
+
+import DfaInference.Choice;
+import DfaInference.DFA;
+import DfaInference.PickBlueStrategy;
+import DfaInference.State;
 
 /**
  * Implements the "low choice count" strategy for picking the next blue state
@@ -18,7 +23,7 @@ public class ChoiceCountStrategy implements PickBlueStrategy {
      * @return the state number of the blue state to be dealt with next.
      */
     public int getBlue(DFA dfa, Choice[] choices) {
-        int[] counts = new int[dfa.idMap.length];
+        int[] counts = new int[dfa.getIdMap().length];
         for (int i = 0; i < choices.length; i++) {
             counts[choices[i].s2]++;
         }
@@ -30,7 +35,7 @@ public class ChoiceCountStrategy implements PickBlueStrategy {
             if (counts[s] <= score) {
                 State b = dfa.getState(s);
                 if (counts[s] < score
-                        || (counts[s] == score && b.depth < best.depth)) {
+                        || (counts[s] == score && b.getDepth() < best.getDepth())) {
                     blue = s;
                     score = counts[s];
                     best = b;

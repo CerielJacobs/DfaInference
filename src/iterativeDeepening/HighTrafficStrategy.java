@@ -1,4 +1,9 @@
-package DfaInference;
+package iterativeDeepening;
+
+import DfaInference.Choice;
+import DfaInference.DFA;
+import DfaInference.PickBlueStrategy;
+import DfaInference.State;
 
 /**
  * Implements the "high-traffic" strategy for picking the next blue state
@@ -24,10 +29,10 @@ public class HighTrafficStrategy implements PickBlueStrategy {
         for (int i = 1; i < choices.length; i++) {
             int s = choices[i].s2;
             State state = dfa.getState(s);
-            if (state.traffic > best.traffic) {
+            if (state.getTraffic() > best.getTraffic()) {
                 best = state;
                 blue = s;
-            } else if (state.traffic == best.traffic && state.depth < best.depth) {
+            } else if (state.getTraffic() == best.getTraffic() && state.getDepth() < best.getDepth()) {
                 best = state;
                 blue = s;
             }

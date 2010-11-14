@@ -1,7 +1,9 @@
-package DfaInference;
+package iterativeDeepening;
 
 import java.io.IOException;
 import java.util.Properties;
+
+import DfaInference.ControlResultPair;
 
 import ibis.ipl.Ibis;
 import ibis.ipl.IbisCapabilities;

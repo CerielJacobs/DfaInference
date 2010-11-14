@@ -1,4 +1,7 @@
-package DfaInference;
+package iterativeDeepening;
+
+import DfaInference.ControlResultPair;
+import DfaInference.Samples;
 
 /**
  * This interface specifies the spawnable methods in a Satin application.

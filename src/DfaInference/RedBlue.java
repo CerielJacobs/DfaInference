@@ -157,7 +157,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * Returns the score of the current DFA.
      * @return the score.
      */
-    abstract double getScore();
+    public abstract double getScore();
 
     /**
      * Determines if the proposed merge is prohibited in the current search.
@@ -228,7 +228,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
             for (int j = 0; j < red.children.length; j++) {
                 State s = red.children[j];
                 if ((s != null) && ! reds.contains(s)) {
-                    s.depth = red.depth+1;
+                    s.setDepth(red.getDepth()+1);
                     s.parent = red;
                     blueStates[numBlueStates++] = s;
                 }
@@ -284,8 +284,8 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
             State shallowestState = iter.next();
             while (iter.hasNext()) {
                 State s = iter.next();
-                if (s.depth < shallowestState.depth ||
-                        (s.depth == shallowestState.depth
+                if (s.getDepth() < shallowestState.getDepth() ||
+                        (s.getDepth() == shallowestState.getDepth()
                          && s.getId() < shallowestState.getId())) {
                     shallowestState = s;
                  }
@@ -572,7 +572,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
             State s = r.children[i];
             if (s != null) {
                 s.parent = r;
-                s.depth = r.depth+1;
+                s.setDepth(r.getDepth()+1);
                 blueStates[numBlueStates++] = s;
                 if (! getMergeCandidates(s)) {
                     // No merge candidates for this new blue state. Promote

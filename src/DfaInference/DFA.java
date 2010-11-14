@@ -92,7 +92,7 @@ public final class DFA implements java.io.Serializable, Configuration {
     public Symbols symbols;
 
     /** The learning samples. */
-    // ** REMARK: For ' CheckDFA ' is it neceassary to keep this. In production:
+    // ** REMARK: For ' CheckDFA ' is it necessary to keep this. In production:
     // make samples TRANSIENT!!!
     
     private ArrayList<int[]> samples;

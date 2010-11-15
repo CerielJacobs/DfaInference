@@ -9,7 +9,7 @@
 
     <property name="satinc-flags" value="-keep"/>
 
-    <property name="satin-classes" value="DfaInference.SatinFolder DfaInference.BestBlue DfaInference.BestBlueMW, DfaInference.SatinRunner, DfaInference.Samples, DfaInference.ControlResultPairTable"/>
+    <property name="satin-classes" value="DfaInference.SatinFolder iterativeDeepening.BestBlue iterativeDeepening.BestBlueMW, DfaInference.SatinRunner, DfaInference.Samples, iterativeDeepening.ControlResultPairTable"/>
 
     <!--
         Requires definition of 'satin-classes': a comma-separated list of class

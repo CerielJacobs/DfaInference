@@ -55,7 +55,7 @@ public final class State implements java.io.Serializable, Configuration,
      * Weight of this state. The weight of an accepting state is defined
      * as the number of samples that finish in this state.
      */
-    int weight = 0;
+    private int weight = 0;
 
     /**
      * The number of times we pass this state when processing the positive samples.
@@ -65,7 +65,7 @@ public final class State implements java.io.Serializable, Configuration,
     /**
      * The number of times we pass this state when processing the negative samples.
      */
-    int xTraffic = 0;
+    private int xTraffic = 0;
 
     /** Number of positive samples that pass through this edge. */
     int[] edgeWeights;
@@ -138,7 +138,7 @@ public final class State implements java.io.Serializable, Configuration,
         } else {
             id = s.id;
         }
-        weight = s.weight;
+        setWeight(s.getWeight());
         if (USE_PARENT_SETS) {
             parents = new ArrayList<State>();
         }
@@ -213,7 +213,7 @@ public final class State implements java.io.Serializable, Configuration,
         productive = 0;
         accepting = 0;
         id = numberer.next();
-        weight = 0;
+        setWeight(0);
         children = new State[s.children.length];
         if (USE_CHISQUARE) {
             edgeWeights = new int[children.length];
@@ -251,7 +251,7 @@ public final class State implements java.io.Serializable, Configuration,
             State[] oldStates, Numberer numberer) {
         productive |= s.productive;
         accepting |= s.accepting;
-        weight += s.weight;
+        setWeight(getWeight() + s.getWeight());
 
         if (USE_ADJACENCY) {
             entrySyms.or(s.entrySyms);
@@ -703,5 +703,21 @@ public final class State implements java.io.Serializable, Configuration,
 
     public int getTraffic() {
         return traffic;
+    }
+
+    public void setxTraffic(int xTraffic) {
+        this.xTraffic = xTraffic;
+    }
+
+    public int getxTraffic() {
+        return xTraffic;
+    }
+
+    public void setWeight(int weight) {
+        this.weight = weight;
+    }
+
+    public int getWeight() {
+        return weight;
     }
 }

@@ -772,9 +772,9 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         startState = new State(nsym);
         startState.accepting = (byte)(state1.accepting | state2.accepting);
-        startState.weight = state1.weight + state2.weight;
+        startState.setWeight(state1.getWeight() + state2.getWeight());
         startState.setTraffic(state1.getTraffic() + state2.getTraffic());
-        startState.xTraffic = state1.xTraffic + state2.xTraffic;
+        startState.setxTraffic(state1.getxTraffic() + state2.getxTraffic());
 
         if (USE_CHISQUARE) {
             for (int i = 0; i < nsym; i++) {
@@ -816,9 +816,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                     if (child != null) {
                         target.set(child.getId());
                         accepting |= child.accepting;
-                        weight += child.weight;
+                        weight += child.getWeight();
                         traffic += child.getTraffic();
-                        xTraffic += child.xTraffic;
+                        xTraffic += child.getxTraffic();
                         if (USE_CHISQUARE) {
                             for (int j = 0; j < nsym; j++) {
                                 edgeWeights[j] += child.edgeWeights[j];
@@ -843,9 +843,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                     // No we don't. Add it, and add it to the worklist as well.
                     newTarget = new State(nsym);
                     newTarget.accepting = accepting;
-                    newTarget.weight = weight;
+                    newTarget.setWeight(weight);
                     newTarget.setTraffic(traffic);
-                    newTarget.xTraffic = xTraffic;
+                    newTarget.setxTraffic(xTraffic);
                     newTarget.edgeWeights = edgeWeights;
                     newTarget.xEdgeWeights = xEdgeWeights;
                     workList.add(target);
@@ -1113,7 +1113,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 nEdges++;
             }
             if (reject) {
-                target.xTraffic++;
+                target.setxTraffic(target.getxTraffic() + 1);
             } else {
                 target.setTraffic(target.getTraffic() + 1);
             }
@@ -1133,13 +1133,13 @@ public final class DFA implements java.io.Serializable, Configuration {
             nRejecting++;
             n.accepting = REJECTING;
             if (NEGATIVES || MDL_COMPLEMENT) {
-                n.weight = 1;
+                n.setWeight(n.getWeight() + 1);
             }
         } else {
             numRecognized++;
             nAccepting++;
             n.accepting = ACCEPTING;
-            n.weight = 1;
+            n.setWeight(n.getWeight() + 1);
         }
     }
 
@@ -1563,6 +1563,30 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
     }
+    
+    private static final double BOUND = Math.sqrt(Math.log(2/COMPATIBILITY_THRESHOLD)/2);
+    
+    private boolean different(int total1, int n1, int total2, int n2) {
+        double diff = Math.abs((double) n1 / total1 - (double) n2 / total2);
+        double bound = BOUND * (1/Math.sqrt(total1) + 1/Math.sqrt(total2));
+        return diff > bound;
+    }
+    
+    private boolean compatible(State s1, State s2) {
+        if (s1.accepting == ACCEPTING || s2.accepting == ACCEPTING) {
+            if (different(s1.getTraffic(), s1.getWeight(), s2.getTraffic(), s2.getWeight())) {
+                return false;
+            }
+        }
+        for (int i = 0; i < nsym; i++) {
+            if (s1.edgeWeights[i] > 0 || s2.edgeWeights[i] > 0) {
+                if (different(s1.getTraffic(), s1.edgeWeights[i], s2.getTraffic(), s2.edgeWeights[i])) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
     /**
      * Merges two states. This version specifically performs merges for which
@@ -1590,6 +1614,13 @@ public final class DFA implements java.io.Serializable, Configuration {
                     logger.debug("Merge of state " + n1 + ", " + n2
                             + " rejected because of adjacency");
                 }
+                conflict = true;
+                return;
+            }
+        }
+        
+        if (USE_COMPATIBILITY_CHECK) {
+            if (! compatible(n1, n2)) {
                 conflict = true;
                 return;
             }
@@ -1633,9 +1664,9 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
 
-        n1.weight += n2.weight;
+        n1.setWeight(n1.getWeight() + n2.getWeight());
         n1.setTraffic(n1.getTraffic() + n2.getTraffic());
-        n1.xTraffic += n2.xTraffic;
+        n1.setxTraffic(n1.getxTraffic() + n2.getxTraffic());
         if (USE_CHISQUARE) {
             for (int j = 0; j < nsym; j++) {
                 n1.edgeWeights[j] += n2.edgeWeights[j];
@@ -1762,12 +1793,12 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if ((n1.accepting & ACCEPTING) != 0 ||
                 (n2.accepting & ACCEPTING) != 0) {
-            if (n1.weight < CHI_MIN || n2.weight < CHI_MIN) {
-                pool1 += n1.weight;
-                pool2 += n2.weight;
+            if (n1.getWeight() < CHI_MIN || n2.getWeight() < CHI_MIN) {
+                pool1 += n1.getWeight();
+                pool2 += n2.getWeight();
             }
-            total1 += n1.weight;
-            total2 += n2.weight;
+            total1 += n1.getWeight();
+            total2 += n2.getWeight();
         }
         for (int i = 0; i < nsym; i++) {
             if (n1.edgeWeights[i] < CHI_MIN || n2.edgeWeights[i] < CHI_MIN) {
@@ -1793,11 +1824,11 @@ public final class DFA implements java.io.Serializable, Configuration {
         
         if ((n1.accepting & ACCEPTING) != 0 ||
                 (n2.accepting & ACCEPTING) != 0) {
-            if (n1.weight >= CHI_MIN && n2.weight >= CHI_MIN) {
+            if (n1.getWeight() >= CHI_MIN && n2.getWeight() >= CHI_MIN) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("accepting states ...");
                 }
-                score += symScore(total1, n1.weight, total2, n2.weight);
+                score += symScore(total1, n1.getWeight(), total2, n2.getWeight());
                 cnt++;
             }
         }
@@ -1857,12 +1888,12 @@ public final class DFA implements java.io.Serializable, Configuration {
         
         if ((n1.accepting & REJECTING) != 0 ||
                 (n2.accepting & REJECTING) != 0) {
-            if (n1.weight < CHI_MIN || n2.weight < CHI_MIN) {
-                pool1 += n1.weight;
-                pool2 += n2.weight;
+            if (n1.getWeight() < CHI_MIN || n2.getWeight() < CHI_MIN) {
+                pool1 += n1.getWeight();
+                pool2 += n2.getWeight();
             }
-            total1 += n1.weight;
-            total2 += n2.weight;
+            total1 += n1.getWeight();
+            total2 += n2.getWeight();
         }
         for (int i = 0; i < nsym; i++) {
             if (n1.xEdgeWeights[i] < CHI_MIN || n2.xEdgeWeights[i] < CHI_MIN) {
@@ -1884,11 +1915,11 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if ((n1.accepting & REJECTING) != 0 ||
                 (n2.accepting & REJECTING) != 0) {
-            if (n1.weight >= CHI_MIN && n2.weight >= CHI_MIN) {
+            if (n1.getWeight() >= CHI_MIN && n2.getWeight() >= CHI_MIN) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("rejecting states ...");
                 }
-                score += symScore(total1, n1.weight, total2, n2.weight);
+                score += symScore(total1, n1.getWeight(), total2, n2.getWeight());
                 cnt++;
             }
         }
@@ -2141,11 +2172,11 @@ public final class DFA implements java.io.Serializable, Configuration {
                     for (int j = 0; j <= maxlen; j++) {
                         cnt += counts[j][id];
                     }
-                    double sc = approximate2LogNoverK(cnt, myStates[i].weight);
+                    double sc = approximate2LogNoverK(cnt, myStates[i].getWeight());
                     if (logger.isDebugEnabled()) {
                         totalCount += cnt;
                         logger.debug("State " + id + ", weight = "
-                                + myStates[i].weight + ", cnt = " + cnt
+                                + myStates[i].getWeight() + ", cnt = " + cnt
                                 + ", sc  = " + sc);
                     }
                     score += sc;
@@ -2503,7 +2534,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         l1[0] = startState;
         c1 = 1;
         counts[0][startState.getId()] = 1;
-        if (startState.weight > 0) {
+        if (startState.getWeight() > 0) {
             for (int i = 1; i <= maxlen; i++) {
                 counts[i][startState.getId()] = 0;
             }
@@ -2526,7 +2557,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                             l2[c2++] = sj;
                             sj.mark = mark;
                             countk[sj.getId()] = 0;
-                            if (sj.weight > 0) {
+                            if (sj.getWeight() > 0) {
                                 if (!h.contains(sj)) {
                                     h.add(sj);
                                     for (int l = 0; l <= maxlen; l++) {
@@ -2662,10 +2693,12 @@ public final class DFA implements java.io.Serializable, Configuration {
             states[i] = getIdMap()[ind];
             ind = p.nextSetBit(ind + 1);
             while (ind >= 0) {
-                states[i].weight += getIdMap()[ind].weight;
+                states[i].setWeight(states[i].getWeight()
+                        + getIdMap()[ind].getWeight());
                 states[i].setTraffic(states[i].getTraffic()
                         + getIdMap()[ind].getTraffic());
-                states[i].xTraffic += getIdMap()[ind].xTraffic;
+                states[i].setxTraffic(states[i].getxTraffic()
+                        + getIdMap()[ind].getxTraffic());
                 if (USE_CHISQUARE) {
                     for (int j = 0; j < nsym; j++) {
                         states[i].edgeWeights[j] += getIdMap()[ind].edgeWeights[j];

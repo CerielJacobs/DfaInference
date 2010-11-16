@@ -24,7 +24,7 @@ public class EdFold extends RedBlue implements java.io.Serializable {
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
         if (! dfa.conflict) {
-            addChoice(Choice.getChoice(r.getId(), b.getId(), dfa.getNumProductiveStates(),
+            addChoice(Choice.getChoice(r.getId(), b.getId(), dfa.getNumStates(),
                         -dfa.labelScore));
             foundMerge = true;
         }
@@ -33,7 +33,7 @@ public class EdFold extends RedBlue implements java.io.Serializable {
     }
 
     public double getScore() {
-        return dfa.getNumProductiveStates();
+        return dfa.getNumStates();
     }
 
     /**

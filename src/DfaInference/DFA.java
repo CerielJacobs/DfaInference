@@ -1104,6 +1104,11 @@ public final class DFA implements java.io.Serializable, Configuration {
     public void addString(int[] symbols) {
         State n = startState;
         boolean reject = symbols[0] != 1;
+        if (reject) {
+            n.setxTraffic(n.getxTraffic() + 1);
+        } else {
+            n.setTraffic(n.getTraffic() + 1);
+        }
 
         for (int i = 1; i < symbols.length; i++) {
             State target = n.traverseEdge(symbols[i]);
@@ -1132,9 +1137,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             numRejected++;
             nRejecting++;
             n.accepting = REJECTING;
-            if (NEGATIVES || MDL_COMPLEMENT) {
-                n.setWeight(n.getWeight() + 1);
-            }
+            n.setWeight(n.getWeight() + 1);
         } else {
             numRecognized++;
             nAccepting++;
@@ -1386,9 +1389,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         State parent = blue.parent;
 
-        if (USE_PRODUCTIVE) {
-            mustRecomputeProductive = (parent.productive | red.productive) != parent.productive;
-        }
+        mustRecomputeProductive = (parent.productive | red.productive) != parent.productive;
 
         // Make the blue node's parent indicate the red node.
         savedIndex = 1;
@@ -1567,6 +1568,9 @@ public final class DFA implements java.io.Serializable, Configuration {
     private static final double BOUND = Math.sqrt(Math.log(2/COMPATIBILITY_THRESHOLD)/2);
     
     private boolean different(int total1, int n1, int total2, int n2) {
+        if (total1 < 10 || total2 < 10) {
+            return false;
+        }
         double diff = Math.abs((double) n1 / total1 - (double) n2 / total2);
         double bound = BOUND * (1/Math.sqrt(total1) + 1/Math.sqrt(total2));
         return diff > bound;
@@ -1578,9 +1582,19 @@ public final class DFA implements java.io.Serializable, Configuration {
                 return false;
             }
         }
+        if (s1.accepting == REJECTING || s2.accepting == REJECTING) {
+            if (different(s1.getxTraffic(), s1.getWeight(), s2.getxTraffic(), s2.getWeight())) {
+                return false;
+            }
+        }
         for (int i = 0; i < nsym; i++) {
             if (s1.edgeWeights[i] > 0 || s2.edgeWeights[i] > 0) {
                 if (different(s1.getTraffic(), s1.edgeWeights[i], s2.getTraffic(), s2.edgeWeights[i])) {
+                    return false;
+                }
+            }
+            if (s1.xEdgeWeights[i] > 0 || s2.xEdgeWeights[i] > 0) {
+                if (different(s1.getxTraffic(), s1.xEdgeWeights[i], s2.getxTraffic(), s2.xEdgeWeights[i])) {
                     return false;
                 }
             }
@@ -1621,8 +1635,8 @@ public final class DFA implements java.io.Serializable, Configuration {
         
         if (USE_COMPATIBILITY_CHECK) {
             if (! compatible(n1, n2)) {
-                conflict = true;
-                return;
+                // Penalty ...
+                labelScore--;
             }
         }
         
@@ -2257,6 +2271,27 @@ public final class DFA implements java.io.Serializable, Configuration {
             logger.debug("nProductiveEdges = " + nProductiveEdges + ", size = "
                     + nedges + ", DFA = \n" + dumpDFA());
             ok = false;
+        }
+
+        if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+            for (State s : l) {
+                int cnt = s.isAccepting() ? s.getWeight() : 0;
+                int xcnt = s.isRejecting() ? s.getWeight() : 0;
+                for (int i = 0; i < nsym; i++) {
+                    cnt += s.edgeWeights[i];
+                    xcnt += s.xEdgeWeights[i];
+                }
+                if (cnt != s.getTraffic()) {
+                    logger.debug("traffic mismatch: count = " + s.getTraffic()
+                            + ", cnt = " + cnt);
+                    ok = false;
+                }
+                if (xcnt != s.getxTraffic()) {
+                    logger.debug("xtraffic mismatch: count = " + s.getxTraffic()
+                            + ", xcnt = " + xcnt);
+                    ok = false;
+                }
+            }
         }
 
         // Check parents

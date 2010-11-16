@@ -40,7 +40,7 @@ public interface Configuration {
         tp.getBooleanProperty("Compatibility", false);
     
     static final double COMPATIBILITY_THRESHOLD =
-        tp.getDoubleProperty("CompatibilityThreshold", .95);
+        tp.getDoubleProperty("CompatibilityThreshold", .80);
         
     static final boolean USE_CHISQUARE =
         tp.getBooleanProperty("ChiSquare", false);

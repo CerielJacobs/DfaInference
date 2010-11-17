@@ -776,7 +776,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         startState.setTraffic(state1.getTraffic() + state2.getTraffic());
         startState.setxTraffic(state1.getxTraffic() + state2.getxTraffic());
 
-        if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+        if (USE_CHISQUARE) {
             for (int i = 0; i < nsym; i++) {
                 startState.edgeWeights[i] = state1.edgeWeights[i] + state2.edgeWeights[i];
                 startState.xEdgeWeights[i] = state1.xEdgeWeights[i] + state2.xEdgeWeights[i];
@@ -805,7 +805,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 int xTraffic = 0;
                 int[] edgeWeights = null;
                 int[] xEdgeWeights = null;
-                if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+                if (USE_CHISQUARE) {
                     edgeWeights = new int[nsym];
                     xEdgeWeights = new int[nsym];
                 }
@@ -819,7 +819,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         weight += child.getWeight();
                         traffic += child.getTraffic();
                         xTraffic += child.getxTraffic();
-                        if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+                        if (USE_CHISQUARE) {
                             for (int j = 0; j < nsym; j++) {
                                 edgeWeights[j] += child.edgeWeights[j];
                                 xEdgeWeights[j] += child.xEdgeWeights[j];
@@ -1123,7 +1123,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 target.setTraffic(target.getTraffic() + 1);
             }
 
-            if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+            if (USE_CHISQUARE) {
                 if (reject) {
                     n.xEdgeWeights[symbols[i]]++;
                 } else {
@@ -1565,43 +1565,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
     }
     
-    private static final double BOUND = Math.sqrt(Math.log(2/COMPATIBILITY_THRESHOLD)/2);
-    
-    private boolean different(int total1, int n1, int total2, int n2) {
-        if (total1 < 10 || total2 < 10) {
-            return false;
-        }
-        double diff = Math.abs((double) n1 / total1 - (double) n2 / total2);
-        double bound = BOUND * (1/Math.sqrt(total1) + 1/Math.sqrt(total2));
-        return diff > bound;
-    }
-    
-    private boolean compatible(State s1, State s2) {
-        if (s1.accepting == ACCEPTING || s2.accepting == ACCEPTING) {
-            if (different(s1.getTraffic(), s1.getWeight(), s2.getTraffic(), s2.getWeight())) {
-                return false;
-            }
-        }
-        if (s1.accepting == REJECTING || s2.accepting == REJECTING) {
-            if (different(s1.getxTraffic(), s1.getWeight(), s2.getxTraffic(), s2.getWeight())) {
-                return false;
-            }
-        }
-        for (int i = 0; i < nsym; i++) {
-            if (s1.edgeWeights[i] > 0 || s2.edgeWeights[i] > 0) {
-                if (different(s1.getTraffic(), s1.edgeWeights[i], s2.getTraffic(), s2.edgeWeights[i])) {
-                    return false;
-                }
-            }
-            if (s1.xEdgeWeights[i] > 0 || s2.xEdgeWeights[i] > 0) {
-                if (different(s1.getxTraffic(), s1.xEdgeWeights[i], s2.getxTraffic(), s2.xEdgeWeights[i])) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
     /**
      * Merges two states. This version specifically performs merges for which
      * one of the states is the top of a tree, so does not take into account
@@ -1630,13 +1593,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
                 conflict = true;
                 return;
-            }
-        }
-        
-        if (USE_COMPATIBILITY_CHECK) {
-            if (! compatible(n1, n2)) {
-                // Penalty ...
-                labelScore--;
             }
         }
         
@@ -1681,7 +1637,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         n1.setWeight(n1.getWeight() + n2.getWeight());
         n1.setTraffic(n1.getTraffic() + n2.getTraffic());
         n1.setxTraffic(n1.getxTraffic() + n2.getxTraffic());
-        if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+        if (USE_CHISQUARE) {
             for (int j = 0; j < nsym; j++) {
                 n1.edgeWeights[j] += n2.edgeWeights[j];
                 n1.xEdgeWeights[j] += n2.xEdgeWeights[j];
@@ -2273,7 +2229,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             ok = false;
         }
 
-        if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+        if (USE_CHISQUARE) {
             for (State s : l) {
                 int cnt = s.isAccepting() ? s.getWeight() : 0;
                 int xcnt = s.isRejecting() ? s.getWeight() : 0;
@@ -2734,7 +2690,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         + getIdMap()[ind].getTraffic());
                 states[i].setxTraffic(states[i].getxTraffic()
                         + getIdMap()[ind].getxTraffic());
-                if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+                if (USE_CHISQUARE) {
                     for (int j = 0; j < nsym; j++) {
                         states[i].edgeWeights[j] += getIdMap()[ind].edgeWeights[j];
                         states[i].xEdgeWeights[j] += getIdMap()[ind].xEdgeWeights[j];

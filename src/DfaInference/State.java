@@ -108,7 +108,7 @@ public final class State implements java.io.Serializable, Configuration,
      */
     public State(int nsym) {
         children = new State[nsym];
-        if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+        if (USE_CHISQUARE) {
             edgeWeights = new int[nsym];
             xEdgeWeights = new int[nsym];
         }
@@ -164,7 +164,7 @@ public final class State implements java.io.Serializable, Configuration,
         //            conflicting = (BitSet) s.conflicting.clone();
         //        }
         children = new State[nsym];
-        if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+        if (USE_CHISQUARE) {
             edgeWeights = new int[nsym];
             xEdgeWeights = new int[nsym];
         }
@@ -177,13 +177,13 @@ public final class State implements java.io.Serializable, Configuration,
                 }
                 if (map == null) {
                     children[i] = cp;
-                    if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+                    if (USE_CHISQUARE) {
                         edgeWeights[i] = s.edgeWeights[i];
                         xEdgeWeights[i] = s.xEdgeWeights[i];
                     }
                 } else {
                     children[map[i]] = cp;
-                    if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+                    if (USE_CHISQUARE) {
                         edgeWeights[map[i]] = s.edgeWeights[i];
                         xEdgeWeights[map[i]] = s.xEdgeWeights[i];
                     }
@@ -215,7 +215,7 @@ public final class State implements java.io.Serializable, Configuration,
         id = numberer.next();
         setWeight(0);
         children = new State[s.children.length];
-        if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+        if (USE_CHISQUARE) {
             edgeWeights = new int[children.length];
             xEdgeWeights = new int[children.length];
         }
@@ -257,7 +257,7 @@ public final class State implements java.io.Serializable, Configuration,
             entrySyms.or(s.entrySyms);
         }
         for (int i = 0; i < children.length; i++) {
-            if (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) {
+            if (USE_CHISQUARE) {
                 edgeWeights[i] += s.edgeWeights[i];
                 xEdgeWeights[i] += s.xEdgeWeights[i];
             }

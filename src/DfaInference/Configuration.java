@@ -36,19 +36,13 @@ public interface Configuration {
     static final boolean INCREMENTAL_COUNTS =
         tp.getBooleanProperty("IncrementalCounts", false);
   
-    static final boolean USE_COMPATIBILITY_CHECK =
-        tp.getBooleanProperty("Compatibility", false);
-    
-    static final double COMPATIBILITY_THRESHOLD =
-        tp.getDoubleProperty("CompatibilityThreshold", .80);
-        
     static final boolean USE_CHISQUARE =
         tp.getBooleanProperty("ChiSquare", false);
     
     static final int CHI_MIN =
         tp.getIntProperty("ChiMin", 5);
 
-    static final boolean UNIQUE_SAMPLES = (USE_CHISQUARE || USE_COMPATIBILITY_CHECK) ? false :
+    static final boolean UNIQUE_SAMPLES = USE_CHISQUARE ? false :
         tp.getBooleanProperty("UniqueSamples", true);
 
     /**

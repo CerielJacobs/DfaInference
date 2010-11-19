@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 
+import org.apache.commons.math.MathException;
+import org.apache.commons.math.special.Gamma;
+
 /**
  * Representation of a state in a DFA.
  */
@@ -108,7 +111,7 @@ public final class State implements java.io.Serializable, Configuration,
      */
     public State(int nsym) {
         children = new State[nsym];
-        if (USE_CHISQUARE) {
+        if (NEEDS_EDGECOUNTS) {
             edgeWeights = new int[nsym];
             xEdgeWeights = new int[nsym];
         }
@@ -164,7 +167,7 @@ public final class State implements java.io.Serializable, Configuration,
         //            conflicting = (BitSet) s.conflicting.clone();
         //        }
         children = new State[nsym];
-        if (USE_CHISQUARE) {
+        if (NEEDS_EDGECOUNTS) {
             edgeWeights = new int[nsym];
             xEdgeWeights = new int[nsym];
         }
@@ -177,13 +180,13 @@ public final class State implements java.io.Serializable, Configuration,
                 }
                 if (map == null) {
                     children[i] = cp;
-                    if (USE_CHISQUARE) {
+                    if (NEEDS_EDGECOUNTS) {
                         edgeWeights[i] = s.edgeWeights[i];
                         xEdgeWeights[i] = s.xEdgeWeights[i];
                     }
                 } else {
                     children[map[i]] = cp;
-                    if (USE_CHISQUARE) {
+                    if (NEEDS_EDGECOUNTS) {
                         edgeWeights[map[i]] = s.edgeWeights[i];
                         xEdgeWeights[map[i]] = s.xEdgeWeights[i];
                     }
@@ -215,7 +218,7 @@ public final class State implements java.io.Serializable, Configuration,
         id = numberer.next();
         setWeight(0);
         children = new State[s.children.length];
-        if (USE_CHISQUARE) {
+        if (NEEDS_EDGECOUNTS) {
             edgeWeights = new int[children.length];
             xEdgeWeights = new int[children.length];
         }
@@ -257,7 +260,7 @@ public final class State implements java.io.Serializable, Configuration,
             entrySyms.or(s.entrySyms);
         }
         for (int i = 0; i < children.length; i++) {
-            if (USE_CHISQUARE) {
+            if (NEEDS_EDGECOUNTS) {
                 edgeWeights[i] += s.edgeWeights[i];
                 xEdgeWeights[i] += s.xEdgeWeights[i];
             }
@@ -719,5 +722,57 @@ public final class State implements java.io.Serializable, Configuration,
 
     public int getWeight() {
         return weight;
+    }
+    
+    public double StaminaChi() {
+        int total = getTraffic();
+        int outgoing = 0;
+        int ndegrees = -1;
+        for (int i = 0; i < children.length; i++) {
+            if (children[i] != null) {
+                outgoing += 2;
+                ndegrees++;
+            }
+        }
+        // Note: accepting is chosen with half the probability! (See Stamina website).
+        if (isAccepting()) {
+            outgoing++;
+            ndegrees++;
+        }
+        
+        double factor = (double) total / outgoing;
+        double score = 0.0;
+        if (factor >= CHI_MIN) {
+            System.out.println("Factor = " + factor + ", outgoing = " + outgoing);
+            for (int i = 0; i < children.length; i++) {
+                if (children[i] != null) {
+                    double expected = factor * 2;
+                    double actual = edgeWeights[i];
+                    System.out.println("expected = " + expected + ", actual = " + actual);
+                    score += (actual - expected) * (actual - expected) / expected; 
+                }
+            }
+            if (isAccepting()) {
+                double expected = factor;
+                double actual = getWeight();
+                System.out.println("Endstate: expected = " + expected + ", actual = " + actual);
+                score += (actual - expected) * (actual - expected) / expected;
+            }
+            System.out.println("Score = " + score + ", ndegrees = " + ndegrees);
+            if (ndegrees >= 1) {
+                double p_value = 0.0;
+                try {
+                    p_value = 1.0 - Gamma.regularizedGammaP(ndegrees/2.0, score/2.0);
+                    System.out.println("p_value = " + p_value);
+                } catch (MathException e) {
+                    return 0.0;
+                }
+                if (p_value < .00001) {
+                    p_value = .00001;
+                }
+                return Math.log(p_value);
+            }
+        }
+        return 0.0;
     }
 }

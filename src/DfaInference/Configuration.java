@@ -39,11 +39,13 @@ public interface Configuration {
     static final boolean USE_CHISQUARE =
         tp.getBooleanProperty("ChiSquare", false);
     
+    static final boolean USE_STAMINA =
+        tp.getBooleanProperty("Stamina", false);
+    
     static final int CHI_MIN =
         tp.getIntProperty("ChiMin", 5);
 
-    static final boolean UNIQUE_SAMPLES = USE_CHISQUARE ? false :
-        tp.getBooleanProperty("UniqueSamples", true);
+    static final boolean UNIQUE_SAMPLES = ! (USE_CHISQUARE || USE_STAMINA);
 
     /**
      * Which version of DFA scoring to use? The options are listed below.
@@ -64,6 +66,8 @@ public interface Configuration {
     /** Limits adjacency checks to begin and end of sentence. */
     static final boolean ONLY_CHECK_BEGIN_AND_END_ADJACENCY =
         tp.getBooleanProperty("LimitedAdjacency", false);
+    
+    static final boolean NEEDS_EDGECOUNTS = USE_CHISQUARE || USE_STAMINA;
   
     /**
      * Bit that indicates accepting state or state of DFA that recognizes

@@ -3,8 +3,15 @@ package DfaInference;
 import sample.SampleReader;
 import sample.SampleString;
 
-/** Evidence-driven state merging, but score is also determined by number of edges. */
-public class EdEdgesFold extends RedBlue implements java.io.Serializable {
+/**
+ * This class implements an evidence-driven state folder.
+ * Evidence consists of the number of corresponding state labels that result
+ * when doing a merge and making the resulting DFA deterministic by collapsing
+ * states. Corresponding means: both states are rejecting or both states are
+ * accepting.
+ */
+public class StaminaFold extends RedBlue implements java.io.Serializable {
+
     private static final long serialVersionUID = 1L;
 
     boolean testMerge(State r, State b) {
@@ -17,10 +24,8 @@ public class EdEdgesFold extends RedBlue implements java.io.Serializable {
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
         if (! dfa.conflict) {
-            System.out.println("r = " + r.getId() + ", b = " + b.getId()
-        	    + ", labelScore = " + dfa.labelScore + ", newEdges = " + dfa.newEdges);
             addChoice(Choice.getChoice(r.getId(), b.getId(), dfa.getNumStates(),
-                        -(dfa.labelScore - dfa.newEdges)));
+                        -dfa.labelScore));
             foundMerge = true;
         }
         dfa.undoMerge(u);
@@ -28,7 +33,7 @@ public class EdEdgesFold extends RedBlue implements java.io.Serializable {
     }
 
     public double getScore() {
-        return dfa.getNumProductiveEdges() + dfa.getNumProductiveStates();
+        return dfa.getStaminaScore();
     }
 
     /**
@@ -43,6 +48,11 @@ public class EdEdgesFold extends RedBlue implements java.io.Serializable {
         // Print Java version and system.
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
 
+        if (! Configuration.USE_STAMINA) {
+            System.err.println("Should set Stamina property!");
+            System.exit(1);
+        }
+        
         for (int i = 0; i < args.length; i++) {
             if (false) {
             } else if (args[i].equals("-input")) {
@@ -90,7 +100,7 @@ public class EdEdgesFold extends RedBlue implements java.io.Serializable {
         int[][] learningSamples = symbols.convert2learn(samples);
 
 
-        EdEdgesFold m = new EdEdgesFold();
+        StaminaFold m = new StaminaFold();
         m.printInfo = true;
         logger.info("Starting fold ...");
         DFA bestDFA = m.doFold(new Samples(symbols, learningSamples, null),

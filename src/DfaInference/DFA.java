@@ -548,16 +548,24 @@ public final class DFA implements java.io.Serializable, Configuration {
         nAccepting = 0;
         nRejecting = 0;
         nEdges = 0;
-        for (State s : states) {            
-            if (s.isRejecting()) {
-                nRejecting++;
-            } else if (s.isAccepting()) {
-                nAccepting++;
-            }
-            for (int i = 0; i < nsym; i++) {
-                if (s.children[i] != null) {
-                    nEdges++;
-                }
+        if (NEEDS_EDGECOUNTS) {
+            for (State s : states) { 
+        	System.out.print("State " + s.getId());
+        	if (s.isRejecting()) {
+        	    System.out.print(" is rejecting, weight = " + s.getWeight());
+        	    nRejecting++;
+        	} else if (s.isAccepting()) {
+        	    System.out.print(" is accepting, weight = " + s.getWeight());
+        	    nAccepting++;
+        	}
+        	System.out.println();
+        	for (int i = 0; i < nsym; i++) {
+        	    if (s.children[i] != null) {
+        		System.out.println("    edge on symbol " + i + " to state " + s.children[i].getId()
+        			+ ", traffic = " + s.edgeWeights[i] + ", xtraffic = " + s.xEdgeWeights[i]);
+        		nEdges++;
+        	    }
+        	}
             }
         }
         saved = new State[nStates];
@@ -776,7 +784,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         startState.setTraffic(state1.getTraffic() + state2.getTraffic());
         startState.setxTraffic(state1.getxTraffic() + state2.getxTraffic());
 
-        if (USE_CHISQUARE) {
+        if (NEEDS_EDGECOUNTS) {
             for (int i = 0; i < nsym; i++) {
                 startState.edgeWeights[i] = state1.edgeWeights[i] + state2.edgeWeights[i];
                 startState.xEdgeWeights[i] = state1.xEdgeWeights[i] + state2.xEdgeWeights[i];
@@ -805,7 +813,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 int xTraffic = 0;
                 int[] edgeWeights = null;
                 int[] xEdgeWeights = null;
-                if (USE_CHISQUARE) {
+                if (NEEDS_EDGECOUNTS) {
                     edgeWeights = new int[nsym];
                     xEdgeWeights = new int[nsym];
                 }
@@ -819,7 +827,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         weight += child.getWeight();
                         traffic += child.getTraffic();
                         xTraffic += child.getxTraffic();
-                        if (USE_CHISQUARE) {
+                        if (NEEDS_EDGECOUNTS) {
                             for (int j = 0; j < nsym; j++) {
                                 edgeWeights[j] += child.edgeWeights[j];
                                 xEdgeWeights[j] += child.xEdgeWeights[j];
@@ -1123,7 +1131,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 target.setTraffic(target.getTraffic() + 1);
             }
 
-            if (USE_CHISQUARE) {
+            if (NEEDS_EDGECOUNTS) {
                 if (reject) {
                     n.xEdgeWeights[symbols[i]]++;
                 } else {
@@ -1637,7 +1645,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         n1.setWeight(n1.getWeight() + n2.getWeight());
         n1.setTraffic(n1.getTraffic() + n2.getTraffic());
         n1.setxTraffic(n1.getxTraffic() + n2.getxTraffic());
-        if (USE_CHISQUARE) {
+        if (NEEDS_EDGECOUNTS) {
             for (int j = 0; j < nsym; j++) {
                 n1.edgeWeights[j] += n2.edgeWeights[j];
                 n1.xEdgeWeights[j] += n2.xEdgeWeights[j];
@@ -1708,7 +1716,11 @@ public final class DFA implements java.io.Serializable, Configuration {
                     // Parent of v2 changes, but is recomputed before every
                     // merge.
                     // System.out.println("    v2 = " + v2.id);
-                    newEdges++;
+                    if ((n1.isProductive() && v2.isProductive()) || (! n1.isProductive() && ! v2.isProductive())) {
+                	// Gives new sentences that were not there before, either negative or positive.
+                	// Penalty?
+                	newEdges++;
+                    }
                     addEdge(undo, n1, i, v2);
                     if (USE_PARENT_SETS) {
                         v2.parents.remove(n2);
@@ -1839,6 +1851,61 @@ public final class DFA implements java.io.Serializable, Configuration {
         } else {
             if (logger.isDebugEnabled()) {
                 logger.debug("No ChiSquare contribution from this merge");
+            }
+        }
+    }
+    
+    
+    private void computeStaminaChi(State n1, State n2) {
+        // Compute sums
+        int total = n2.getTraffic() + n1.getTraffic();
+        int outgoing = 0;
+        int ndegrees = -1;
+        for (int i = 0; i < nsym; i++) {
+            if (n1.children[i] != null || n2.children[i] != null) {
+                outgoing += 2;
+                ndegrees++;
+            }
+        }
+        // Note: accepting is chosen with half the probability! (See Stamina website).
+        if (n1.isAccepting() || n2.isAccepting()) {
+            outgoing++;
+            ndegrees++;
+        }
+        
+        double factor = (double) total / outgoing;
+        double score = 0.0;
+        if (factor >= CHI_MIN) {
+            for (int i = 0; i < nsym; i++) {
+                if (n1.children[i] != null || n2.children[i] != null) {
+                    double expected = factor * 2;
+                    double actual = n1.edgeWeights[i] + n2.edgeWeights[i];
+                    score += (actual - expected) * (actual - expected) / expected; 
+                }
+            }
+            if (n1.isAccepting() || n2.isAccepting()) {
+                double expected = factor;
+                double actual = n1.getWeight() + n2.getWeight();
+                score += (actual - expected) * (actual - expected) / expected;
+            }
+
+            if (ndegrees >= 1) {
+                double p_value = 0.0;
+                try {
+                    p_value = 1.0 - Gamma.regularizedGammaP(ndegrees/2.0, score/2.0);
+                    if (p_value < .00000001) {
+                        p_value = .00000001;
+                    }
+                    chiSquareSum += Math.log(p_value);
+                    sumCount++;
+                } catch (MathException e) {
+                    // Does not converge???
+                    // Ignore the count.
+                }
+            } else {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("No ChiSquare contribution from this merge");
+                }
             }
         }
     }
@@ -2183,6 +2250,34 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         return score;
     }
+    
+    public double getStaminaScore() {
+        State[] states = startState.breadthFirst();
+        double score = 0.0;
+        int cnt = 0;
+        for (State s : states) {
+            double sc = s.StaminaChi();
+            if (sc != 0) {
+                cnt++;
+                score += sc;
+            }
+        }
+        System.out.println("cnt = " + cnt + ", score = " + score);
+        // We have computed the sum of the logs of the P's for
+        // all states. Now, apply Fisher's method:
+        // X = -2 * score
+        // X is now a Chi-Square distribution with 2*cnt degrees of freedom.
+        // So, now: P = P(2 * cnt/2, X/2) = P(cnt, -score).
+        try {
+            double retval = -(1.0 - Gamma.regularizedGammaP(cnt, -score));
+            System.out.println("retval = " + retval);
+            return retval;
+        } catch (MathException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return 0.0;
+    }
 
     private static double log2(int d) {
         if (d >= logs.length) {
@@ -2229,7 +2324,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             ok = false;
         }
 
-        if (USE_CHISQUARE) {
+        if (NEEDS_EDGECOUNTS) {
             for (State s : l) {
                 int cnt = s.isAccepting() ? s.getWeight() : 0;
                 int xcnt = s.isRejecting() ? s.getWeight() : 0;
@@ -2690,7 +2785,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         + getIdMap()[ind].getTraffic());
                 states[i].setxTraffic(states[i].getxTraffic()
                         + getIdMap()[ind].getxTraffic());
-                if (USE_CHISQUARE) {
+                if (NEEDS_EDGECOUNTS) {
                     for (int j = 0; j < nsym; j++) {
                         states[i].edgeWeights[j] += getIdMap()[ind].edgeWeights[j];
                         states[i].xEdgeWeights[j] += getIdMap()[ind].xEdgeWeights[j];

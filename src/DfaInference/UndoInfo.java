@@ -54,7 +54,7 @@ public final class UndoInfo implements Configuration {
             weight = s.getWeight();
             traffic = s.getTraffic();
             xTraffic = s.getxTraffic();
-            if (USE_CHISQUARE) {
+            if (NEEDS_EDGECOUNTS) {
                 edgeWeights = s.edgeWeights.clone();
                 xEdgeWeights = s.xEdgeWeights.clone();
             }

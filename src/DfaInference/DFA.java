@@ -1716,10 +1716,14 @@ public final class DFA implements java.io.Serializable, Configuration {
                     // Parent of v2 changes, but is recomputed before every
                     // merge.
                     // System.out.println("    v2 = " + v2.id);
-                    if ((n1.isProductive() && v2.isProductive()) || (! n1.isProductive() && ! v2.isProductive())) {
-                	// Gives new sentences that were not there before, either negative or positive.
-                	// Penalty?
-                	newEdges++;
+                    if (v2.isProductive()) {
+                        if (! n1.isProductive()) {
+                            // New edge for v1, which makes n1 productive,
+                            // and who knows what else ...
+                            newEdges += 5;
+                        } else {
+                            newEdges++;
+                        }
                     }
                     addEdge(undo, n1, i, v2);
                     if (USE_PARENT_SETS) {
@@ -2262,19 +2266,15 @@ public final class DFA implements java.io.Serializable, Configuration {
                 score += sc;
             }
         }
-        System.out.println("cnt = " + cnt + ", score = " + score);
         // We have computed the sum of the logs of the P's for
         // all states. Now, apply Fisher's method:
         // X = -2 * score
         // X is now a Chi-Square distribution with 2*cnt degrees of freedom.
         // So, now: P = P(2 * cnt/2, X/2) = P(cnt, -score).
         try {
-            double retval = -(1.0 - Gamma.regularizedGammaP(cnt, -score));
-            System.out.println("retval = " + retval);
-            return retval;
+            return -(1.0 - Gamma.regularizedGammaP(cnt, -score));
         } catch (MathException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            // ignore
         }
         return 0.0;
     }

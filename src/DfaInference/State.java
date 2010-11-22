@@ -743,27 +743,22 @@ public final class State implements java.io.Serializable, Configuration,
         double factor = (double) total / outgoing;
         double score = 0.0;
         if (factor >= CHI_MIN) {
-            System.out.println("Factor = " + factor + ", outgoing = " + outgoing);
             for (int i = 0; i < children.length; i++) {
                 if (children[i] != null) {
                     double expected = factor * 2;
                     double actual = edgeWeights[i];
-                    System.out.println("expected = " + expected + ", actual = " + actual);
                     score += (actual - expected) * (actual - expected) / expected; 
                 }
             }
             if (isAccepting()) {
                 double expected = factor;
                 double actual = getWeight();
-                System.out.println("Endstate: expected = " + expected + ", actual = " + actual);
                 score += (actual - expected) * (actual - expected) / expected;
             }
-            System.out.println("Score = " + score + ", ndegrees = " + ndegrees);
             if (ndegrees >= 1) {
                 double p_value = 0.0;
                 try {
                     p_value = 1.0 - Gamma.regularizedGammaP(ndegrees/2.0, score/2.0);
-                    System.out.println("p_value = " + p_value);
                 } catch (MathException e) {
                     return 0.0;
                 }

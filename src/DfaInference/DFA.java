@@ -1441,6 +1441,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         DFAScore = 0;
 
         if (conflict) {
+            System.out.println("Conflict between state " + red.getId() + " and " + blue.getId());
             blue.addConflict(red);
             return undo;
         }
@@ -1601,6 +1602,25 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
                 conflict = true;
                 return;
+            }
+        }
+        
+        if (USE_STAMINA) {
+            if (n1.getTraffic() > 100 * nsym) {
+                if (! n1.isAccepting() && n2.isAccepting()) {
+                    // This merge would make n1 accepting, but there is no evidence that
+                    // it should be.
+                    System.out.println("Triggered 1, traffic = " + n1.getTraffic());
+                    conflict = true;
+                    return;
+                }
+                for (int i = 0; i < nsym; i++) {
+                    if ((n1.edgeWeights[i] == 0) && (n2.edgeWeights[i] != 0)) {
+                        System.out.println("Triggered 2, traffic = " + n1.getTraffic());
+                        conflict = true;
+                        return;
+                    }
+                }
             }
         }
         

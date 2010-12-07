@@ -210,7 +210,9 @@ public final class DFA implements java.io.Serializable, Configuration {
     
     private ArrayList<State> entranceStates;
 
-    int newEdges;
+    double chance;
+
+    int similarCount;
 
     /**
      * Basic constructor, creates an empty DFA.
@@ -550,19 +552,19 @@ public final class DFA implements java.io.Serializable, Configuration {
         nEdges = 0;
         if (NEEDS_EDGECOUNTS) {
             for (State s : states) { 
-        	System.out.print("State " + s.getId());
+        	// System.out.print("State " + s.getId());
         	if (s.isRejecting()) {
-        	    System.out.print(" is rejecting, weight = " + s.getWeight());
+        	    // System.out.print(" is rejecting, weight = " + s.getWeight());
         	    nRejecting++;
         	} else if (s.isAccepting()) {
-        	    System.out.print(" is accepting, weight = " + s.getWeight());
+        	    // System.out.print(" is accepting, weight = " + s.getWeight());
         	    nAccepting++;
         	}
-        	System.out.println();
+        	// System.out.println();
         	for (int i = 0; i < nsym; i++) {
         	    if (s.children[i] != null) {
-        		System.out.println("    edge on symbol " + i + " to state " + s.children[i].getId()
-        			+ ", traffic = " + s.edgeWeights[i] + ", xtraffic = " + s.xEdgeWeights[i]);
+        		// System.out.println("    edge on symbol " + i + " to state " + s.children[i].getId()
+        	// 		+ ", traffic = " + s.edgeWeights[i] + ", xtraffic = " + s.xEdgeWeights[i]);
         		nEdges++;
         	    }
         	}
@@ -1270,6 +1272,15 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
+     * Obtains the number of accepting states.
+     * 
+     * @return number of accepting states.
+     */
+    public int getNumAcceptingStates() {
+        return nAccepting;
+    }
+
+    /**
      * Obtains the start state for this DFA.
      * 
      * @return the start state of this DFA.
@@ -1430,7 +1441,8 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         // Recurse while merging ...
         labelScore = 0;
-        newEdges = 0;
+        chance = 1.0;
+        similarCount = 0;
         chiSquareSum = 0.0;
         xChiSquareSum = 0.0;
         zSum = 0.0;
@@ -1439,9 +1451,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         xSumCount = 0;
         walkTreeMerge(red, blue, undo);
         DFAScore = 0;
-
         if (conflict) {
-            System.out.println("Conflict between state " + red.getId() + " and " + blue.getId());
             blue.addConflict(red);
             return undo;
         }
@@ -1573,6 +1583,23 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
     }
+
+    private int getPenalty(double chance) {
+        // chance is between 0.0 and 1.0.
+        // 0.0 is bad, 1.0 is good. 
+        if (chance > .05) {
+            return 0;
+        }
+        int retval = 1;
+        while (retval < 64) {
+            chance *= 2.0;
+            if (chance > .05) {
+                return retval;
+            }
+            retval++;
+        }
+        return retval;
+    }
     
     /**
      * Merges two states. This version specifically performs merges for which
@@ -1606,21 +1633,83 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         
         if (USE_STAMINA) {
-            if (n1.getTraffic() > 100 * nsym) {
-                if (! n1.isAccepting() && n2.isAccepting()) {
-                    // This merge would make n1 accepting, but there is no evidence that
-                    // it should be.
-                    System.out.println("Triggered 1, traffic = " + n1.getTraffic());
-                    conflict = true;
-                    return;
+            int outgoing1 = 0;
+            int outgoing2 = 0;
+
+            for (int i = 0; i < nsym; i++) {
+                if (n1.edgeWeights[i] != 0) {
+                    outgoing1 += 2;
                 }
-                for (int i = 0; i < nsym; i++) {
-                    if ((n1.edgeWeights[i] == 0) && (n2.edgeWeights[i] != 0)) {
-                        System.out.println("Triggered 2, traffic = " + n1.getTraffic());
-                        conflict = true;
-                        return;
-                    }
+                if (n2.edgeWeights[i] != 0) {
+                    outgoing2 += 2;
                 }
+            }
+            if (n1.isAccepting()) {
+                outgoing1++;
+            }
+            if (n2.isAccepting()) {
+                outgoing2++;
+            }
+            int new_outgoing1 = outgoing1;
+            int new_outgoing2 = outgoing2;
+
+            // According to the Stamina description (website), a transfer
+            // to any state is twice as likely as stopping (if in an
+            // accepting state).
+
+            int n1Traffic = n1.getTraffic();
+            int n2Traffic = n2.getTraffic();
+
+            double thisChance1 = 1.0;
+            double thisChance2 = 1.0;
+
+            if (outgoing1 != 0 && ! n1.isAccepting() && n2.isAccepting()) {
+        	// This merge would make n1 accepting, but there is no evidence that
+        	// it should be. Penalty, depending on the traffic.
+                // Compute chance that n1.accept is never chosen.
+                new_outgoing1++;
+            }
+            if (outgoing2 != 0 && ! n2.isAccepting() && n1.isAccepting()) {
+        	// This merge would make n2 accepting, but there is no evidence that
+        	// it should be. Penalty, depending on the traffic.
+                // Compute chance that n1.accept is never chosen.
+                new_outgoing2++;
+            }
+
+            for (int i = 0; i < nsym; i++) {
+        	if (outgoing1 != 0 && (n1.edgeWeights[i] == 0) && (n2.edgeWeights[i] != 0)) {
+                    new_outgoing1 += 2;
+        	}
+        	if (outgoing2 != 0 && (n2.edgeWeights[i] == 0) && (n1.edgeWeights[i] != 0)) {
+                    new_outgoing2 += 2;
+                }
+            }
+            if (new_outgoing1 != outgoing1) {
+                // Compute the chance that 
+                thisChance1 *= Math.pow(outgoing1/(double)new_outgoing1, n1Traffic);
+            }
+            if (new_outgoing2 != outgoing2) {
+                thisChance2 *= Math.pow(outgoing2/(double)new_outgoing2, n2Traffic);
+            }
+            if (thisChance1 < chance) {
+                chance = thisChance1;
+            }
+            if (thisChance2 < chance) {
+                chance = thisChance2;
+            }
+            System.out.println("Merging state " + n1.getId() + " and " + n2.getId() + " gives score " +chance);
+            System.out.print("State " + n1.getId() + "( " + n1.getWeight());
+            for (int i = 0; i < nsym; i++) {
+                System.out.print(" " + n1.edgeWeights[i]);
+            }
+            System.out.println(")");
+            System.out.print("State " + n2.getId() + "( " + n2.getWeight());
+            for (int i = 0; i < nsym; i++) {
+                System.out.print(" " + n2.edgeWeights[i]);
+            }
+            System.out.println(")");
+            if (chance == 1.0 && outgoing1 > 0 && outgoing2 > 0) {
+                similarCount++;
             }
         }
         
@@ -1683,8 +1772,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
 
-        if ((NEGATIVES || MDL_COMPLEMENT)
-                && (n2.productive & REJECTING) != 0) {
+        if ((n2.productive & REJECTING) != 0) {
             missingXEdges -= n2.missingEdges(REJECTING);
             if ((n1.productive & REJECTING) == 0) {
                 n1.productive |= REJECTING;
@@ -1736,15 +1824,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                     // Parent of v2 changes, but is recomputed before every
                     // merge.
                     // System.out.println("    v2 = " + v2.id);
-                    if (v2.isProductive()) {
-                        if (! n1.isProductive()) {
-                            // New edge for v1, which makes n1 productive,
-                            // and who knows what else ...
-                            newEdges += 5;
-                        } else {
-                            newEdges++;
-                        }
-                    }
                     addEdge(undo, n1, i, v2);
                     if (USE_PARENT_SETS) {
                         v2.parents.remove(n2);

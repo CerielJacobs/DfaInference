@@ -684,6 +684,10 @@ public final class State implements java.io.Serializable, Configuration,
         return (productive & ACCEPTING) != 0;
     }
 
+    public boolean isXProductive() {
+        return (productive & REJECTING) != 0;
+    }
+
     /**
      * Returns a string representation of this state.
      * @return a string representation.
@@ -729,7 +733,7 @@ public final class State implements java.io.Serializable, Configuration,
         int outgoing = 0;
         int ndegrees = -1;
         for (int i = 0; i < children.length; i++) {
-            if (children[i] != null) {
+            if (edgeWeights[i] > 0) {
                 outgoing += 2;
                 ndegrees++;
             }

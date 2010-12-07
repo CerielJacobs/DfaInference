@@ -46,7 +46,7 @@ public class StaminaReader implements ReadSample {
                 break;
             }
             strings.add(s);
-            System.out.println(s);
+            // System.out.println(s);
         }
 
         return strings.toArray(new SampleString[strings.size()]);

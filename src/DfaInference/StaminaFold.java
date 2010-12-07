@@ -36,7 +36,7 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
             }
             */
             addChoice(Choice.getChoice(r.getId(), b.getId(), (int) getScore(),
-                        score));
+                    score));
             foundMerge = true;
         }
         dfa.undoMerge(u);

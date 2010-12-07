@@ -564,7 +564,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         	for (int i = 0; i < nsym; i++) {
         	    if (s.children[i] != null) {
         		// System.out.println("    edge on symbol " + i + " to state " + s.children[i].getId()
-        	// 		+ ", traffic = " + s.edgeWeights[i] + ", xtraffic = " + s.xEdgeWeights[i]);
+        			// + ", traffic = " + s.edgeWeights[i] + ", xtraffic = " + s.xEdgeWeights[i]);
         		nEdges++;
         	    }
         	}
@@ -1697,17 +1697,23 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (thisChance2 < chance) {
                 chance = thisChance2;
             }
-            System.out.println("Merging state " + n1.getId() + " and " + n2.getId() + " gives score " +chance);
-            System.out.print("State " + n1.getId() + "( " + n1.getWeight());
+            double c = thisChance1;
+            if (c > thisChance2) {
+                c = thisChance2;
+            }
+            /*
+            System.out.println("Merging state " + n1.getId() + " and " + n2.getId() + " gives score " + c);
+            System.out.print("State " + n1.getId() + "( " + (n1.isAccepting() ? n1.getWeight() : 0));
             for (int i = 0; i < nsym; i++) {
                 System.out.print(" " + n1.edgeWeights[i]);
             }
             System.out.println(")");
-            System.out.print("State " + n2.getId() + "( " + n2.getWeight());
+            System.out.print("State " + n2.getId() + "( " + (n2.isAccepting() ? n2.getWeight() : 0));
             for (int i = 0; i < nsym; i++) {
                 System.out.print(" " + n2.edgeWeights[i]);
             }
             System.out.println(")");
+            */
             if (chance == 1.0 && outgoing1 > 0 && outgoing2 > 0) {
                 similarCount++;
             }
@@ -1722,7 +1728,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                     computeXChiSquare(n1, n2);
                 }
             }
-            labelScore++;
+            if (! USE_STAMINA || n1.isAccepting()) {
+                labelScore++;
+            }
             if (n1.isAccepting()) {
                 nAccepting--;
             } else {

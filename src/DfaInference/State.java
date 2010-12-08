@@ -695,6 +695,34 @@ public final class State implements java.io.Serializable, Configuration,
     public String toString() {
         return "State" + id;
     }
+    
+    public String verboseString() {
+	StringBuffer b = new StringBuffer();
+	b.append("State ");
+	b.append(id);
+	if (accepting != 0) {
+	    b.append(isAccepting() ? " A" : " R");
+	    b.append("(");
+	    b.append(weight);
+	    b.append(")");
+	}
+	for (int i = 0; i < children.length; i++) {
+	    if (children[i] != null) {
+		b.append(" ");
+		b.append(i);
+		b.append(": edge to ");
+		b.append(children[i].id);
+		if (NEEDS_EDGECOUNTS) {
+		    b.append("(");
+		    b.append(edgeWeights[i]);
+		    b.append("/");
+		    b.append(xEdgeWeights[i]);
+		    b.append(")");
+		}
+	    }
+	}
+	return b.toString();
+    }
 
     public void setDepth(int depth) {
         this.depth = depth;

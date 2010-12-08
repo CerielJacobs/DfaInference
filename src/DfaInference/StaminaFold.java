@@ -25,16 +25,16 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
         if (! dfa.conflict && dfa.chance > 1e-20) {
             double score = -dfa.labelScore;
-            if (dfa.chance < 1e-9) {
-                score /= (1 + 4 * ((1e-9 - dfa.chance) * 1e9));
+            if (dfa.chance < 1e-10) {
+                score *= Math.pow(2.0, (Math.log10(dfa.chance)+10));
             }
             /*
-            if (dfa.chance < 1e-6) {
                 System.out.println("r = " + r.getId() + ", b = " + b.getId()
                         + " chance = " + dfa.chance
                         + ", score reduced from " + dfa.labelScore + " to " + (-score));
-            }
             */
+            
+
             addChoice(Choice.getChoice(r.getId(), b.getId(), (int) getScore(),
                     score));
             foundMerge = true;

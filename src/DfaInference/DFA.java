@@ -552,19 +552,28 @@ public final class DFA implements java.io.Serializable, Configuration {
         nEdges = 0;
         if (NEEDS_EDGECOUNTS) {
             for (State s : states) { 
-        	// System.out.print("State " + s.getId());
+                if (PRINT_DFA) {
+                    System.out.print("State " + s.getId());
+                    if (s.isRejecting()) {
+                        System.out.print(" is rejecting, weight = " + s.getWeight());
+                    } else if (s.isAccepting()) {
+                        System.out.print(" is accepting, weight = " + s.getWeight());
+                    }
+                    System.out.println();
+                    for (int i = 0; i < nsym; i++) {
+                        if (s.children[i] != null) {
+                            System.out.println("    edge on symbol " + symbols.getSymbol(i) + " to state " + s.children[i].getId()
+                                    + ", traffic = " + s.edgeWeights[i] + ", xtraffic = " + s.xEdgeWeights[i]);
+                        }
+                    }
+                }
         	if (s.isRejecting()) {
-        	    // System.out.print(" is rejecting, weight = " + s.getWeight());
         	    nRejecting++;
         	} else if (s.isAccepting()) {
-        	    // System.out.print(" is accepting, weight = " + s.getWeight());
         	    nAccepting++;
         	}
-        	// System.out.println();
         	for (int i = 0; i < nsym; i++) {
         	    if (s.children[i] != null) {
-        		// System.out.println("    edge on symbol " + i + " to state " + s.children[i].getId()
-        			// + ", traffic = " + s.edgeWeights[i] + ", xtraffic = " + s.xEdgeWeights[i]);
         		nEdges++;
         	    }
         	}
@@ -1583,23 +1592,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
     }
-
-    private int getPenalty(double chance) {
-        // chance is between 0.0 and 1.0.
-        // 0.0 is bad, 1.0 is good. 
-        if (chance > .05) {
-            return 0;
-        }
-        int retval = 1;
-        while (retval < 64) {
-            chance *= 2.0;
-            if (chance > .05) {
-                return retval;
-            }
-            retval++;
-        }
-        return retval;
-    }
     
     /**
      * Merges two states. This version specifically performs merges for which
@@ -1635,13 +1627,21 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (USE_STAMINA) {
             int outgoing1 = 0;
             int outgoing2 = 0;
+            int xOutgoing1 = 0;
+            int xOutgoing2 = 0;
 
             for (int i = 0; i < nsym; i++) {
                 if (n1.edgeWeights[i] != 0) {
                     outgoing1 += 2;
                 }
+                if (n1.xEdgeWeights[i] != 0) {
+                    xOutgoing1 += 2;
+                }
                 if (n2.edgeWeights[i] != 0) {
                     outgoing2 += 2;
+                }
+                if (n2.xEdgeWeights[i] != 0) {
+                    xOutgoing2 += 2;
                 }
             }
             if (n1.isAccepting()) {
@@ -1650,29 +1650,40 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (n2.isAccepting()) {
                 outgoing2++;
             }
+            if (n1.isRejecting()) {
+                xOutgoing1++;
+            }
+            if (n2.isRejecting()) {
+                xOutgoing2++;
+            }
             int new_outgoing1 = outgoing1;
             int new_outgoing2 = outgoing2;
+            int new_xoutgoing1 = xOutgoing1;
+            int new_xoutgoing2 = xOutgoing2;
 
             // According to the Stamina description (website), a transfer
             // to any state is twice as likely as stopping (if in an
             // accepting state).
-
+            // So, if the merged state is getting new edges or new accepting status, either
+            // with respect to n1 or n2, compute the chance that the sample could have
+            // been generated with this new state. Compare this with throwing a dice a number
+            // of times: what is the chance that you don't throw a 6 in say 10 attempts?
+            // That chance is (5/6) ^ 10.
             int n1Traffic = n1.getTraffic();
             int n2Traffic = n2.getTraffic();
+            int n1XTraffic = n1.getxTraffic();
+            int n2XTraffic = n2.getxTraffic();
 
             double thisChance1 = 1.0;
             double thisChance2 = 1.0;
+            double thisXChance1 = 1.0;
+            double thisXChance2 = 1.0;
 
+           
             if (outgoing1 != 0 && ! n1.isAccepting() && n2.isAccepting()) {
-        	// This merge would make n1 accepting, but there is no evidence that
-        	// it should be. Penalty, depending on the traffic.
-                // Compute chance that n1.accept is never chosen.
                 new_outgoing1++;
             }
             if (outgoing2 != 0 && ! n2.isAccepting() && n1.isAccepting()) {
-        	// This merge would make n2 accepting, but there is no evidence that
-        	// it should be. Penalty, depending on the traffic.
-                // Compute chance that n1.accept is never chosen.
                 new_outgoing2++;
             }
 
@@ -1685,35 +1696,59 @@ public final class DFA implements java.io.Serializable, Configuration {
                 }
             }
             if (new_outgoing1 != outgoing1) {
-                // Compute the chance that 
                 thisChance1 *= Math.pow(outgoing1/(double)new_outgoing1, n1Traffic);
             }
             if (new_outgoing2 != outgoing2) {
                 thisChance2 *= Math.pow(outgoing2/(double)new_outgoing2, n2Traffic);
             }
-            if (thisChance1 < chance) {
-                chance = thisChance1;
-            }
-            if (thisChance2 < chance) {
-                chance = thisChance2;
-            }
             double c = thisChance1;
             if (c > thisChance2) {
                 c = thisChance2;
             }
+            if (NEGATIVES) {
+        	// Negative sentences are generated quite differently: they are generated
+        	// by editing accepted sentences. So I am not at all convinced that the
+        	// code below is any good.
+        	if (xOutgoing1 != 0 && ! n1.isRejecting() && n2.isRejecting()) {
+        	    new_xoutgoing1++;
+        	}
+        	if (xOutgoing2 != 0 && ! n2.isRejecting() && n1.isRejecting()) {
+        	    new_xoutgoing2++;
+        	}   
+        	for (int i = 0; i < nsym; i++) {
+        	    if (xOutgoing1 != 0 && (n1.xEdgeWeights[i] == 0) && (n2.xEdgeWeights[i] != 0)) {
+        		new_xoutgoing1 += 2;
+        	    }
+        	    if (xOutgoing2 != 0 && (n2.xEdgeWeights[i] == 0) && (n1.xEdgeWeights[i] != 0)) {
+        		new_xoutgoing2 += 2;
+        	    }
+        	}
+        	if (new_xoutgoing1 != xOutgoing1) {
+        	    thisXChance1 *= Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic);
+        	}
+        	if (new_xoutgoing2 != xOutgoing2) {
+        	    thisXChance2 *= Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic);
+        	}
+
+        	if (c > thisXChance2) {
+        	    c = thisXChance2;
+        	}
+        	if (c > thisXChance1) {
+        	    c = thisXChance1;
+        	}
+            }
+            if (c < chance) {
+                chance = c;
+            }
+
             /*
-            System.out.println("Merging state " + n1.getId() + " and " + n2.getId() + " gives score " + c);
-            System.out.print("State " + n1.getId() + "( " + (n1.isAccepting() ? n1.getWeight() : 0));
-            for (int i = 0; i < nsym; i++) {
-                System.out.print(" " + n1.edgeWeights[i]);
+            if (undo == null) {
+        	System.out.println("Merge of state " + n1.getId() + " and " + n2.getId() + " gives score " + c);
+        	System.out.println(n1.verboseString());
+        	System.out.println(n2.verboseString());
             }
-            System.out.println(")");
-            System.out.print("State " + n2.getId() + "( " + (n2.isAccepting() ? n2.getWeight() : 0));
-            for (int i = 0; i < nsym; i++) {
-                System.out.print(" " + n2.edgeWeights[i]);
-            }
-            System.out.println(")");
             */
+            
             if (chance == 1.0 && outgoing1 > 0 && outgoing2 > 0) {
                 similarCount++;
             }

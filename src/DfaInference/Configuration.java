@@ -45,6 +45,9 @@ public interface Configuration {
     static final int CHI_MIN =
         tp.getIntProperty("ChiMin", 5);
 
+    static final boolean PRINT_DFA =
+        tp.getBooleanProperty("PrintDFA", false);
+
     static final boolean UNIQUE_SAMPLES = ! (USE_CHISQUARE || USE_STAMINA);
 
     /**

@@ -165,6 +165,9 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     /** Label score of the last merge. */
     int labelScore = 0;
+    
+    /** Correction on label score. */
+    int scoreCorrection = 0;
 
     /** Number of symbols. */
     int nsym;
@@ -1450,6 +1453,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         // Recurse while merging ...
         labelScore = 0;
+        scoreCorrection = 0;
         chance = 1.0;
         similarCount = 0;
         chiSquareSum = 0.0;
@@ -1613,6 +1617,12 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (logger.isDebugEnabled()) {
             logger.debug("Merging " + n1 + " and " + n2);
         }
+        
+        if ((n1.accepting | n2.accepting) == MASK) {
+            conflict = true;
+            return;
+        }
+        
         if (USE_ADJACENCY) {
             if (givesAdjacencyConflict(n1, n2)) {
                 if (logger.isDebugEnabled()) {
@@ -1627,21 +1637,13 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (USE_STAMINA) {
             int outgoing1 = 0;
             int outgoing2 = 0;
-            int xOutgoing1 = 0;
-            int xOutgoing2 = 0;
 
             for (int i = 0; i < nsym; i++) {
                 if (n1.edgeWeights[i] != 0) {
                     outgoing1 += 2;
                 }
-                if (n1.xEdgeWeights[i] != 0) {
-                    xOutgoing1 += 2;
-                }
                 if (n2.edgeWeights[i] != 0) {
                     outgoing2 += 2;
-                }
-                if (n2.xEdgeWeights[i] != 0) {
-                    xOutgoing2 += 2;
                 }
             }
             if (n1.isAccepting()) {
@@ -1650,16 +1652,9 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (n2.isAccepting()) {
                 outgoing2++;
             }
-            if (n1.isRejecting()) {
-                xOutgoing1++;
-            }
-            if (n2.isRejecting()) {
-                xOutgoing2++;
-            }
+
             int new_outgoing1 = outgoing1;
             int new_outgoing2 = outgoing2;
-            int new_xoutgoing1 = xOutgoing1;
-            int new_xoutgoing2 = xOutgoing2;
 
             // According to the Stamina description (website), a transfer
             // to any state is twice as likely as stopping (if in an
@@ -1671,14 +1666,9 @@ public final class DFA implements java.io.Serializable, Configuration {
             // That chance is (5/6) ^ 10.
             int n1Traffic = n1.getTraffic();
             int n2Traffic = n2.getTraffic();
-            int n1XTraffic = n1.getxTraffic();
-            int n2XTraffic = n2.getxTraffic();
 
             double thisChance1 = 1.0;
             double thisChance2 = 1.0;
-            double thisXChance1 = 1.0;
-            double thisXChance2 = 1.0;
-
            
             if (outgoing1 != 0 && ! n1.isAccepting() && n2.isAccepting()) {
                 new_outgoing1++;
@@ -1709,6 +1699,27 @@ public final class DFA implements java.io.Serializable, Configuration {
         	// Negative sentences are generated quite differently: they are generated
         	// by editing accepted sentences. So I am not at all convinced that the
         	// code below is any good.
+                int xOutgoing1 = 0;
+                int xOutgoing2 = 0;
+                
+                for (int i = 0; i < nsym; i++) {
+                    if (n1.xEdgeWeights[i] != 0) {
+                        xOutgoing1 += 2;
+                    }
+                    if (n2.xEdgeWeights[i] != 0) {
+                        xOutgoing2 += 2;
+                    }
+                }
+                if (n1.isRejecting()) {
+                    xOutgoing1++;
+                }
+                if (n2.isRejecting()) {
+                    xOutgoing2++;
+                }
+                
+                int new_xoutgoing1 = xOutgoing1;
+                int new_xoutgoing2 = xOutgoing2;
+
         	if (xOutgoing1 != 0 && ! n1.isRejecting() && n2.isRejecting()) {
         	    new_xoutgoing1++;
         	}
@@ -1723,6 +1734,13 @@ public final class DFA implements java.io.Serializable, Configuration {
         		new_xoutgoing2 += 2;
         	    }
         	}
+                
+                int n1XTraffic = n1.getxTraffic();
+                int n2XTraffic = n2.getxTraffic();
+
+                double thisXChance1 = 1.0;
+                double thisXChance2 = 1.0;
+                
         	if (new_xoutgoing1 != xOutgoing1) {
         	    thisXChance1 *= Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic);
         	}
@@ -1736,6 +1754,25 @@ public final class DFA implements java.io.Serializable, Configuration {
         	if (c > thisXChance1) {
         	    c = thisXChance1;
         	}
+            } else if (n1Traffic != 0 && n2Traffic == 0 && n2.isRejecting()) {
+        	// Apparently, n2 is the head of a purely non-productive tree. Merging this
+        	// in does not really make a difference, EXCEPT for the rejecting states. Turning
+        	// a state into rejecting may hinder other possibilities. Therefore, if n2 is
+        	// rejecting, we reduce the chance with the chance that n1 could actually be
+        	// accepting.
+        	new_outgoing1 = outgoing1 + 1;
+        	thisChance1 = Math.pow(outgoing1 / (double) new_outgoing1, n1Traffic);
+        	// Now, thisChance1 is the chance that state n1 should actually be accepting.
+        	// If this is a reasonable chance, reduce the label score.
+    	    	// System.out.println("Merging in rejecting state, n1Traffic = " + n1Traffic + ", thisChance1 = " + thisChance1);
+        	if (thisChance1 >= .3) {
+        	    scoreCorrection++; 
+        	}
+        	/*
+        	if (thisChance1 >= .01) {
+        	    labelScore--;
+        	}
+        	*/
             }
             if (c < chance) {
                 chance = c;

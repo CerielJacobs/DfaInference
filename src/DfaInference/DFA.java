@@ -274,6 +274,54 @@ public final class DFA implements java.io.Serializable, Configuration {
         conflicts = samples.conflicts;
     }
 
+    private void staminaPreprocess(State s) {
+        int outgoing1 = 0;
+
+        for (int i = 0; i < nsym; i++) {
+            if (s.edgeWeights[i] != 0) {
+                outgoing1 += 2;
+            }
+        }
+
+        if (s.isAccepting()) {
+            outgoing1++;
+        }
+
+        if (! s.isAccepting() && ! s.isRejecting()) {
+            // Non-accepting state. 
+
+            if (outgoing1 != 0) {
+                int new_outgoing1 = outgoing1 + 1;
+                double thisChance = Math.pow(outgoing1 / (double) new_outgoing1, s.getTraffic());
+                // Now, thisChance is the chance that the sample could occur, if
+                // s would be accepting. Make the state rejecting if this is
+                // below a certain threshold.
+                if (thisChance < THRESHOLD * THRESHOLD) {
+                    s.accepting = REJECTING;
+                }
+            }
+        }
+        for (int i = 0; i < nsym; i++) {
+            if (s.children[i] != null) {
+                if (outgoing1 != 0 && s.edgeWeights[i] == 0) {
+                    int new_outgoing1 = outgoing1 + 1;
+                    double thisChance = Math.pow(outgoing1 / (double) new_outgoing1, s.getTraffic());
+                    // Now, thisChance is the chance that the sample could occur
+                    // if s would actually have a positive edge on symbol i.
+                    // Make the whole tree starting at s.edgeWeights[i]
+                    // rejecting if this is below a certain threshold.
+                    if (thisChance < THRESHOLD * THRESHOLD) {
+                        s.children[i].markRejectingTree();
+                        continue;
+                    }
+                }
+                if (s.edgeWeights[i] != 0) {
+                    staminaPreprocess(s.children[i]);
+                }
+            }          
+        }
+    }
+
     private static class IntArrayComparator implements Comparator<int[]> {
 
         public int compare(int[] o1, int[] o2) {
@@ -1195,6 +1243,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         for (int i = 0; i < samples.length; i++) {
             addString(samples[i]);
         }
+        if (USE_STAMINA) {
+            staminaPreprocess(startState);
+        }
         dfaComputations(true);
         if (USE_ADJACENCY) {
             startState.entrySyms.set(nsym);
@@ -1814,11 +1865,13 @@ public final class DFA implements java.io.Serializable, Configuration {
         
         if ((n1.accepting | n2.accepting) == MASK) {
             conflict = true;
+            /*
             if (undo != null) {
                 System.out.println("CONFLICT!");
                 System.out.println(n1.verboseString());
                 System.out.println(n2.verboseString());
             }
+            */
             return;
         }
         
@@ -1862,11 +1915,13 @@ public final class DFA implements java.io.Serializable, Configuration {
                 chance = c;
             }
                 
+            /*
             if (undo != null) {
                 System.out.println("Merge of state " + n1.getId() + " and " + n2.getId() + " gives score " + c);
                 System.out.println(n1.verboseString());
                 System.out.println(n2.verboseString());
             }
+            */
         }
         
         saveState(n1, undo);

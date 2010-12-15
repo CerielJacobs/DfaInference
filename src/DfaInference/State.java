@@ -544,6 +544,15 @@ public final class State implements java.io.Serializable, Configuration,
         }
     }
 
+    public void markRejectingTree() {
+        accepting = REJECTING;
+        for (int i = 0; i < children.length; i++) {
+            if (children[i] != null) {
+                children[i].markRejectingTree();
+            }
+        }
+    }
+
     /**
      * Computes and returns the set of productive states.
      * @param mask either REJECTING or ACCEPTING.

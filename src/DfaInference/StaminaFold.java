@@ -14,27 +14,61 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    public double THRESHOLD = Configuration.THRESHOLD;
+
     boolean testMerge(State r, State b) {
         boolean foundMerge = false;
 
         if (r == null) {
-            addChoice(Choice.getChoice(-1, b.getId(), dfa.getNumStates(), 0));
+            addChoice(Choice.getChoice(-1, b.getId(), 0, 0));
             return true;
         }
 
+        double oldScore = getSimpleScore();
+
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
-        if (! dfa.conflict && dfa.chance > 1e-8) {
-            double score = -dfa.labelScore + dfa.scoreCorrection;
+
+
+        if (! dfa.conflict) {
+            double score = getSimpleScore() - oldScore - dfa.labelScore;
+            // score -= b.getTraffic() + b.getxTraffic();
+            
+            // double score = -dfa.labelScore;
+
+            if (dfa.chance < THRESHOLD) {
+                score = -.1;
+            }
+
+            /*
+            double sum = dfa.zSum;
+            int count = dfa.sumCount;
+            double score = 0.0;
+            try {
+                score = -DFA.normal.cumulativeProbability(sum/Math.sqrt(count));
+            } catch(Throwable e) {
+                // ignored
+            }
+
+            System.out.println("sum = " + sum + ", count = " + count + ", score = " + score);
+            */
+        
+            // double score = -dfa.chance;
+            /*
+            if (r.isProductive() && ! r.isXProductive() && ! b.isProductive()) {
+        	// score = -1e-8;
+        	score = -.01;
+            }
+            
             if (dfa.chance > .1 && dfa.scoreCorrection == 0) {
         	score *= 10;
             }
-            // double score = -dfa.labelScore;
-            /*
-            if (dfa.chance < 1e-5) {
-                score *= Math.pow(1.5, (Math.log10(dfa.chance)+5));
-            }
             */
-            addChoice(Choice.getChoice(r.getId(), b.getId(), (int) getScore(),
+            
+            // if (score < 1e-4) {
+                // score *= Math.pow(1.25, Math.log10(dfa.chance));
+            // }
+
+            addChoice(Choice.getChoice(r.getId(), b.getId(), -dfa.chance,
                     score));
             foundMerge = true;
         }
@@ -42,11 +76,23 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         return foundMerge;
     }
 
-    public double getScore() {
+    public double getSimpleScore() {
         // return dfa.getStaminaScore();
 	// This either does not work properly yet, or gives unreasonable scores.
 	// For now:
-	return dfa.getNumProductiveEdges() + + dfa.getNumAcceptingStates() + dfa.getNumProductiveStates();
+        /*
+        if (Configuration.NEGATIVES) {
+            return dfa.getNumEdges() + dfa.getNumAcceptingStates() + dfa.getNumStates() + dfa.getNumRejectingStates();
+        }
+        */
+        return dfa.getNumProductiveEdges() + dfa.getNumAcceptingStates() + dfa.getNumProductiveStates();
+    }
+
+    public double getScore() {
+        return getSimpleScore();
+        // return dfa.getMDLComplexity();
+        // This needs modification in DFA.java, because the weight of the endstates is wrong for MDL,
+        // since a sentence in the sample may occur more than once in Stamina.
     }
 
     /**

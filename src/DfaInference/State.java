@@ -706,6 +706,11 @@ public final class State implements java.io.Serializable, Configuration,
 	    b.append(weight);
 	    b.append(")");
 	}
+        b.append(" Traffic (");
+        b.append(traffic);
+        b.append("/");
+        b.append(xTraffic);
+        b.append(")");
 	for (int i = 0; i < children.length; i++) {
 	    if (children[i] != null) {
 		b.append(" ");

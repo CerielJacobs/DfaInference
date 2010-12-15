@@ -18,7 +18,7 @@ public class Choice implements Comparable<Choice>, java.io.Serializable {
     public int s2;
 
     /** The number of states resulting after the merge. */
-    transient int nstates;
+    transient double extra;
 
     /**
      * The score corresponding to this merge and the heuristic used.
@@ -36,13 +36,13 @@ public class Choice implements Comparable<Choice>, java.io.Serializable {
      * Constructor.
      * @param s1 initializer for the <code>s1</code> field
      * @param s2 initializer for the <code>s2</code> field
-     * @param nstates initializer for the <code>nstates</code> field
+     * @param extra initializer for the <code>extra</code> field
      * @param score initializer for the <code>score</code> field
      */
-    private Choice(int s1, int s2, int nstates, double score) {
+    private Choice(int s1, int s2, double extra, double score) {
         this.s1 = s1;
         this.s2 = s2;
-        this.nstates = nstates;
+        this.extra = extra;
         this.score = score;
     }
 
@@ -51,18 +51,18 @@ public class Choice implements Comparable<Choice>, java.io.Serializable {
      * fields.
      * @param s1 initializer for the <code>s1</code> field
      * @param s2 initializer for the <code>s2</code> field
-     * @param nstates initializer for the <code>nstates</code> field
+     * @param extra initializer for the <code>extra</code> field
      * @param score initializer for the <code>score</code> field
      */
-    public static Choice getChoice(int s1, int s2, int nstates, double score) {
+    public static Choice getChoice(int s1, int s2, double extra, double score) {
         if (freeList == null) {
-            return new Choice(s1, s2, nstates, score);
+            return new Choice(s1, s2, extra, score);
         }
         Choice c = freeList;
         freeList = freeList.next;
         c.s1 = s1;
         c.s2 = s2;
-        c.nstates = nstates;
+        c.extra = extra;
         c.score = score;
         return c;
     }
@@ -87,15 +87,15 @@ public class Choice implements Comparable<Choice>, java.io.Serializable {
     
     public int compareTo(Choice p) {
         if (p.score == score) {
-            if (p.nstates == nstates) {
+            if (p.extra == extra) {
                 if (p.s1 == s1) {
                     return s2 - p.s2;
                 }
                 return s1 - p.s1;
             }
-            return nstates - p.nstates;
+            return extra > p.extra ? 1 : -1;
         }
-        return (score - p.score > 0) ? 1 : -1;
+        return score > p.score ? 1 : -1;
     }
 
     public String toString() {
@@ -119,6 +119,6 @@ public class Choice implements Comparable<Choice>, java.io.Serializable {
         line = r.readLine();
         s2 = (new Integer(line)).intValue();
         score = 0;
-        nstates = 0;
+        extra = 0;
     }
 }

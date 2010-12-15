@@ -319,7 +319,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
         String str = "";
         for (int j = 0; j < numCandidates; j++) {
             Choice c = mergeCandidates[j];
-            str += "\n    (" + c.s1 + ", " + c.s2 + ", score = " + c.score + ")";
+            str += "\n    (" + c.s1 + ", " + c.s2 + ", score = " + c.score + ", extra = " + c.extra + ")";
         }
         return str;
     }
@@ -715,7 +715,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
 
     private void printCandidate(Choice c) {
         System.out.println("s2 = " + c.s2 + ", s1 = " + c.s1
-                + ", nstates = " + c.nstates
+                + ", extra = " + c.extra
                 + ", score = " + c.score);
     }
 
@@ -728,8 +728,6 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * @return the resulting DFA.
      */
     protected DFA doFold(Guidance guide, int maxSteps) {
-        bestScore = Double.MAX_VALUE;
-        bestDFA = null;
 
         if (printInfo && logger.isDebugEnabled()) {
             logger.debug("Initial DFA has score " + getScore()
@@ -799,14 +797,10 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
 
         double score = getScore();
 
-        if (bestDFA == null || score < bestScore) {
-            bestDFA = dfa;
-            bestScore = score;
-        }
         if (logger.isInfoEnabled()) {
             logger.info("" + guide + ", learned DFA with score " + score);
         }
-        return bestDFA;
+        return dfa;
     }
     
     /**

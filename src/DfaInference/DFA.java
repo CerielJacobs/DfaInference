@@ -1291,6 +1291,15 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
+     * Obtains the number of rejecting states.
+     * 
+     * @return number of rejecting states.
+     */
+    public int getNumRejectingStates() {
+        return nRejecting;
+    }
+
+    /**
      * Obtains the start state for this DFA.
      * 
      * @return the start state of this DFA.
@@ -1460,9 +1469,11 @@ public final class DFA implements java.io.Serializable, Configuration {
         sumCount = 0;
         xSumCount = 0;
         walkTreeMerge(red, blue, undo);
-        if (undo == null && ! conflict) {
+        /*
+        if (USE_STAMINA && undo == null && ! conflict) {
             System.out.println("Merging states " + red.getId() + " and " + blue.getId() + " gave chance " + chance);
         }
+        */
         DFAScore = 0;
         if (conflict) {
             blue.addConflict(red);
@@ -1597,9 +1608,14 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
     }
     
-    private double computeStaminaChance(State n1, State n2) {
+    private double computeStaminaChance(State n1, State n2) throws MathException {
+        // According to the Stamina description (website), a transfer
+        // to any state is twice as likely as stopping (if in an
+        // accepting state).
         int outgoing1 = 0;
         int outgoing2 = 0;
+        int xOutgoing1 = 0;
+        int xOutgoing2 = 0;
 
         for (int i = 0; i < nsym; i++) {
             if (n1.edgeWeights[i] != 0) {
@@ -1608,6 +1624,12 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (n2.edgeWeights[i] != 0) {
                 outgoing2 += 2;
             }
+            if (n1.xEdgeWeights[i] != 0) {
+                xOutgoing1 += 2;
+            }
+            if (n2.xEdgeWeights[i] != 0) {
+                xOutgoing2 += 2;
+            }
         }
         if (n1.isAccepting()) {
             outgoing1++;
@@ -1615,129 +1637,157 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (n2.isAccepting()) {
             outgoing2++;
         }
+        if (n1.isRejecting()) {
+            xOutgoing1++;
+        }
+        if (n2.isRejecting()) {
+            xOutgoing2++;
+        }
 
         int new_outgoing1 = outgoing1;
         int new_outgoing2 = outgoing2;
 
-        // According to the Stamina description (website), a transfer
-        // to any state is twice as likely as stopping (if in an
-        // accepting state).
-        // So, if the merged state is getting new edges or new accepting status, either
+        // If the merged state is getting new edges or new accepting status, either
         // with respect to n1 or n2, compute the chance that the sample could have
         // been generated with this new state. Compare this with throwing a dice a number
         // of times: what is the chance that you don't throw a 6 in say 10 attempts?
         // That chance is (5/6) ^ 10.
         int n1Traffic = n1.getTraffic();
         int n2Traffic = n2.getTraffic();
+        int n1XTraffic = n1.getxTraffic();
+        int n2XTraffic = n2.getxTraffic();
 
-        double thisChance1 = 1.0;
-        double thisChance2 = 1.0;
+        double zSum = 0.0;
+        int sumCount = 0;
+        double c = 1.0;
        
-        if (outgoing1 != 0 && ! n1.isAccepting() && n2.isAccepting()) {
+        if (! n1.isAccepting() && n2.isAccepting()) {
             new_outgoing1++;
         }
-        if (outgoing2 != 0 && ! n2.isAccepting() && n1.isAccepting()) {
+        if (! n2.isAccepting() && n1.isAccepting()) {
             new_outgoing2++;
         }
 
         for (int i = 0; i < nsym; i++) {
-    	if (outgoing1 != 0 && (n1.edgeWeights[i] == 0) && (n2.edgeWeights[i] != 0)) {
+            if ((n1.edgeWeights[i] == 0) && (n2.edgeWeights[i] != 0)) {
                 new_outgoing1 += 2;
-    	}
-    	if (outgoing2 != 0 && (n2.edgeWeights[i] == 0) && (n1.edgeWeights[i] != 0)) {
+            }
+            if ((n2.edgeWeights[i] == 0) && (n1.edgeWeights[i] != 0)) {
                 new_outgoing2 += 2;
             }
         }
+
         if (new_outgoing1 != outgoing1) {
-            thisChance1 *= Math.pow(outgoing1/(double)new_outgoing1, n1Traffic);
+            if (outgoing1 != 0) {
+                // zSum += normal.inverseCumulativeProbability(Math.pow(outgoing1/(double)new_outgoing1, n1Traffic));
+                // sumCount++;
+                c *= Math.pow(outgoing1/(double)new_outgoing1, n1Traffic);
+            } else {
+                c *= Math.pow(0.5, n1XTraffic);
+            }
         }
         if (new_outgoing2 != outgoing2) {
-            thisChance2 *= Math.pow(outgoing2/(double)new_outgoing2, n2Traffic);
+            if (outgoing2 != 0) {
+                // zSum += normal.inverseCumulativeProbability(Math.pow(outgoing2/(double)new_outgoing2, n2Traffic));
+                // sumCount++;
+                c *= Math.pow(outgoing2/(double)new_outgoing2, n2Traffic);
+            } else {
+                c *= Math.pow(0.5, n2XTraffic);
+            }
         }
-        double c = thisChance1;
-        if (c > thisChance2) {
-            c = thisChance2;
-        }
+
         if (NEGATIVES) {
-            // Negative sentences are generated quite differently: they are generated
+            // We have to do something about negative sentences as well. Otherwise,
+            // the learning process will favor generalization of the "negative" part,
+            // which may, in turn, hamper the generalization of the "positive" part.
+            //
+            // Negative sentences are generated quite differently however: they are generated
             // by editing accepted sentences. So I am not at all convinced that the
-            // code below is any good.
-            int xOutgoing1 = 0;
-            int xOutgoing2 = 0;
-            
-            for (int i = 0; i < nsym; i++) {
-                if (n1.xEdgeWeights[i] != 0) {
-                    xOutgoing1 += 2;
-                }
-                if (n2.xEdgeWeights[i] != 0) {
-                    xOutgoing2 += 2;
-                }
-            }
-            if (n1.isRejecting()) {
-                xOutgoing1++;
-            }
-            if (n2.isRejecting()) {
-                xOutgoing2++;
-            }
+            // code below is any good. On the other hand, most of the symbols in a rejected
+            // sentence are generated by the same rules.
             
             int new_xoutgoing1 = xOutgoing1;
             int new_xoutgoing2 = xOutgoing2;
 
-            if (xOutgoing1 != 0 && ! n1.isRejecting() && n2.isRejecting()) {
-        	new_xoutgoing1++;
+            double cx = 1.0;
+
+            if (! n1.isRejecting() && n2.isRejecting()) {
+                // This merge makes n1 rejecting. Compute the chance that it
+                // actually could be accepting.
+                if (outgoing1 != 0) {
+                    new_outgoing1 = outgoing1 + 1;
+                    double thisChance = Math.pow(outgoing1 / (double) new_outgoing1, n1Traffic);
+                    cx *= (1 - thisChance);
+                    // zSum += normal.inverseCumulativeProbability(1 - thisChance);
+                    // sumCount++;
+                } else {
+                    new_xoutgoing1++;
+                }
             }
-            if (xOutgoing2 != 0 && ! n2.isRejecting() && n1.isRejecting()) {
-        	new_xoutgoing2++;
+            if (! n2.isRejecting() && n1.isRejecting()) {
+                if (outgoing2 != 0) {
+                    new_outgoing2 = outgoing2 + 1;
+                    new_xoutgoing2++;
+                    double thisChance = Math.pow(outgoing2 / (double) new_outgoing2, n2Traffic);
+                    cx *= (1 - thisChance);
+                    // zSum += normal.inverseCumulativeProbability(1 - thisChance);
+                    // sumCount++;
+                } else {
+                    new_xoutgoing2++;
+                }
             }   
             for (int i = 0; i < nsym; i++) {
-        	if (xOutgoing1 != 0 && (n1.xEdgeWeights[i] == 0) && (n2.xEdgeWeights[i] != 0)) {
+        	if ((n1.xEdgeWeights[i] == 0) && (n2.xEdgeWeights[i] != 0)) {
         	    new_xoutgoing1 += 2;
         	}
-        	if (xOutgoing2 != 0 && (n2.xEdgeWeights[i] == 0) && (n1.xEdgeWeights[i] != 0)) {
+        	if ((n2.xEdgeWeights[i] == 0) && (n1.xEdgeWeights[i] != 0)) {
         	    new_xoutgoing2 += 2;
         	}
             }
-            
-            int n1XTraffic = n1.getxTraffic();
-            int n2XTraffic = n2.getxTraffic();
 
-            double thisXChance1 = 1.0;
-            double thisXChance2 = 1.0;
-            
-            if (new_xoutgoing1 != xOutgoing1) {
-        	thisXChance1 *= Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic);
-            }
-            if (new_xoutgoing2 != xOutgoing2) {
-        	thisXChance2 *= Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic);
-            }
+            // How to compensate for the fact that there have been edit operations in the
+            // sentences? These operations may cause edges that don't "obey" statistics.
+            // For now, reduce importance of traffic.
 
-            if (c > thisXChance2) {
-        	c = thisXChance2;
+            // n1XTraffic = 2 * n1XTraffic / 3;
+            // n2XTraffic = 2 * n2XTraffic / 3;
+            // Commented out: would favor generalization of negative samples.
+
+            if (xOutgoing1 != 0 && new_xoutgoing1 != xOutgoing1) {
+                // zSum += normal.inverseCumulativeProbability(Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic));
+                // sumCount++;
+                cx *= Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic);
             }
-            if (c > thisXChance1) {
-        	c = thisXChance1;
+            if (xOutgoing2 != 0 && new_xoutgoing2 != xOutgoing2) {
+                // zSum += normal.inverseCumulativeProbability(Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic));
+                // sumCount++;
+                cx *= Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic);
             }
-        } else if (n1Traffic != 0 && n2Traffic == 0 && n2.isRejecting()) {
-            // Apparently, n2 is the head of a purely non-productive tree. Merging this
-            // in does not really make a difference, EXCEPT for the rejecting states. Turning
-            // a state into rejecting may hinder other possibilities. Therefore, if n2 is
-            // rejecting, we reduce the chance with the chance that n1 could actually be
-            // accepting.
+            if (cx < c) {
+                c = cx;
+            }
+        } else if (n1Traffic != 0 && n2.isRejecting() && ! n1.isRejecting()) {
+            // If n1 is rejecting, we reduce the chance with the chance that n1
+            // could actually be accepting.
             new_outgoing1 = outgoing1 + 1;
-            thisChance1 = Math.pow(outgoing1 / (double) new_outgoing1, n1Traffic);
-            // Now, thisChance1 is the chance that state n1 should actually be accepting.
-            // If this is a reasonable chance, reduce the label score.
-            // System.out.println("Merging in rejecting state, n1Traffic = " + n1Traffic + ", thisChance1 = " + thisChance1);
-            if (thisChance1 >= .3) {
-        	scoreCorrection++; 
-            }
-            /*
-    	if (thisChance1 >= .01) {
-    	    labelScore--;
-    	}
-             */
+            double thisChance = Math.pow(outgoing1 / (double) new_outgoing1, n1Traffic);
+            // Now, thisChance is the chance that state n1 should actually be accepting.
+            // zSum +=  normal.inverseCumulativeProbability(1 - thisChance);
+            // sumCount++;
+            c *= (1 - thisChance);
         }
+        /*
+        System.out.println(n1.verboseString());
+        System.out.println(n2.verboseString());
+        System.out.println("Merge gives chance " + c);
+        */
         return c;
+        /*
+        if (sumCount == 0) {
+            return 1.0;
+        }
+        return normal.cumulativeProbability(zSum/Math.sqrt(sumCount));
+        */
     }
     
     
@@ -1764,6 +1814,11 @@ public final class DFA implements java.io.Serializable, Configuration {
         
         if ((n1.accepting | n2.accepting) == MASK) {
             conflict = true;
+            if (undo != null) {
+                System.out.println("CONFLICT!");
+                System.out.println(n1.verboseString());
+                System.out.println(n2.verboseString());
+            }
             return;
         }
         
@@ -1779,17 +1834,39 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
         
         if (USE_STAMINA) {
-            double c = computeStaminaChance(n1, n2);
+            double c;
+
+            try {
+                c = computeStaminaChance(n1, n2);
+            } catch(Throwable e) {
+                System.out.println("Got Math exception! " + e);
+                conflict = true;
+                return;
+            }
+            /*
+            if (c < 1e-50) {
+                c = 1e-50;
+            }
+            if (c >= .99) {
+                c = .99;
+            }
+            try {
+                zSum += normal.inverseCumulativeProbability(c);
+                sumCount++;
+            } catch(Throwable e) {
+                // ignored
+            }
+            */
+
             if (c < chance) {
                 chance = c;
+            }
                 
-                if (undo == null) {
-                    System.out.println("Merge of state " + n1.getId() + " and " + n2.getId() + " gives score " + c);
-                    System.out.println(n1.verboseString());
-                    System.out.println(n2.verboseString());
-                }
-                  
-            }        
+            if (undo != null) {
+                System.out.println("Merge of state " + n1.getId() + " and " + n2.getId() + " gives score " + c);
+                System.out.println(n1.verboseString());
+                System.out.println(n2.verboseString());
+            }
         }
         
         saveState(n1, undo);
@@ -1801,9 +1878,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     computeXChiSquare(n1, n2);
                 }
             }
-            // if (! USE_STAMINA || n1.isAccepting()) {
-                labelScore++;
-            // }
+            labelScore++;
             if (n1.isAccepting()) {
                 nAccepting--;
             } else {

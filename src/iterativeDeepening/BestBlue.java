@@ -127,6 +127,9 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         if (logger.isInfoEnabled()) {
             logger.info("depth = " + depth
                     + ", choice length = " + choice.length);
+            for (int i = 0; i < choice.length; i++) {
+        	logger.info("" + choice[i].verboseString());
+            }
         }
 
         pairs = new ControlResultPair[choice.length];

@@ -501,6 +501,13 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
             int count = 0;
             for (int i = 0; i < candidates.length; i++) {
                 if (candidates[i].s2 == blue) {
+                    if (USE_STAMINA) {
+                	if (candidates[i].s1 != -1 && candidates[i].extra > -THRESHOLD) {
+                	    logger.debug("Removing merge choice " + candidates[i].s1
+                		    + ", " + candidates[i].s2 + ", chance = " + candidates[i].extra);
+                	    continue;
+                	}
+                    }
                     count++;
                 }
             }
@@ -508,6 +515,11 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
             int index = 0;
             for (int i = 0; i < candidates.length; i++) {
                 if (candidates[i].s2 == blue) {
+                    if (USE_STAMINA) {
+                	if (candidates[i].s1 != -1 && candidates[i].extra > -THRESHOLD) {
+                	    continue;
+                	}
+                    }
                     result[index] = candidates[i];
                     index++;
                 }

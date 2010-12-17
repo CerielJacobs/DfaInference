@@ -121,4 +121,8 @@ public class Choice implements Comparable<Choice>, java.io.Serializable {
         score = 0;
         extra = 0;
     }
+    
+    public String verboseString() {
+	return "Red " + s1 + ", blue " + s2 + ", score " + score + ", extra " + extra;
+    }
 }

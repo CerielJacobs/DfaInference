@@ -616,11 +616,13 @@ public final class DFA implements java.io.Serializable, Configuration {
                         }
                     }
                 }
-        	if (s.isRejecting()) {
-        	    nRejecting++;
-        	} else if (s.isAccepting()) {
-        	    nAccepting++;
-        	}
+                if (s.getWeight() > 0) {
+                    if (s.isRejecting()) {
+                	nRejecting++;
+                    } else if (s.isAccepting()) {
+                	nAccepting++;
+                    }
+                }
         	for (int i = 0; i < nsym; i++) {
         	    if (s.children[i] != null) {
         		nEdges++;
@@ -1202,14 +1204,18 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         if (reject) {
-            numRejected++;
-            nRejecting++;
-            n.accepting = REJECTING;
+            if (n.getWeight() == 0) {
+        	numRejected++;
+        	nRejecting++;
+        	n.accepting = REJECTING;
+            }
             n.setWeight(n.getWeight() + 1);
         } else {
-            numRecognized++;
-            nAccepting++;
-            n.accepting = ACCEPTING;
+            if (n.getWeight() == 0) {
+        	numRecognized++;
+        	nAccepting++;
+        	n.accepting = ACCEPTING;
+            }
             n.setWeight(n.getWeight() + 1);
         }
     }
@@ -1519,6 +1525,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         xZSum = 0.0;
         sumCount = 0;
         xSumCount = 0;
+        int savedNStates = nStates;
         walkTreeMerge(red, blue, undo);
         /*
         if (USE_STAMINA && undo == null && ! conflict) {
@@ -1531,6 +1538,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             return undo;
         }
         
+        int diff = savedNStates - nStates;
+        scoreCorrection = (scoreCorrection + diff - 1) / diff;
         MDLScore = 0;
 
         if (mustRecomputeProductive || (INCREMENTAL_COUNTS && (counts != null))) {
@@ -1733,7 +1742,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                 // zSum += normal.inverseCumulativeProbability(Math.pow(outgoing1/(double)new_outgoing1, n1Traffic));
                 // sumCount++;
                 c *= Math.pow(outgoing1/(double)new_outgoing1, n1Traffic);
+                scoreCorrection += (new_outgoing1 - outgoing1) * n1Traffic;
             } else {
+        	scoreCorrection += new_outgoing1 * n1XTraffic;
                 c *= Math.pow(0.5, n1XTraffic);
             }
         }
@@ -1742,7 +1753,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                 // zSum += normal.inverseCumulativeProbability(Math.pow(outgoing2/(double)new_outgoing2, n2Traffic));
                 // sumCount++;
                 c *= Math.pow(outgoing2/(double)new_outgoing2, n2Traffic);
+                scoreCorrection += (new_outgoing2 - outgoing2) * n2Traffic;
             } else {
+        	scoreCorrection += new_outgoing2 * n2XTraffic;
                 c *= Math.pow(0.5, n2XTraffic);
             }
         }
@@ -1771,21 +1784,18 @@ public final class DFA implements java.io.Serializable, Configuration {
                     cx *= (1 - thisChance);
                     // zSum += normal.inverseCumulativeProbability(1 - thisChance);
                     // sumCount++;
-                } else {
-                    new_xoutgoing1++;
                 }
+                new_xoutgoing1++;
             }
             if (! n2.isRejecting() && n1.isRejecting()) {
                 if (outgoing2 != 0) {
                     new_outgoing2 = outgoing2 + 1;
-                    new_xoutgoing2++;
                     double thisChance = Math.pow(outgoing2 / (double) new_outgoing2, n2Traffic);
                     cx *= (1 - thisChance);
                     // zSum += normal.inverseCumulativeProbability(1 - thisChance);
                     // sumCount++;
-                } else {
-                    new_xoutgoing2++;
                 }
+                new_xoutgoing2++;
             }   
             for (int i = 0; i < nsym; i++) {
         	if ((n1.xEdgeWeights[i] == 0) && (n2.xEdgeWeights[i] != 0)) {
@@ -1807,13 +1817,16 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (xOutgoing1 != 0 && new_xoutgoing1 != xOutgoing1) {
                 // zSum += normal.inverseCumulativeProbability(Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic));
                 // sumCount++;
-                cx *= Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic);
+                cx *= Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic);                
             }
+            scoreCorrection += (new_xoutgoing1 - xOutgoing1) * n1XTraffic;
             if (xOutgoing2 != 0 && new_xoutgoing2 != xOutgoing2) {
                 // zSum += normal.inverseCumulativeProbability(Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic));
                 // sumCount++;
-                cx *= Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic);
+                cx *= Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic);                            
             }
+            scoreCorrection += (new_xoutgoing2 - xOutgoing2) * n2XTraffic;
+            
             if (cx < c) {
                 c = cx;
             }
@@ -1923,39 +1936,38 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
             */
         }
+
+        if ((n1.accepting | n2.accepting) == MASK) {
+            conflict = true;
+            return;
+        }
         
         saveState(n1, undo);
 
+        if (USE_CHISQUARE) {
+            computeChiSquare(n1, n2);
+            if (NEGATIVES) {
+                computeXChiSquare(n1, n2);
+            }
+        }
+        
         if ((n1.accepting & n2.accepting) != 0) {
-            if (USE_CHISQUARE) {
-                computeChiSquare(n1, n2);
-                if (NEGATIVES) {
-                    computeXChiSquare(n1, n2);
-                }
+            if (n1.getWeight() != 0 && n2.getWeight() != 0) {
+        	labelScore++;
+        	if (n1.isAccepting()) {
+        	    nAccepting--;
+        	} else {
+        	    nRejecting--;
+        	}
             }
-            labelScore++;
-            if (n1.isAccepting()) {
-                nAccepting--;
-            } else {
-                nRejecting--;
-            }
-        } else if ((n1.accepting | n2.accepting) == MASK) {
-            conflict = true;
-            return;
         } else {
-            if (USE_CHISQUARE) {
-                computeChiSquare(n1, n2);
-                if (NEGATIVES) {
-                    computeXChiSquare(n1, n2);
-                }
-            }
             n1.accepting |= n2.accepting;           
             if (! REFINED_MDL) {
                 if (n1.accepting != 0) {
                     if (counts != null && (n1.accepting & ACCEPTING) != 0) {
                         counts[0][n1.getId()] = 1;
                     } 
-                    if (xCounts != null && (n1.accepting & REJECTING) != 0) {
+                    if (xCounts != null && (n1.accepting & REJECTING) != 0 && n1.getWeight() + n2.getWeight() != 0) {
                         xCounts[0][n1.getId()] = 1;
                     }
                 }
@@ -2859,7 +2871,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 for (int j = 0; j < count.length; j++) {
                     count[j][s.getId()] = 0;
                 }
-                if ((s.accepting & acceptOrReject) != 0) {
+                if ((s.accepting & acceptOrReject) != 0 && s.getWeight() != 0) {
                     if (USE_PARENT_SETS) {
                         h.set(s.getId());
                     }

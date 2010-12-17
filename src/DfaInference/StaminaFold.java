@@ -20,20 +20,21 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         boolean foundMerge = false;
 
         if (r == null) {
-            addChoice(Choice.getChoice(-1, b.getId(), 0, 0));
+            addChoice(Choice.getChoice(-1, b.getId(), -THRESHOLD, 0));
             return true;
         }
 
-        double oldScore = getSimpleScore();
+        // double oldScore = getSimpleScore();
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
 
 
         if (! dfa.conflict) {
-            double score = getSimpleScore() - oldScore - dfa.labelScore;
+            // double score = getSimpleScore() - oldScore - dfa.labelScore;
+            double score = -dfa.labelScore;
             // score -= b.getTraffic() + b.getxTraffic();
             
-            // double score = -dfa.labelScore;
+            // double score = 10 * dfa.scoreCorrection - dfa.labelScore;
 
             if (dfa.chance < THRESHOLD) {
                 score = -.1;
@@ -80,12 +81,15 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         // return dfa.getStaminaScore();
 	// This either does not work properly yet, or gives unreasonable scores.
 	// For now:
+        
+        return dfa.getNumStates();
         /*
         if (Configuration.NEGATIVES) {
             return dfa.getNumEdges() + dfa.getNumAcceptingStates() + dfa.getNumStates() + dfa.getNumRejectingStates();
         }
-        */
+        
         return dfa.getNumProductiveEdges() + dfa.getNumAcceptingStates() + dfa.getNumProductiveStates();
+        */
     }
 
     public double getScore() {

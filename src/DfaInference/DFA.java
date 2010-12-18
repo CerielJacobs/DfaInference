@@ -21,6 +21,8 @@ import org.apache.commons.math.special.Gamma;
 import org.apache.commons.math.distribution.NormalDistributionImpl;
 import org.apache.commons.math.distribution.NormalDistribution;
 
+import viz.TouchGraphDFAPanel;
+
 
 /**
  * This class represents a DFA and offers various operations on it.
@@ -581,6 +583,8 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
     }
+    
+    TouchGraphDFAPanel panel = null;
 
     private void dfaComputations(boolean reIndex) {
         State[] states;
@@ -602,6 +606,12 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (NEEDS_EDGECOUNTS) {
             for (State s : states) { 
                 if (PRINT_DFA) {
+                    if (nStates < 200) {
+                	if (panel == null) {
+                	    panel = TouchGraphDFAPanel.createPanel();
+                	}
+                	panel.setDFA(this);
+                    }
                     System.out.print("State " + s.getId());
                     if (s.isRejecting()) {
                         System.out.print(" is rejecting, weight = " + s.getWeight());

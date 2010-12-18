@@ -532,6 +532,14 @@ public final class State implements java.io.Serializable, Configuration,
         return cnt;
     }
     
+    public int getEdgeWeight(int i) {
+	return edgeWeights[i];
+    }
+    
+    public int getXEdgeWeight(int i) {
+	return xEdgeWeights[i];
+    }
+    
     public void fillIdMap(State[] idMap) {
         if (idMap[id] == null) {
             idMap[id] = this;

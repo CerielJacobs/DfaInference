@@ -24,20 +24,18 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
             return true;
         }
 
-        // double oldScore = getSimpleScore();
+        double oldScore = getSimpleScore();
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
 
 
         if (! dfa.conflict) {
-            // double score = getSimpleScore() - oldScore - dfa.labelScore;
-            double score = -dfa.labelScore;
+            double score = getSimpleScore() - oldScore - dfa.labelScore;
+            // double score = -dfa.labelScore;
             // score -= b.getTraffic() + b.getxTraffic();
             
-            // double score = 10 * dfa.scoreCorrection - dfa.labelScore;
-
             if (dfa.chance < THRESHOLD) {
-                score = -.1;
+                score = 1;
             }
 
             /*
@@ -60,9 +58,6 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         	score = -.01;
             }
             
-            if (dfa.chance > .1 && dfa.scoreCorrection == 0) {
-        	score *= 10;
-            }
             */
             
             // if (score < 1e-4) {
@@ -82,14 +77,12 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
 	// This either does not work properly yet, or gives unreasonable scores.
 	// For now:
         
-        return dfa.getNumStates();
-        /*
+        // return dfa.getNumStates();
         if (Configuration.NEGATIVES) {
-            return dfa.getNumEdges() + dfa.getNumAcceptingStates() + dfa.getNumStates() + dfa.getNumRejectingStates();
+            return dfa.getNumEdges() + dfa.getNumAcceptingStates() + dfa.getNumRejectingStates();
         }
         
-        return dfa.getNumProductiveEdges() + dfa.getNumAcceptingStates() + dfa.getNumProductiveStates();
-        */
+        return dfa.getNumProductiveEdges() + dfa.getNumAcceptingStates();
     }
 
     public double getScore() {

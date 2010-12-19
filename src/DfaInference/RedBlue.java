@@ -97,7 +97,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * @param learningSamples the sample from which the initial DFA is built.
      */
     public void init(Samples learningSamples) {
-        DFA dfa = new DFA(learningSamples);
+        DFA dfa = new DFA(learningSamples, printInfo);
         init(dfa);
     }
 

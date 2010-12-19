@@ -173,6 +173,12 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Number of symbols. */
     int nsym;
 
+    /** For Stamina: count similar states in a merge. */
+    int similarStates;
+    
+    /** For Stamina: penalties for non-similar state merges. */
+    int staminaPenalty;
+    
     /** Number of productive states. */
     int nProductiveStates = -1;
 
@@ -610,12 +616,14 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (NEEDS_EDGECOUNTS) {
             for (State s : states) {
                 if (PRINT_DFA) {
+                    /*
                     if (nStates < 200) {
                 	if (panel == null) {
                 	    panel = TouchGraphDFAPanel.createPanel();
                 	}
                 	panel.setDFA(this);
                     }
+                    */
                     System.out.print("State " + s.getId());
                     if (s.isRejecting()) {
                         System.out.print(" is rejecting, weight = " + s.getWeight());
@@ -973,7 +981,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
 
-        // Add the set containing the to states to the list of sets to process.
+        // Add the set containing the two states to the list of sets to process.
         l.addFirst(b);
 
         // Process list of equivalence sets.
@@ -1023,10 +1031,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                 int n1 = newMerge.nextSetBit(n + 1);
                 if (n1 != -1) {
                     // The set newMerge is not a singleton, so it contains a
-                    // proposed
-                    // merge.
-                    // Find out if this proposed merge has not already been
-                    // done.
+                    // proposed merge. Find out if this proposed merge has
+                    // not already been done.
                     // This is the case if the mergeSet of the first member
                     // does not exist yet or does not contain the proposed
                     // merge.
@@ -1455,6 +1461,12 @@ public final class DFA implements java.io.Serializable, Configuration {
                             if ((s.productive & ACCEPTING) == 0) {
                                 s.productive |= ACCEPTING;
                                 if (USE_STAMINA) {
+                                    try {
+					zSum += normal.inverseCumulativeProbability(Math.pow(0.5, s.getxTraffic()));
+				    } catch (MathException e) {
+					zSum += 1e-50;
+				    }
+                                    sumCount++;
                                     chance *= Math.pow(.5, s.getxTraffic());
                                 }
                                 nProductiveStates++;
@@ -1467,6 +1479,12 @@ public final class DFA implements java.io.Serializable, Configuration {
                             if ((s.productive & REJECTING) == 0) {
                                 s.productive |= REJECTING;
                                 if (USE_STAMINA) {
+                                    try {
+					zSum += normal.inverseCumulativeProbability(Math.pow(0.5, s.getTraffic()));
+				    } catch (MathException e) {
+					zSum += 1e-50;
+				    }
+                                    sumCount++;
                                     chance *= Math.pow(.5, s.getTraffic());
                                 }
                                 nXProductiveStates++;
@@ -1544,7 +1562,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         xZSum = 0.0;
         sumCount = 0;
         xSumCount = 0;
-        int savedNStates = nStates;
+        similarStates = 0;
+        staminaPenalty = 0;
+        // int savedNStates = nStates;
         walkTreeMerge(red, blue, undo);
         /*
         if (USE_STAMINA && undo == null && ! conflict) {
@@ -1557,7 +1577,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             return undo;
         }
 
-        int diff = savedNStates - nStates;
+        // int diff = savedNStates - nStates;
         MDLScore = 0;
 
         if (mustRecomputeProductive || (INCREMENTAL_COUNTS && (counts != null))) {
@@ -1735,10 +1755,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         int n1XTraffic = n1.getxTraffic();
         int n2XTraffic = n2.getxTraffic();
 
-        double zSum = 0.0;
-        int sumCount = 0;
-        double c = 1.0;
-
         if (! n1.isAccepting() && n2.isAccepting()) {
             new_outgoing1++;
         }
@@ -1755,14 +1771,32 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
 
+        if (new_outgoing1 == outgoing1 && new_outgoing2 == outgoing2) {
+            similarStates++;
+        } else {
+            if (new_outgoing1 != outgoing1) {
+        	int cnt = (n1Traffic == 0) ? n1XTraffic : n1Traffic;
+        	staminaPenalty = cnt * (new_outgoing1 - outgoing1);
+            }
+            if (new_outgoing2 != outgoing2) {
+        	int cnt = (n2Traffic == 0) ? n2XTraffic : n2Traffic;
+        	staminaPenalty = cnt * (new_outgoing2 - outgoing2);
+            }
+        }
+        double zSum = 0.0;
+        int sumCount = 0;
+        double c = 1.0;
+
         if (new_outgoing1 != outgoing1) {
             if (outgoing1 != 0) {
-                // zSum += normal.inverseCumulativeProbability(Math.pow(outgoing1/(double)new_outgoing1, n1Traffic));
-                // sumCount++;
+                zSum += normal.inverseCumulativeProbability(Math.pow(outgoing1/(double)new_outgoing1, n1Traffic));
+                sumCount++;
                 c *= Math.pow(outgoing1/(double)new_outgoing1, n1Traffic);
             } else {
                 // This makes a state that previously only was part of the
                 // rejecting automaton part of the accepting DFA as well.
+        	zSum += normal.inverseCumulativeProbability(Math.pow(0.5, n1XTraffic));
+        	sumCount++;
                 c *= Math.pow(0.5, n1XTraffic);
             }
         }
@@ -1771,10 +1805,12 @@ public final class DFA implements java.io.Serializable, Configuration {
             // final automaton as much. However, there still may be some
             // quite unlikely issues.
             if (outgoing2 != 0) {
-                // zSum += normal.inverseCumulativeProbability(Math.pow(outgoing2/(double)new_outgoing2, n2Traffic));
-                // sumCount++;
+                zSum += normal.inverseCumulativeProbability(Math.pow(outgoing2/(double)new_outgoing2, n2Traffic));
+                sumCount++;
                 c *= Math.pow(outgoing2/(double)new_outgoing2, n2Traffic);
             } else {
+        	zSum += normal.inverseCumulativeProbability(Math.pow(0.5, n2XTraffic));
+        	sumCount++;
                 c *= Math.pow(0.5, n2XTraffic);
             }
         }
@@ -1801,8 +1837,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                     new_outgoing1 = outgoing1 + 1;
                     double thisChance = Math.pow(outgoing1 / (double) new_outgoing1, n1Traffic);
                     cx *= (1 - thisChance);
-                    // zSum += normal.inverseCumulativeProbability(1 - thisChance);
-                    // sumCount++;
+                    zSum += normal.inverseCumulativeProbability(1 - thisChance);
+                    sumCount++;
                 } else {
                     new_xoutgoing1++;
                 }
@@ -1812,8 +1848,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                     new_outgoing2 = outgoing2 + 1;
                     double thisChance = Math.pow(outgoing2 / (double) new_outgoing2, n2Traffic);
                     cx *= (1 - thisChance);
-                    // zSum += normal.inverseCumulativeProbability(1 - thisChance);
-                    // sumCount++;
+                    zSum += normal.inverseCumulativeProbability(1 - thisChance);
+                    sumCount++;
                 } else {
                     new_xoutgoing2++;
                 }
@@ -1826,18 +1862,30 @@ public final class DFA implements java.io.Serializable, Configuration {
         	    new_xoutgoing2 += 2;
         	}
             }
-
+            if (new_xoutgoing1 == xOutgoing1 && new_xoutgoing2 == xOutgoing2) {
+                similarStates++;
+            } else {
+        	if (new_xoutgoing1 != xOutgoing1) {
+        	    int cnt = (n1XTraffic == 0) ? n1Traffic : n1XTraffic;
+        	    staminaPenalty = cnt * (new_xoutgoing1 - xOutgoing1);
+        	}
+        	if (new_xoutgoing2 != xOutgoing2) {
+        	    int cnt = (n2XTraffic == 0) ? n2Traffic : n2XTraffic;
+        	    staminaPenalty = cnt * (new_xoutgoing2 - xOutgoing2);
+        	}
+            }
+            
             // How to compensate for the fact that there have been edit operations in the
             // sentences? These operations may cause edges that don't "obey" statistics.
 
             if (xOutgoing1 != 0 && new_xoutgoing1 != xOutgoing1) {
-                // zSum += normal.inverseCumulativeProbability(Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic));
-                // sumCount++;
+                zSum += normal.inverseCumulativeProbability(Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic));
+                sumCount++;
                 cx *= Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic);
             }
             if (xOutgoing2 != 0 && new_xoutgoing2 != xOutgoing2) {
-                // zSum += normal.inverseCumulativeProbability(Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic));
-                // sumCount++;
+                zSum += normal.inverseCumulativeProbability(Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic));
+                sumCount++;
                 cx *= Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic);
             }
 
@@ -1859,13 +1907,12 @@ public final class DFA implements java.io.Serializable, Configuration {
         System.out.println(n2.verboseString());
         System.out.println("Merge gives chance " + c);
         */
-        return c;
-        /*
+        // return c;
+        
         if (sumCount == 0) {
             return 1.0;
         }
         return normal.cumulativeProbability(zSum/Math.sqrt(sumCount));
-        */
     }
 
 
@@ -1923,7 +1970,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 conflict = true;
                 return;
             }
-            /*
+            
             if (c < 1e-50) {
                 c = 1e-50;
             }
@@ -1936,7 +1983,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             } catch(Throwable e) {
                 // ignored
             }
-            */
 
             if (c < chance) {
                 chance = c;

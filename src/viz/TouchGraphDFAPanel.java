@@ -71,7 +71,7 @@ public class TouchGraphDFAPanel extends JPanel implements TouchGraphBuilder {
     public void setStyle(Node node, State state) {
 	if (state.isAccepting()) {
 	    node.setTextColor(Color.white);
-	    node.setBackColor(Color.black);
+	    node.setBackColor(Color.blue);
 	} else if (state.isRejecting()) {
 	    node.setTextColor(Color.white);
 	    node.setBackColor(Color.red);
@@ -91,23 +91,26 @@ public class TouchGraphDFAPanel extends JPanel implements TouchGraphBuilder {
 	return node;
     }
 
-    public void parseState(State state, TGPanel tgPanel, int level) {
+    public Node parseState(State state, TGPanel tgPanel) {
+	Node n = tgPanel.findNode("" + state.getId());
 	try {
-	    Node n = addNode(state, tgPanel);
-	    State[] children = state.getChildren();
-	    for (int i = 0; i < children.length; i++) {
-		State child = children[i];
-		if (child != null) {
-		    Node node1 = addNode(child, tgPanel);
-		    Edge edge = tgPanel.addEdge(n, node1, Edge.DEFAULT_LENGTH);
-		    edge.setLbl(dfa.symbols.getSymbol(i) + "(" + state.getEdgeWeight(i) + "/" + state.getXEdgeWeight(i) + ")");
-		    newedges.add(edge);
-		    parseState(child, tgPanel, level + 1);
+	    if (n == null) {
+		n = addNode(state, tgPanel);
+		State[] children = state.getChildren();
+		for (int i = 0; i < children.length; i++) {
+		    State child = children[i];
+		    if (child != null) {
+			Node node1 = parseState(child, tgPanel);
+			Edge edge = tgPanel.addEdge(n, node1, Edge.DEFAULT_LENGTH);
+			edge.setLbl(dfa.symbols.getSymbol(i) + "(" + state.getEdgeWeight(i) + "/" + state.getXEdgeWeight(i) + ")");
+			newedges.add(edge);
+		    }
 		}
 	    }
 	} catch (TGException e) {
 	    log.error(e);
 	}
+	return n;
     }
 
     public void build(TGPanel tgPanel) throws TGException {
@@ -117,7 +120,7 @@ public class TouchGraphDFAPanel extends JPanel implements TouchGraphBuilder {
 	if (dfa != null) {
 	    newnodes = new ArrayList<Node>();
 	    newedges = new ArrayList<Edge>();
-	    parseState(dfa.getStartState(), tgPanel, 0);
+	    parseState(dfa.getStartState(), tgPanel);
 
 	    for (Edge e : oldedges) {
 		if (!newedges.contains(e)) {

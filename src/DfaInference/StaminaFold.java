@@ -15,6 +15,8 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
     public double THRESHOLD = Configuration.THRESHOLD;
+    
+    public double SQ = Math.sqrt(THRESHOLD);
 
     boolean testMerge(State r, State b) {
         boolean foundMerge = false;
@@ -24,33 +26,34 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
             return true;
         }
 
-        double oldScore = getSimpleScore();
+        // double oldScore = getSimpleScore();
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
 
 
         if (! dfa.conflict) {
-            double score = getSimpleScore() - oldScore - dfa.labelScore;
-            // double score = -dfa.labelScore;
-            // score -= b.getTraffic() + b.getxTraffic();
-            
-            if (dfa.chance < THRESHOLD) {
-                score = 1;
-            }
-
-            /*
+            double chance = dfa.chance;
             double sum = dfa.zSum;
             int count = dfa.sumCount;
-            double score = 0.0;
             try {
-                score = -DFA.normal.cumulativeProbability(sum/Math.sqrt(count));
+                chance = DFA.normal.cumulativeProbability(sum/Math.sqrt(count));
             } catch(Throwable e) {
                 // ignored
             }
-
-            System.out.println("sum = " + sum + ", count = " + count + ", score = " + score);
+            
+            double score = - (dfa.similarStates + dfa.labelScore);
+            /*
+            if (dfa.staminaPenalty != 0) {
+        	score /= dfa.staminaPenalty;
+            }
             */
-        
+            // double score = -dfa.labelScore;
+            // score -= b.getTraffic() + b.getxTraffic();
+            /*
+            if (chance < THRESHOLD) {
+                score = 1;
+            }
+             */
             // double score = -dfa.chance;
             /*
             if (r.isProductive() && ! r.isXProductive() && ! b.isProductive()) {
@@ -59,14 +62,22 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
             }
             
             */
-            
-            // if (score < 1e-4) {
+         
+            if (chance > SQ) {
+        	score *= Math.pow(1.5, Math.log10(chance));
+            } else {
+        	score *= Math.pow(2.0, Math.log10(chance));
+            }
+
+            //if (score < 1e-4) {
                 // score *= Math.pow(1.25, Math.log10(dfa.chance));
             // }
 
-            addChoice(Choice.getChoice(r.getId(), b.getId(), -dfa.chance,
-                    score));
-            foundMerge = true;
+            if (chance > THRESHOLD) {
+        	addChoice(Choice.getChoice(r.getId(), b.getId(), -chance,
+        		score));
+        	foundMerge = true;
+            }
         }
         dfa.undoMerge(u);
         return foundMerge;

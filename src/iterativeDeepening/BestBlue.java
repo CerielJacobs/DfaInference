@@ -409,6 +409,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
 
         long searchTime = System.currentTimeMillis();
 
+        f.printInfo = true;
         DFA bestDFA = f.doFold(learningSamples, new IntGuidance(p.control), 0);
         
         if (dumpfile != null) {

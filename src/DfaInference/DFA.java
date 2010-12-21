@@ -844,7 +844,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         	    // System.out.println("State " + c1 + ", State " + i);
         	    double chance2 = computeStaminaChance(state1, state2);
         	    if (chance > chance2) {
-        		System.out.println("Chance becomes " + chance2);
+        		// System.out.println("Chance becomes " + chance2);
         		chance = chance2;
         		if (chance < THRESHOLD) {
         		    throw new ConflictingMerge();
@@ -1664,10 +1664,6 @@ public final class DFA implements java.io.Serializable, Configuration {
             }
         }
         
-        if (USE_STAMINA && undo == null) {
-            System.out.println("Merging states " + red.getId() + " and " + blue.getId() + " gave chance " + chance + ", zsum = " + zSum + ", sumcount = " + sumCount);
-        }
-        
 
         if (logger.isDebugEnabled()) {
             if (!checkDFA()) {
@@ -2023,31 +2019,29 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (USE_STAMINA) {
             double c;
 
-            try {
-                c = computeStaminaChance(n1, n2);
-            } catch(Throwable e) {
-                System.out.println("Got Math exception! " + e);
-                conflict = true;
-                return;
-            }
+            c = computeStaminaChance(n1, n2);
             
-            int n = n1.getTraffic() + n2.getTraffic() + n1.getxTraffic() + n2.getxTraffic();
+            // int n = n1.getTraffic() + n2.getTraffic() + n1.getxTraffic() + n2.getxTraffic();
             // double c1 = computeInverse(c);
-            zSum += n * c;
-            sumCount += n;
+            // zSum += n * c;
+            // sumCount += n;
+            /*
             if (undo == null) {
         	System.out.println("Merge of state " + n1 + ", " + n2 + ": c = " + c);
             }
+            */
 
             if (c < chance) {
                 chance = c;
             }
             
+            /*
             if (undo == null && printInfo) {
                 System.out.println("Merge of state " + n1.getId() + " and " + n2.getId() + " gives score " + c);
                 System.out.println(n1.verboseString());
                 System.out.println(n2.verboseString());
             }
+            */
         }
 
         saveState(n1, undo);

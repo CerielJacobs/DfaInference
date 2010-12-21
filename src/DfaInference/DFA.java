@@ -322,7 +322,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                     // if s would actually have a positive edge on symbol i.
                     // Make the whole tree starting at s.edgeWeights[i]
                     // rejecting if this is below a certain threshold.
-                    if (thisChance < THRESHOLD * THRESHOLD) {
+                    // Also. mark it so that it never will be merged into a productive tree.
+                    if (thisChance < THRESHOLD) {
                         s.children[i].markRejectingTree();
                         continue;
                     }
@@ -616,14 +617,16 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (NEEDS_EDGECOUNTS) {
             for (State s : states) {
                 if (PRINT_DFA) {
-                    /*
-                    if (nStates < 200) {
                 	if (panel == null) {
                 	    panel = TouchGraphDFAPanel.createPanel();
                 	}
                 	panel.setDFA(this);
-                    }
-                    */
+                	try {
+			    Thread.sleep(100000000);
+			} catch (InterruptedException e) {
+			    // ignored
+			}
+
                     System.out.print("State " + s.getId());
                     if (s.isRejecting()) {
                         System.out.print(" is rejecting, weight = " + s.getWeight());
@@ -817,9 +820,39 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
     }
 
-
     public void fullMerge(State s1, State s2) throws ConflictingMerge {
         BitSet[] merges = merge(s1, s2);
+        if (USE_STAMINA) {
+            chance = 1.0;
+            similarStates = 0;
+            BitSet[] newMerges = merges.clone();
+            for (int j = 0; j < newMerges.length; j++) {
+        	BitSet b = newMerges[j];
+        	if (b == null) {
+        	    continue;
+        	}
+        	int c1 = b.nextSetBit(0);
+        	int i = c1;
+        	State state1 = getState(c1);
+        	for (i = b.nextSetBit(i+1); i != -1; i = b.nextSetBit(i+1)) {
+        	    newMerges[i] = null;
+        	    State state2 = getState(i);
+        	    if ((state1.productiveForbidden && state2.isProductive())
+        		    || (state2.productiveForbidden && state1.isProductive())) {
+        		throw new ConflictingMerge();
+        	    }
+        	    // System.out.println("State " + c1 + ", State " + i);
+        	    double chance2 = computeStaminaChance(state1, state2);
+        	    if (chance > chance2) {
+        		System.out.println("Chance becomes " + chance2);
+        		chance = chance2;
+        		if (chance < THRESHOLD) {
+        		    throw new ConflictingMerge();
+        		}
+        	    }
+         	}
+            }
+        }
         startState = new State(startState, merges, new State[getIdMap().length],
                 getIdMap(), new Numberer());
         dfaComputations(true);
@@ -1461,13 +1494,11 @@ public final class DFA implements java.io.Serializable, Configuration {
                             if ((s.productive & ACCEPTING) == 0) {
                                 s.productive |= ACCEPTING;
                                 if (USE_STAMINA) {
-                                    try {
-					zSum += normal.inverseCumulativeProbability(Math.pow(0.5, s.getxTraffic()));
-				    } catch (MathException e) {
-					zSum += 1e-50;
-				    }
-                                    sumCount++;
-                                    chance *= Math.pow(.5, s.getxTraffic());
+                                    double c1 = Math.pow(.5, s.getxTraffic());
+                                    // zSum += computeInverse(c1);
+                                    zSum += c1 * s.getxTraffic();
+                                    sumCount += s.getxTraffic();
+                                    chance *= c1;
                                 }
                                 nProductiveStates++;
                                 missingEdges += s.missingEdges(ACCEPTING);
@@ -1479,13 +1510,11 @@ public final class DFA implements java.io.Serializable, Configuration {
                             if ((s.productive & REJECTING) == 0) {
                                 s.productive |= REJECTING;
                                 if (USE_STAMINA) {
-                                    try {
-					zSum += normal.inverseCumulativeProbability(Math.pow(0.5, s.getTraffic()));
-				    } catch (MathException e) {
-					zSum += 1e-50;
-				    }
-                                    sumCount++;
-                                    chance *= Math.pow(.5, s.getTraffic());
+                                    double c1 = Math.pow(.5, s.getTraffic());
+                                    // zSum += computeInverse(c1);
+                                    zSum += c1 * s.getTraffic();
+                                    sumCount += s.getTraffic();
+                                    chance *= c1;
                                 }
                                 nXProductiveStates++;
                                 missingXEdges += s.missingEdges(REJECTING);
@@ -1566,11 +1595,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         staminaPenalty = 0;
         // int savedNStates = nStates;
         walkTreeMerge(red, blue, undo);
-        /*
-        if (USE_STAMINA && undo == null && ! conflict) {
-            System.out.println("Merging states " + red.getId() + " and " + blue.getId() + " gave chance " + chance);
-        }
-        */
+
         DFAScore = 0;
         if (conflict) {
             blue.addConflict(red);
@@ -1638,6 +1663,11 @@ public final class DFA implements java.io.Serializable, Configuration {
                 updateProductive(states, undo);
             }
         }
+        
+        if (USE_STAMINA && undo == null) {
+            System.out.println("Merging states " + red.getId() + " and " + blue.getId() + " gave chance " + chance + ", zsum = " + zSum + ", sumcount = " + sumCount);
+        }
+        
 
         if (logger.isDebugEnabled()) {
             if (!checkDFA()) {
@@ -1706,7 +1736,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
     }
 
-    private double computeStaminaChance(State n1, State n2) throws MathException {
+    private double computeStaminaChance(State n1, State n2) {
         // According to the Stamina description (website), a transfer
         // to any state is twice as likely as stopping (if in an
         // accepting state).
@@ -1783,36 +1813,36 @@ public final class DFA implements java.io.Serializable, Configuration {
         	staminaPenalty = cnt * (new_outgoing2 - outgoing2);
             }
         }
-        double zSum = 0.0;
-        int sumCount = 0;
+        // double zSum = 0.0;
+        // int sumCount = 0;
         double c = 1.0;
 
         if (new_outgoing1 != outgoing1) {
+            double c1;
             if (outgoing1 != 0) {
-                zSum += normal.inverseCumulativeProbability(Math.pow(outgoing1/(double)new_outgoing1, n1Traffic));
-                sumCount++;
-                c *= Math.pow(outgoing1/(double)new_outgoing1, n1Traffic);
+        	c1 = Math.pow(outgoing1/(double)new_outgoing1, n1Traffic);
             } else {
                 // This makes a state that previously only was part of the
                 // rejecting automaton part of the accepting DFA as well.
-        	zSum += normal.inverseCumulativeProbability(Math.pow(0.5, n1XTraffic));
-        	sumCount++;
-                c *= Math.pow(0.5, n1XTraffic);
+        	c1 = Math.pow(.5, n1XTraffic);
             }
+            c *= c1;
+            // zSum += computeInverse(c1);
+            // sumCount++;
         }
         if (new_outgoing2 != outgoing2) {
             // This is a bit less serious, as this does not affect the
             // final automaton as much. However, there still may be some
             // quite unlikely issues.
+            double c1;
             if (outgoing2 != 0) {
-                zSum += normal.inverseCumulativeProbability(Math.pow(outgoing2/(double)new_outgoing2, n2Traffic));
-                sumCount++;
-                c *= Math.pow(outgoing2/(double)new_outgoing2, n2Traffic);
+                c1 = Math.pow(outgoing2/(double)new_outgoing2, n2Traffic);
             } else {
-        	zSum += normal.inverseCumulativeProbability(Math.pow(0.5, n2XTraffic));
-        	sumCount++;
-                c *= Math.pow(0.5, n2XTraffic);
+        	c1 = Math.pow(0.5, n2XTraffic);
             }
+            // zSum += computeInverse(c1);
+            // sumCount++;
+            c *= c1;
         }
 
         if (NEGATIVES) {
@@ -1835,10 +1865,10 @@ public final class DFA implements java.io.Serializable, Configuration {
                 // actually could be accepting.
                 if (outgoing1 != 0) {
                     new_outgoing1 = outgoing1 + 1;
-                    double thisChance = Math.pow(outgoing1 / (double) new_outgoing1, n1Traffic);
-                    cx *= (1 - thisChance);
-                    zSum += normal.inverseCumulativeProbability(1 - thisChance);
-                    sumCount++;
+                    double c1 = 1 - Math.pow(outgoing1 / (double) new_outgoing1, n1Traffic);
+                    cx *= c1;
+                    // zSum += computeInverse(c1);
+                    // sumCount++;
                 } else {
                     new_xoutgoing1++;
                 }
@@ -1846,10 +1876,10 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (! n2.isRejecting() && n1.isRejecting()) {
                 if (outgoing2 != 0) {
                     new_outgoing2 = outgoing2 + 1;
-                    double thisChance = Math.pow(outgoing2 / (double) new_outgoing2, n2Traffic);
-                    cx *= (1 - thisChance);
-                    zSum += normal.inverseCumulativeProbability(1 - thisChance);
-                    sumCount++;
+                    double c1 = 1 - Math.pow(outgoing2 / (double) new_outgoing2, n1Traffic);
+                    cx *= c1;
+                    // zSum += computeInverse(c1);
+                    // sumCount++;
                 } else {
                     new_xoutgoing2++;
                 }
@@ -1879,14 +1909,16 @@ public final class DFA implements java.io.Serializable, Configuration {
             // sentences? These operations may cause edges that don't "obey" statistics.
 
             if (xOutgoing1 != 0 && new_xoutgoing1 != xOutgoing1) {
-                zSum += normal.inverseCumulativeProbability(Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic));
-                sumCount++;
-                cx *= Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic);
+                double c1 = Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic);
+                // zSum += computeInverse(c1);
+                // sumCount++;
+                cx *= c1;
             }
             if (xOutgoing2 != 0 && new_xoutgoing2 != xOutgoing2) {
-                zSum += normal.inverseCumulativeProbability(Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic));
-                sumCount++;
-                cx *= Math.pow(xOutgoing2/(double)new_xoutgoing2, n2XTraffic);
+        	double c1 = Math.pow(xOutgoing2/(double)new_xoutgoing2, n1XTraffic);
+                // zSum += computeInverse(c1);
+                // sumCount++;
+                cx *= c1;
             }
 
             if (cx < c) {
@@ -1907,12 +1939,35 @@ public final class DFA implements java.io.Serializable, Configuration {
         System.out.println(n2.verboseString());
         System.out.println("Merge gives chance " + c);
         */
-        // return c;
-        
+        return c;
+        /*
         if (sumCount == 0) {
             return 1.0;
         }
         return normal.cumulativeProbability(zSum/Math.sqrt(sumCount));
+        */
+    }
+    
+    private double computeInverse(double c) {
+	boolean p = (c > .5);
+	if (c > .5) {
+	    c = 1 - c;
+	}
+	/*
+	if (c < 1e-50) {
+	    c = 1e-50;
+	}
+	*/
+	double retval = -1000;
+        try {
+	    retval = normal.inverseCumulativeProbability(c);
+	    if (retval < -1000) {
+		retval = -1000;
+	    }
+	} catch (MathException e) {
+	    // ignore
+	}
+	return p ? -retval : retval;
     }
 
 
@@ -1948,6 +2003,11 @@ public final class DFA implements java.io.Serializable, Configuration {
             */
             return;
         }
+        
+        if ((n1.productiveForbidden && n2.isProductive()) || (n2.productiveForbidden && n1.isProductive())) {
+            conflict = true;
+            return;
+        }
 
         if (USE_ADJACENCY) {
             if (givesAdjacencyConflict(n1, n2)) {
@@ -1971,23 +2031,18 @@ public final class DFA implements java.io.Serializable, Configuration {
                 return;
             }
             
-            if (c < 1e-50) {
-                c = 1e-50;
-            }
-            if (c >= .99) {
-                c = .99;
-            }
-            try {
-                zSum += normal.inverseCumulativeProbability(c);
-                sumCount++;
-            } catch(Throwable e) {
-                // ignored
+            int n = n1.getTraffic() + n2.getTraffic() + n1.getxTraffic() + n2.getxTraffic();
+            // double c1 = computeInverse(c);
+            zSum += n * c;
+            sumCount += n;
+            if (undo == null) {
+        	System.out.println("Merge of state " + n1 + ", " + n2 + ": c = " + c);
             }
 
             if (c < chance) {
                 chance = c;
             }
-
+            
             if (undo == null && printInfo) {
                 System.out.println("Merge of state " + n1.getId() + " and " + n2.getId() + " gives score " + c);
                 System.out.println(n1.verboseString());

@@ -84,7 +84,8 @@ public class TouchGraphDFAPanel extends JPanel implements TouchGraphBuilder {
     private Node addNode(State s, TGPanel tgPanel) throws TGException {
 	Node node = tgPanel.findNode("" + s.getId());
 	if (node == null) {
-	    node = tgPanel.addNode("" + s.getId(), s.isAccepting() ? ("" + s.getWeight() + "/0") : ("0/" + s.getWeight()));
+	    node = tgPanel.addNode("" + s.getId(), "" + s.getTraffic() + "/" + s.getxTraffic());
+	    // node.setLabel("" + s.getId());
 	    setStyle(node, s);
 	    newnodes.add(node);
 	}

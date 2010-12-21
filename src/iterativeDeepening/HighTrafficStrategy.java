@@ -25,14 +25,19 @@ public class HighTrafficStrategy implements PickBlueStrategy {
      */
     public int getBlue(DFA dfa, Choice[] choices) {
         int blue = choices[0].s2;
-        State best = dfa.getState(blue);
+        State best = dfa.getState(blue);        // return dfa.getMDLComplexity();
+        // This needs modification in DFA.java, because the weight of the endstates is wrong for MDL,
+        // since a sentence in the sample may occur more than once in Stamina.
+        int bestTraffic = best.getTraffic() + best.getxTraffic();
         for (int i = 1; i < choices.length; i++) {
             int s = choices[i].s2;
             State state = dfa.getState(s);
-            if (state.getTraffic() > best.getTraffic()) {
+            int traffic = state.getTraffic() + state.getxTraffic();
+            if (traffic > bestTraffic) {
                 best = state;
                 blue = s;
-            } else if (state.getTraffic() == best.getTraffic() && state.getDepth() < best.getDepth()) {
+                bestTraffic = traffic;
+            } else if (bestTraffic == traffic && state.getDepth() < best.getDepth()) {
                 best = state;
                 blue = s;
             }

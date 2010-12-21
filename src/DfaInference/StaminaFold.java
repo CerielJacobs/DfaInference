@@ -26,23 +26,35 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
             return true;
         }
 
-        // double oldScore = getSimpleScore();
+        double oldScore = getSimpleScore(dfa);
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
 
 
         if (! dfa.conflict) {
             double chance = dfa.chance;
-            double sum = dfa.zSum;
-            int count = dfa.sumCount;
+            // double sum = dfa.zSum;
+            // int count = dfa.sumCount;
+            // double avgChance = sum / count;
+            
+            /*
             try {
                 chance = DFA.normal.cumulativeProbability(sum/Math.sqrt(count));
+                if (chance < 0) {
+                    chance = 0;
+                }
+                if (chance > 1) {
+                    chance = 1;
+                }
             } catch(Throwable e) {
-                // ignored
+                chance = 0;
             }
+            */
             
-            double score = - (dfa.similarStates + dfa.labelScore);
-            /*
+            // chance = avgChance;
+            // System.out.println("sum = " + sum + ", count = " + count + ", chance = " + chance);
+            
+                        /*
             if (dfa.staminaPenalty != 0) {
         	score /= dfa.staminaPenalty;
             }
@@ -54,26 +66,14 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
                 score = 1;
             }
              */
-            // double score = -dfa.chance;
-            /*
-            if (r.isProductive() && ! r.isXProductive() && ! b.isProductive()) {
-        	// score = -1e-8;
-        	score = -.01;
-            }
-            
-            */
-         
-            if (chance > SQ) {
-        	score *= Math.pow(1.5, Math.log10(chance));
-            } else {
-        	score *= Math.pow(2.0, Math.log10(chance));
-            }
-
-            //if (score < 1e-4) {
-                // score *= Math.pow(1.25, Math.log10(dfa.chance));
-            // }
-
-            if (chance > THRESHOLD) {
+           if (chance > THRESHOLD) {
+        	double score = - (dfa.similarStates + dfa.labelScore + (oldScore - getSimpleScore(dfa)));
+                if (chance > SQ) {
+                    score *= Math.pow(1.5, Math.log10(chance));
+                } else {
+                    score *= Math.pow(2.0, Math.log10(chance));
+                }
+                
         	addChoice(Choice.getChoice(r.getId(), b.getId(), -chance,
         		score));
         	foundMerge = true;
@@ -83,7 +83,7 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         return foundMerge;
     }
 
-    public double getSimpleScore() {
+    public int getSimpleScore(DFA dfa) {
         // return dfa.getStaminaScore();
 	// This either does not work properly yet, or gives unreasonable scores.
 	// For now:
@@ -97,10 +97,7 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
     }
 
     public double getScore() {
-        return getSimpleScore();
-        // return dfa.getMDLComplexity();
-        // This needs modification in DFA.java, because the weight of the endstates is wrong for MDL,
-        // since a sentence in the sample may occur more than once in Stamina.
+        return getSimpleScore(dfa);
     }
 
     /**
@@ -111,6 +108,7 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         String  learningSetFile = null;
         String outputfile = "LearnedDFA";
         String reader = "abbadingo.AbbaDingoReader";
+        boolean full = false;
 
         // Print Java version and system.
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
@@ -122,6 +120,8 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         
         for (int i = 0; i < args.length; i++) {
             if (false) {
+            } else if (args[i].equals("-full")) {
+        	full = true;
             } else if (args[i].equals("-input")) {
                 i++;
                 if (i >= args.length) {
@@ -166,18 +166,62 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         Symbols symbols = new Symbols();
         int[][] learningSamples = symbols.convert2learn(samples);
 
-
         StaminaFold m = new StaminaFold();
         m.printInfo = true;
-        logger.info("Starting fold ...");
-        DFA bestDFA = m.doFold(new Samples(symbols, learningSamples, null),
-                new Guidance(), 0);
-
-        if (logger.isInfoEnabled()) {
-            logger.info("The winner DFA has complexity "
-                    + bestDFA.getMDLComplexity() + "\n" + bestDFA);
+        
+        DFA bestDFA;
+        if (full) {
+            DFA dfa = new DFA(new Samples(symbols, learningSamples, null));
+            m.dfa = dfa;
+            bestDFA = m.fullBlownLearn();
+        } else {            
+            logger.info("Starting fold ...");
+            bestDFA = m.doFold(new Samples(symbols, learningSamples, null),
+        	    new Guidance(), 0);
         }
-
         bestDFA.write(outputfile);
+    }
+    
+    public DFA fullBlownLearn() {
+	int attempt = 0;
+	for (;;) {
+	    int bestGain = 0;
+	    DFA best = null;
+	    int nStates = dfa.getNumStates();
+
+	    logger.info("Full blown learn for " + nStates + " states...");
+	    for (int i = 0; i < nStates; i++) {
+		if (dfa.getState(i).getDepth() < 10) {
+		    for (int j = i + 1; j < nStates; j++) {
+			if (dfa.getState(j).getDepth() < 10) {
+			    DFA merge = new DFA(dfa);
+			    System.out.println("Trying merge between state " + i + " and " + j);
+			    try {
+				merge.fullMerge(merge.getState(i), merge.getState(j));
+			    } catch (ConflictingMerge e) {
+				System.out.println("Gives conflict");
+				continue;
+			    }
+			    int gain = getSimpleScore(dfa) - getSimpleScore(merge);
+			    System.out.println("Gives gain " + gain + " and chance " + merge.chance);
+			    if (gain > bestGain) {
+				bestGain = gain;
+				best = merge;
+			    }
+			}
+		    }
+		}
+	    }
+	    attempt++;
+
+	    if (bestGain > 0) {
+		logger.info("Found a better DFA with score " + bestGain);
+		dfa = best;
+	    } else {
+		logger.info("exit full blown learn at attempt=" + attempt);
+		break;
+	    }
+	}
+	return dfa;
     }
 }

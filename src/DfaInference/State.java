@@ -41,6 +41,12 @@ public final class State implements java.io.Serializable, Configuration,
      * DFA that accepts the counter examples.
      */
     byte productive;
+    
+    /**
+     * When set, this state is marked such that it can never be merged with a
+     * productive state.
+     */
+    boolean productiveForbidden = false;
 
     /** Marks. */
     int mark;
@@ -135,7 +141,10 @@ public final class State implements java.io.Serializable, Configuration,
             Numberer numberer, int old_nsym, int nsym) {
         productive = s.productive;
         accepting = s.accepting;
+        productiveForbidden = s.productiveForbidden;
         setDepth(s.getDepth());
+        traffic = s.traffic;
+        xTraffic = s.xTraffic;
         if (numberer != null) {
             id = numberer.next();
         } else {
@@ -254,7 +263,12 @@ public final class State implements java.io.Serializable, Configuration,
             State[] oldStates, Numberer numberer) {
         productive |= s.productive;
         accepting |= s.accepting;
+        if (s.productiveForbidden) {
+            productiveForbidden = true;
+        }
         setWeight(getWeight() + s.getWeight());
+        setTraffic(getTraffic() + s.getTraffic());
+        setxTraffic(getxTraffic() + s.getxTraffic());
 
         if (USE_ADJACENCY) {
             entrySyms.or(s.entrySyms);
@@ -554,6 +568,7 @@ public final class State implements java.io.Serializable, Configuration,
 
     public void markRejectingTree() {
         accepting = REJECTING;
+        productiveForbidden = true;
         for (int i = 0; i < children.length; i++) {
             if (children[i] != null) {
                 children[i].markRejectingTree();

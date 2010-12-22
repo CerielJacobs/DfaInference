@@ -22,62 +22,46 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         boolean foundMerge = false;
 
         if (r == null) {
-            addChoice(Choice.getChoice(-1, b.getId(), -THRESHOLD, 0));
+            addChoice(Choice.getChoice(-1, b.getId(), -THRESHOLD, Integer.MAX_VALUE-1));
             return true;
         }
 
-        double oldScore = getSimpleScore(dfa);
+        // double oldScore = getSimpleScore(dfa);
 
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
 
 
-        if (! dfa.conflict) {
-            double chance = dfa.chance;
-            // double sum = dfa.zSum;
-            // int count = dfa.sumCount;
-            // double avgChance = sum / count;
+        if (! dfa.conflict && dfa.chance > THRESHOLD) {
+            System.out.println("Red = " + r.getId() + ", blue = " + b.getId()
+                    + ", chance = " + dfa.chance + ", penalty = " + dfa.staminaPenalty
+                    + ", similarStates = " + dfa.similarStates + ", labelScore = " + dfa.labelScore);
             
-            /*
-            try {
-                chance = DFA.normal.cumulativeProbability(sum/Math.sqrt(count));
-                if (chance < 0) {
-                    chance = 0;
-                }
-                if (chance > 1) {
-                    chance = 1;
-                }
-            } catch(Throwable e) {
-                chance = 0;
-            }
-            */
-            
-            // chance = avgChance;
-            // System.out.println("sum = " + sum + ", count = " + count + ", chance = " + chance);
-            
-                        /*
-            if (dfa.staminaPenalty != 0) {
-        	score /= dfa.staminaPenalty;
-            }
-            */
-            // double score = -dfa.labelScore;
+            double score = -dfa.labelScore - dfa.similarStates;
             // score -= b.getTraffic() + b.getxTraffic();
             /*
             if (chance < THRESHOLD) {
                 score = 1;
             }
              */
-           if (chance > THRESHOLD) {
-        	double score = - (dfa.similarStates + dfa.labelScore + (oldScore - getSimpleScore(dfa)));
-                if (chance > SQ) {
-                    score *= Math.pow(1.5, Math.log10(chance));
-                } else {
-                    score *= Math.pow(2.0, Math.log10(chance));
-                }
-                
-        	addChoice(Choice.getChoice(r.getId(), b.getId(), -chance,
-        		score));
-        	foundMerge = true;
+            // double score = - (dfa.similarStates + dfa.labelScore - dfa.staminaPenalty /* + (oldScore - getSimpleScore(dfa)) */);
+
+            if (! r.isProductive() && ! b.isProductive()) {
+                // Penalty on score.
+                score = 1;
             }
+
+            /*
+            // double score = dfa.staminaPenalty - dfa.labelScore;
+            if (dfa.chance > SQ) {
+                score *= Math.pow(1.5, Math.log10(dfa.chance));
+            } else {
+                score *= Math.pow(2.0, Math.log10(dfa.chance));
+            }
+            */
+            
+            addChoice(Choice.getChoice(r.getId(), b.getId(), -dfa.chance,
+                    score));
+            foundMerge = true;
         }
         dfa.undoMerge(u);
         return foundMerge;
@@ -188,12 +172,11 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
 	    int bestGain = 0;
 	    DFA best = null;
 	    int nStates = dfa.getNumStates();
+            int stop = nStates < 256 ? nStates : 256;
 
 	    logger.info("Full blown learn for " + nStates + " states...");
-	    for (int i = 0; i < nStates; i++) {
-		if (dfa.getState(i).getDepth() < 10) {
-		    for (int j = i + 1; j < nStates; j++) {
-			if (dfa.getState(j).getDepth() < 10) {
+	    for (int i = 0; i < stop; i++) {
+		    for (int j = i + 1; j < stop; j++) {
 			    DFA merge = new DFA(dfa);
 			    System.out.println("Trying merge between state " + i + " and " + j);
 			    try {
@@ -208,9 +191,7 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
 				bestGain = gain;
 				best = merge;
 			    }
-			}
 		    }
-		}
 	    }
 	    attempt++;
 

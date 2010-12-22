@@ -287,37 +287,39 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     private void staminaPreprocess(State s) {
-        int outgoing1 = 0;
+        int outDegree1 = 0;
 
         for (int i = 0; i < nsym; i++) {
-            if (s.edgeWeights[i] != 0) {
-                outgoing1 += 2;
+            State child = s.children[i];
+            if (child != null && child.isProductive()) {
+                outDegree1 += 2;
             }
         }
 
         if (s.isAccepting()) {
-            outgoing1++;
+            outDegree1++;
         }
 
         if (! s.isAccepting() && ! s.isRejecting()) {
             // Non-accepting state.
 
-            if (outgoing1 != 0) {
-                int new_outgoing1 = outgoing1 + 1;
-                double thisChance = Math.pow(outgoing1 / (double) new_outgoing1, s.getTraffic());
+            if (outDegree1 != 0) {
+                int new_outgoing1 = outDegree1 + 1;
+                double thisChance = Math.pow(outDegree1 / (double) new_outgoing1, s.getTraffic());
                 // Now, thisChance is the chance that the sample could occur, if
                 // s would be accepting. Make the state rejecting if this is
                 // below a certain threshold.
-                if (thisChance < THRESHOLD * THRESHOLD) {
+                if (thisChance < THRESHOLD) {
                     s.accepting = REJECTING;
                 }
             }
         }
         for (int i = 0; i < nsym; i++) {
-            if (s.children[i] != null) {
-                if (outgoing1 != 0 && s.edgeWeights[i] == 0) {
-                    int new_outgoing1 = outgoing1 + 1;
-                    double thisChance = Math.pow(outgoing1 / (double) new_outgoing1, s.getTraffic());
+            State child = s.children[i];
+            if (child != null) {
+                if (outDegree1 != 0 && ! child.isProductive()) {
+                    int new_outgoing1 = outDegree1 + 1;
+                    double thisChance = Math.pow(outDegree1 / (double) new_outgoing1, s.getTraffic());
                     // Now, thisChance is the chance that the sample could occur
                     // if s would actually have a positive edge on symbol i.
                     // Make the whole tree starting at s.edgeWeights[i]
@@ -328,7 +330,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                         continue;
                     }
                 }
-                if (s.edgeWeights[i] != 0) {
+                if (child.isProductive()) {
                     staminaPreprocess(s.children[i]);
                 }
             }
@@ -1495,10 +1497,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                                 s.productive |= ACCEPTING;
                                 if (USE_STAMINA) {
                                     double c1 = Math.pow(.5, s.getxTraffic());
-                                    // zSum += computeInverse(c1);
-                                    zSum += c1 * s.getxTraffic();
-                                    sumCount += s.getxTraffic();
                                     chance *= c1;
+                                    staminaPenalty++;
                                 }
                                 nProductiveStates++;
                                 missingEdges += s.missingEdges(ACCEPTING);
@@ -1511,10 +1511,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                                 s.productive |= REJECTING;
                                 if (USE_STAMINA) {
                                     double c1 = Math.pow(.5, s.getTraffic());
-                                    // zSum += computeInverse(c1);
-                                    zSum += c1 * s.getTraffic();
-                                    sumCount += s.getTraffic();
                                     chance *= c1;
+                                    staminaPenalty++;
                                 }
                                 nXProductiveStates++;
                                 missingXEdges += s.missingEdges(REJECTING);
@@ -1736,40 +1734,46 @@ public final class DFA implements java.io.Serializable, Configuration {
         // According to the Stamina description (website), a transfer
         // to any state is twice as likely as stopping (if in an
         // accepting state).
-        int outgoing1 = 0;
-        int outgoing2 = 0;
-        int xOutgoing1 = 0;
-        int xOutgoing2 = 0;
+        int outDegree1 = 0;
+        int outDegree2 = 0;
+        int xOutDegree1 = 0;
+        int xOutDegree2 = 0;
 
         for (int i = 0; i < nsym; i++) {
-            if (n1.edgeWeights[i] != 0) {
-                outgoing1 += 2;
+            State child1 = n1.children[i];
+            State child2 = n2.children[i];
+            if (child1 != null) {
+        	if (child1.isProductive()) {
+        	    outDegree1 += 2;
+        	}
+        	if (child1.isXProductive()) {
+        	    xOutDegree1 += 2;
+        	}
             }
-            if (n2.edgeWeights[i] != 0) {
-                outgoing2 += 2;
-            }
-            if (n1.xEdgeWeights[i] != 0) {
-                xOutgoing1 += 2;
-            }
-            if (n2.xEdgeWeights[i] != 0) {
-                xOutgoing2 += 2;
+            if (child2 != null) {
+        	if (child2.isProductive()) {
+        	    outDegree2 += 2;
+        	}
+        	if (child2.isXProductive()) {
+        	    xOutDegree2 += 2;
+        	}
             }
         }
         if (n1.isAccepting()) {
-            outgoing1++;
+            outDegree1++;
         }
         if (n2.isAccepting()) {
-            outgoing2++;
+            outDegree2++;
         }
         if (n1.isRejecting()) {
-            xOutgoing1++;
+            xOutDegree1++;
         }
         if (n2.isRejecting()) {
-            xOutgoing2++;
+            xOutDegree2++;
         }
 
-        int new_outgoing1 = outgoing1;
-        int new_outgoing2 = outgoing2;
+        int newOutDegree1 = outDegree1;
+        int newOutDegree2 = outDegree2;
 
         // If the merged state is getting new edges or new accepting status, either
         // with respect to n1 or n2, compute the chance that the sample could have
@@ -1782,62 +1786,56 @@ public final class DFA implements java.io.Serializable, Configuration {
         int n2XTraffic = n2.getxTraffic();
 
         if (! n1.isAccepting() && n2.isAccepting()) {
-            new_outgoing1++;
+            newOutDegree1++;
         }
         if (! n2.isAccepting() && n1.isAccepting()) {
-            new_outgoing2++;
+            newOutDegree2++;
         }
 
         for (int i = 0; i < nsym; i++) {
-            if ((n1.edgeWeights[i] == 0) && (n2.edgeWeights[i] != 0)) {
-                new_outgoing1 += 2;
+            State child1 = n1.children[i];
+            State child2 = n2.children[i];
+            if (child2 != null && child2.isProductive()) {
+        	if (child1 == null || ! child1.isProductive()) {
+        	    newOutDegree1 += 2;
+        	}    
             }
-            if ((n2.edgeWeights[i] == 0) && (n1.edgeWeights[i] != 0)) {
-                new_outgoing2 += 2;
+            if (child1 != null && child1.isProductive()) {
+        	if (child2 == null || ! child2.isProductive()) {
+        	    newOutDegree2 += 2;
+        	}    
             }
         }
-
-        if (new_outgoing1 == outgoing1 && new_outgoing2 == outgoing2) {
+ 
+        if (newOutDegree1 == outDegree1 && newOutDegree2 == outDegree2) {
             similarStates++;
         } else {
-            if (new_outgoing1 != outgoing1) {
-        	int cnt = (n1Traffic == 0) ? n1XTraffic : n1Traffic;
-        	staminaPenalty = cnt * (new_outgoing1 - outgoing1);
-            }
-            if (new_outgoing2 != outgoing2) {
-        	int cnt = (n2Traffic == 0) ? n2XTraffic : n2Traffic;
-        	staminaPenalty = cnt * (new_outgoing2 - outgoing2);
-            }
+            staminaPenalty++;
         }
-        // double zSum = 0.0;
-        // int sumCount = 0;
+
         double c = 1.0;
 
-        if (new_outgoing1 != outgoing1) {
+        if (newOutDegree1 != outDegree1) {
             double c1;
-            if (outgoing1 != 0) {
-        	c1 = Math.pow(outgoing1/(double)new_outgoing1, n1Traffic);
+            if (outDegree1 != 0) {
+        	c1 = Math.pow(outDegree1/(double)newOutDegree1, n1Traffic);
             } else {
                 // This makes a state that previously only was part of the
                 // rejecting automaton part of the accepting DFA as well.
         	c1 = Math.pow(.5, n1XTraffic);
             }
             c *= c1;
-            // zSum += computeInverse(c1);
-            // sumCount++;
         }
-        if (new_outgoing2 != outgoing2) {
+        if (newOutDegree2 != outDegree2) {
             // This is a bit less serious, as this does not affect the
             // final automaton as much. However, there still may be some
             // quite unlikely issues.
             double c1;
-            if (outgoing2 != 0) {
-                c1 = Math.pow(outgoing2/(double)new_outgoing2, n2Traffic);
+            if (outDegree2 != 0) {
+                c1 = Math.pow(outDegree2/(double)newOutDegree2, n2Traffic);
             } else {
         	c1 = Math.pow(0.5, n2XTraffic);
             }
-            // zSum += computeInverse(c1);
-            // sumCount++;
             c *= c1;
         }
 
@@ -1851,69 +1849,61 @@ public final class DFA implements java.io.Serializable, Configuration {
             // code below is any good. On the other hand, most of the symbols in a rejected
             // sentence are generated by the same rules.
 
-            int new_xoutgoing1 = xOutgoing1;
-            int new_xoutgoing2 = xOutgoing2;
+            int newXOutDegree1 = xOutDegree1;
+            int newXOutDegree2 = xOutDegree2;
 
             double cx = 1.0;
 
             if (! n1.isRejecting() && n2.isRejecting()) {
                 // This merge makes n1 rejecting. Compute the chance that it
                 // actually could be accepting.
-                if (outgoing1 != 0) {
-                    new_outgoing1 = outgoing1 + 1;
-                    double c1 = 1 - Math.pow(outgoing1 / (double) new_outgoing1, n1Traffic);
+                if (outDegree1 != 0) {
+                    newOutDegree1 = outDegree1 + 1;
+                    double c1 = 1 - Math.pow(outDegree1 / (double) newOutDegree1, n1Traffic);
                     cx *= c1;
-                    // zSum += computeInverse(c1);
-                    // sumCount++;
                 } else {
-                    new_xoutgoing1++;
+                    newXOutDegree1++;
                 }
             }
             if (! n2.isRejecting() && n1.isRejecting()) {
-                if (outgoing2 != 0) {
-                    new_outgoing2 = outgoing2 + 1;
-                    double c1 = 1 - Math.pow(outgoing2 / (double) new_outgoing2, n1Traffic);
+                if (outDegree2 != 0) {
+                    newOutDegree2 = outDegree2 + 1;
+                    double c1 = 1 - Math.pow(outDegree2 / (double) newOutDegree2, n1Traffic);
                     cx *= c1;
-                    // zSum += computeInverse(c1);
-                    // sumCount++;
                 } else {
-                    new_xoutgoing2++;
+                    newXOutDegree2++;
                 }
             }
+            
             for (int i = 0; i < nsym; i++) {
-        	if ((n1.xEdgeWeights[i] == 0) && (n2.xEdgeWeights[i] != 0)) {
-        	    new_xoutgoing1 += 2;
-        	}
-        	if ((n2.xEdgeWeights[i] == 0) && (n1.xEdgeWeights[i] != 0)) {
-        	    new_xoutgoing2 += 2;
-        	}
+                State child1 = n1.children[i];
+                State child2 = n2.children[i];
+                if (child2 != null && child2.isXProductive()) {
+                    if (child1 == null || ! child1.isXProductive()) {
+                	newXOutDegree1 += 2;
+                    }    
+                }
+                if (child1 != null && child1.isXProductive()) {
+                    if (child2 == null || ! child2.isXProductive()) {
+                	newXOutDegree2 += 2;
+                    }    
+                }
             }
-            if (new_xoutgoing1 == xOutgoing1 && new_xoutgoing2 == xOutgoing2) {
+
+            if (newXOutDegree1 == xOutDegree1 && newXOutDegree2 == xOutDegree2) {
                 similarStates++;
             } else {
-        	if (new_xoutgoing1 != xOutgoing1) {
-        	    int cnt = (n1XTraffic == 0) ? n1Traffic : n1XTraffic;
-        	    staminaPenalty = cnt * (new_xoutgoing1 - xOutgoing1);
-        	}
-        	if (new_xoutgoing2 != xOutgoing2) {
-        	    int cnt = (n2XTraffic == 0) ? n2Traffic : n2XTraffic;
-        	    staminaPenalty = cnt * (new_xoutgoing2 - xOutgoing2);
-        	}
+        	staminaPenalty++;
             }
             
             // How to compensate for the fact that there have been edit operations in the
             // sentences? These operations may cause edges that don't "obey" statistics.
-
-            if (xOutgoing1 != 0 && new_xoutgoing1 != xOutgoing1) {
-                double c1 = Math.pow(xOutgoing1/(double)new_xoutgoing1, n1XTraffic);
-                // zSum += computeInverse(c1);
-                // sumCount++;
+            if (xOutDegree1 != 0 && newXOutDegree1 != xOutDegree1) {
+                double c1 = Math.pow(xOutDegree1/(double)newXOutDegree1, n1XTraffic);
                 cx *= c1;
             }
-            if (xOutgoing2 != 0 && new_xoutgoing2 != xOutgoing2) {
-        	double c1 = Math.pow(xOutgoing2/(double)new_xoutgoing2, n1XTraffic);
-                // zSum += computeInverse(c1);
-                // sumCount++;
+            if (xOutDegree2 != 0 && newXOutDegree2 != xOutDegree2) {
+        	double c1 = Math.pow(xOutDegree2/(double)newXOutDegree2, n1XTraffic);
                 cx *= c1;
             }
 
@@ -1923,11 +1913,13 @@ public final class DFA implements java.io.Serializable, Configuration {
         } else if (n1Traffic != 0 && n2.isRejecting() && ! n1.isRejecting()) {
             // If n1 is rejecting, we reduce the chance with the chance that n1
             // could actually be accepting.
-            new_outgoing1 = outgoing1 + 1;
-            double thisChance = Math.pow(outgoing1 / (double) new_outgoing1, n1Traffic);
+            newOutDegree1 = outDegree1 + 1;
+            double thisChance = Math.pow(outDegree1 / (double) newOutDegree1, n1Traffic);
             // Now, thisChance is the chance that state n1 should actually be accepting.
-            // zSum +=  normal.inverseCumulativeProbability(1 - thisChance);
-            // sumCount++;
+            c *= (1 - thisChance);
+        } else if (n2Traffic != 0 && n1.isRejecting() && ! n2.isRejecting()) {
+            newOutDegree2 = outDegree2 + 1;
+            double thisChance = Math.pow(outDegree2 / (double) newOutDegree2, n2Traffic);
             c *= (1 - thisChance);
         }
         /*
@@ -1936,12 +1928,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         System.out.println("Merge gives chance " + c);
         */
         return c;
-        /*
-        if (sumCount == 0) {
-            return 1.0;
-        }
-        return normal.cumulativeProbability(zSum/Math.sqrt(sumCount));
-        */
     }
     
     private double computeInverse(double c) {
@@ -2035,13 +2021,12 @@ public final class DFA implements java.io.Serializable, Configuration {
                 chance = c;
             }
             
-            /*
             if (undo == null && printInfo) {
-                System.out.println("Merge of state " + n1.getId() + " and " + n2.getId() + " gives score " + c);
+                System.out.println("Merge of state " + n1.getId() + " and " + n2.getId() + " gives score " + c
+                        + " and penalty " + staminaPenalty);
                 System.out.println(n1.verboseString());
                 System.out.println(n2.verboseString());
             }
-            */
         }
 
         saveState(n1, undo);

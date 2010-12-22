@@ -541,7 +541,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
     protected void promoteToRed(State r) {
 
         if (printInfo && logger.isInfoEnabled()) {
-            logger.info("Promoting blue state " + r.getId() + " to red");
+            logger.info("Promoting blue state " + r.getId() + " to red, depth = " + r.getDepth());
         }
 
         // Add it to the red states.

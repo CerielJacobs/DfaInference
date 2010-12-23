@@ -2268,61 +2268,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
     }
 
-
-    private void computeStaminaChi(State n1, State n2) {
-        // Compute sums
-        int total = n2.getTraffic() + n1.getTraffic();
-        int outgoing = 0;
-        int ndegrees = -1;
-        for (int i = 0; i < nsym; i++) {
-            if (n1.children[i] != null || n2.children[i] != null) {
-                outgoing += 2;
-                ndegrees++;
-            }
-        }
-        // Note: accepting is chosen with half the probability! (See Stamina website).
-        if (n1.isAccepting() || n2.isAccepting()) {
-            outgoing++;
-            ndegrees++;
-        }
-
-        double factor = (double) total / outgoing;
-        double score = 0.0;
-        if (factor >= CHI_MIN) {
-            for (int i = 0; i < nsym; i++) {
-                if (n1.children[i] != null || n2.children[i] != null) {
-                    double expected = factor * 2;
-                    double actual = n1.edgeWeights[i] + n2.edgeWeights[i];
-                    score += (actual - expected) * (actual - expected) / expected;
-                }
-            }
-            if (n1.isAccepting() || n2.isAccepting()) {
-                double expected = factor;
-                double actual = n1.getWeight() + n2.getWeight();
-                score += (actual - expected) * (actual - expected) / expected;
-            }
-
-            if (ndegrees >= 1) {
-                double p_value = 0.0;
-                try {
-                    p_value = 1.0 - Gamma.regularizedGammaP(ndegrees/2.0, score/2.0);
-                    if (p_value < .00000001) {
-                        p_value = .00000001;
-                    }
-                    chiSquareSum += Math.log(p_value);
-                    sumCount++;
-                } catch (MathException e) {
-                    // Does not converge???
-                    // Ignore the count.
-                }
-            } else {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("No ChiSquare contribution from this merge");
-                }
-            }
-        }
-    }
-
     private void computeXChiSquare(State n1, State n2) {
         double score = 0.0;
         int cnt = -1;
@@ -2662,30 +2607,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                     + ", total = " + score);
         }
         return score;
-    }
-
-    public double getStaminaScore() {
-        State[] states = startState.breadthFirst();
-        double score = 0.0;
-        int cnt = 0;
-        for (State s : states) {
-            double sc = s.StaminaChi();
-            if (sc != 0) {
-                cnt++;
-                score += sc;
-            }
-        }
-        // We have computed the sum of the logs of the P's for
-        // all states. Now, apply Fisher's method:
-        // X = -2 * score
-        // X is now a Chi-Square distribution with 2*cnt degrees of freedom.
-        // So, now: P = P(2 * cnt/2, X/2) = P(cnt, -score).
-        try {
-            return -(1.0 - Gamma.regularizedGammaP(cnt, -score));
-        } catch (MathException e) {
-            // ignore
-        }
-        return 0.0;
     }
 
     private static double log2(int d) {

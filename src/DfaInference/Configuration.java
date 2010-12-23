@@ -73,7 +73,7 @@ public interface Configuration {
     static final boolean ONLY_CHECK_BEGIN_AND_END_ADJACENCY =
         tp.getBooleanProperty("LimitedAdjacency", false);
     
-    static final boolean NEEDS_EDGECOUNTS = USE_CHISQUARE || USE_STAMINA;
+    static final boolean NEEDS_EDGECOUNTS = USE_CHISQUARE;
   
     /**
      * Bit that indicates accepting state or state of DFA that recognizes

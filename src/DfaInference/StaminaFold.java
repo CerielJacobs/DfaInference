@@ -32,9 +32,10 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
 
 
         if (! dfa.conflict && dfa.chance > THRESHOLD) {
-            System.out.println("Red = " + r.getId() + ", blue = " + b.getId()
+            /* System.out.println("Red = " + r.getId() + ", blue = " + b.getId()
                     + ", chance = " + dfa.chance + ", penalty = " + dfa.staminaPenalty
                     + ", similarStates = " + dfa.similarStates + ", labelScore = " + dfa.labelScore);
+            */
             
             double score = -dfa.labelScore - dfa.similarStates;
             // score -= b.getTraffic() + b.getxTraffic();

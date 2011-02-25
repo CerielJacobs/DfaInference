@@ -16,13 +16,14 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
 
     public double THRESHOLD = Configuration.THRESHOLD;
     
-    public double SQ = Math.sqrt(THRESHOLD);
+    // public double SQ = Math.sqrt(THRESHOLD);
 
     boolean testMerge(State r, State b) {
         boolean foundMerge = false;
 
         if (r == null) {
-            addChoice(Choice.getChoice(-1, b.getId(), -THRESHOLD, Integer.MAX_VALUE-1));
+            addChoice(Choice.getChoice(-1, b.getId(), -THRESHOLD, 0));
+            // addChoice(Choice.getChoice(-1, b.getId(), 0, b.getDepth()));
             return true;
         }
 
@@ -37,7 +38,8 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
                     + ", similarStates = " + dfa.similarStates + ", labelScore = " + dfa.labelScore);
             */
             
-            double score = -dfa.labelScore - dfa.similarStates;
+            double score = -dfa.labelScore - dfa.similarStates + dfa.staminaPenalty;
+            // double score = -b.getDepth();
             // score -= b.getTraffic() + b.getxTraffic();
             /*
             if (chance < THRESHOLD) {
@@ -46,10 +48,12 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
              */
             // double score = - (dfa.similarStates + dfa.labelScore - dfa.staminaPenalty /* + (oldScore - getSimpleScore(dfa)) */);
 
+            /*
             if (! r.isProductive() && ! b.isProductive()) {
                 // Penalty on score.
                 score = 1;
             }
+            */
 
             /*
             // double score = dfa.staminaPenalty - dfa.labelScore;
@@ -60,8 +64,10 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
             }
             */
             
-            addChoice(Choice.getChoice(r.getId(), b.getId(), -dfa.chance,
-                    score));
+            // addChoice(Choice.getChoice(r.getId(), b.getId(), score,
+            //         b.getDepth()));
+            addChoice(Choice.getChoice(r.getId(), b.getId(), -dfa.chance, score));
+
             foundMerge = true;
         }
         dfa.undoMerge(u);
@@ -74,14 +80,15 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
 	// For now:
         
         // return dfa.getNumStates();
-        if (Configuration.NEGATIVES) {
+        // if (Configuration.NEGATIVES) {
             return dfa.getNumEdges() + dfa.getNumAcceptingStates() + dfa.getNumRejectingStates();
-        }
+        // }
         
-        return dfa.getNumProductiveEdges() + dfa.getNumAcceptingStates();
+        // return dfa.getNumProductiveEdges() + dfa.getNumAcceptingStates();
     }
 
     public double getScore() {
+        // return dfa.getMDLComplexity();
         return getSimpleScore(dfa);
     }
 

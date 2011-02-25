@@ -619,6 +619,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         if (NEEDS_EDGECOUNTS) {
             for (State s : states) {
                 if (PRINT_DFA) {
+                    /*
                 	if (panel == null) {
                 	    panel = TouchGraphDFAPanel.createPanel();
                 	}
@@ -628,6 +629,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 			} catch (InterruptedException e) {
 			    // ignored
 			}
+                    */
 
                     System.out.print("State " + s.getId());
                     if (s.isRejecting()) {
@@ -1304,9 +1306,11 @@ public final class DFA implements java.io.Serializable, Configuration {
         for (int i = 0; i < samples.length; i++) {
             addString(samples[i]);
         }
+        /*
         if (USE_STAMINA) {
             staminaPreprocess(startState);
         }
+        */
         dfaComputations(true);
         if (USE_ADJACENCY) {
             startState.entrySyms.set(nsym);
@@ -1512,7 +1516,6 @@ public final class DFA implements java.io.Serializable, Configuration {
                                 if (USE_STAMINA) {
                                     double c1 = Math.pow(.5, s.getTraffic());
                                     chance *= c1;
-                                    staminaPenalty++;
                                 }
                                 nXProductiveStates++;
                                 missingXEdges += s.missingEdges(REJECTING);
@@ -1809,7 +1812,7 @@ public final class DFA implements java.io.Serializable, Configuration {
  
         if (newOutDegree1 == outDegree1 && newOutDegree2 == outDegree2) {
             similarStates++;
-        } else {
+        } else if (newOutDegree1 != outDegree1) {
             staminaPenalty++;
         }
 
@@ -1892,7 +1895,7 @@ public final class DFA implements java.io.Serializable, Configuration {
 
             if (newXOutDegree1 == xOutDegree1 && newXOutDegree2 == xOutDegree2) {
                 similarStates++;
-            } else {
+            } else if (newXOutDegree1 != xOutDegree1) {
         	staminaPenalty++;
             }
             
@@ -2027,6 +2030,12 @@ public final class DFA implements java.io.Serializable, Configuration {
                 System.out.println(n1.verboseString());
                 System.out.println(n2.verboseString());
             }
+
+            /*
+            if (c < THRESHOLD) {
+                return;
+            }
+            */
         }
 
         saveState(n1, undo);

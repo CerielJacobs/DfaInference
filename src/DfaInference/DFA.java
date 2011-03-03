@@ -616,47 +616,45 @@ public final class DFA implements java.io.Serializable, Configuration {
         nAccepting = 0;
         nRejecting = 0;
         nEdges = 0;
-        if (NEEDS_EDGECOUNTS) {
-            for (State s : states) {
-                if (PRINT_DFA) {
-                    /*
-                	if (panel == null) {
-                	    panel = TouchGraphDFAPanel.createPanel();
-                	}
-                	panel.setDFA(this);
-                	try {
-			    Thread.sleep(100000000);
-			} catch (InterruptedException e) {
-			    // ignored
-			}
-                    */
+        for (State s : states) {
+            if (PRINT_DFA) {
+                /*
+                    if (panel == null) {
+                        panel = TouchGraphDFAPanel.createPanel();
+                    }
+                    panel.setDFA(this);
+                    try {
+                        Thread.sleep(100000000);
+                    } catch (InterruptedException e) {
+                        // ignored
+                    }
+                */
 
-                    System.out.print("State " + s.getId());
-                    if (s.isRejecting()) {
-                        System.out.print(" is rejecting, weight = " + s.getWeight());
-                    } else if (s.isAccepting()) {
-                        System.out.print(" is accepting, weight = " + s.getWeight());
-                    }
-                    System.out.println();
-                    for (int i = 0; i < nsym; i++) {
-                        if (s.children[i] != null) {
-                            System.out.println("    edge on symbol " + symbols.getSymbol(i) + " to state " + s.children[i].getId()
-                                    + ", traffic = " + s.edgeWeights[i] + ", xtraffic = " + s.xEdgeWeights[i]);
-                        }
+                System.out.print("State " + s.getId());
+                if (s.isRejecting()) {
+                    System.out.print(" is rejecting, weight = " + s.getWeight());
+                } else if (s.isAccepting()) {
+                    System.out.print(" is accepting, weight = " + s.getWeight());
+                }
+                System.out.println();
+                for (int i = 0; i < nsym; i++) {
+                    if (s.children[i] != null) {
+                        System.out.println("    edge on symbol " + symbols.getSymbol(i) + " to state " + s.children[i].getId()
+                                + ", traffic = " + s.edgeWeights[i] + ", xtraffic = " + s.xEdgeWeights[i]);
                     }
                 }
-                if (s.getWeight() > 0) {
-                    if (s.isRejecting()) {
-                	nRejecting++;
-                    } else if (s.isAccepting()) {
-                	nAccepting++;
-                    }
+            }
+            if (s.getWeight() > 0) {
+                if (s.isRejecting()) {
+                    nRejecting++;
+                } else if (s.isAccepting()) {
+                    nAccepting++;
                 }
-        	for (int i = 0; i < nsym; i++) {
-        	    if (s.children[i] != null) {
-        		nEdges++;
-        	    }
-        	}
+            }
+            for (int i = 0; i < nsym; i++) {
+                if (s.children[i] != null) {
+                    nEdges++;
+                }
             }
         }
         saved = new State[nStates];
@@ -2570,17 +2568,21 @@ public final class DFA implements java.io.Serializable, Configuration {
                 double score = 0;
                 State[] myStates = reachCount();
                 int totalCount = 0;
-                for (int i = 0; i < myStates.length; i++) {
+                for (State s : myStates) {
                     double cnt = 0;
-                    int id = myStates[i].getId();
+                    int id = s.getId();
                     for (int j = 0; j <= maxlen; j++) {
                         cnt += counts[j][id];
                     }
-                    double sc = approximate2LogNoverK(cnt, myStates[i].getWeight());
+                    int weight = s.getWeight();
+                    if (!(MDL_COMPLEMENT || NEGATIVES) && s.isRejecting()) {
+                        weight = 0;
+                    }
+                    double sc = approximate2LogNoverK(cnt, weight);
                     if (logger.isDebugEnabled()) {
                         totalCount += cnt;
                         logger.debug("State " + id + ", weight = "
-                                + myStates[i].getWeight() + ", cnt = " + cnt
+                                + s.getWeight() + ", cnt = " + cnt
                                 + ", sc  = " + sc);
                     }
                     score += sc;

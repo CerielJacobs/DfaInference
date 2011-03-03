@@ -54,7 +54,7 @@
 
     <target name="compile" depends="clean,init,copy-included-satin"
 	    description="Compile application without any bytecode rewriting">
-	<javac destdir="${tmp}" debug="true" srcdir=".">
+	<javac destdir="${tmp}" debug="true" srcdir="src">
 	    <classpath refid="default.classpath" />
 	    <!--
 	    <compilerarg value="-Xlint:unchecked"/>

@@ -7,6 +7,6 @@ do
     sh bin/testSamples $n $t | grep generalization | sed 's/.*= //' > $OUT_BASE.$t.$n
     n1=`grep '\.99' $OUT_BASE.$t.$n | wc -l`
     n2=`grep '1\.0' $OUT_BASE.$t.$n | wc -l`
-    echo Version: $version	Size: $sz	Sol: `expr $n1 + $n2`	Rate `./avg.py < $OUT_BASE.$t.$n`
+    echo Version: $t	Size: $n	Sol: `expr $n1 + $n2`	Rate `./avg.py < $OUT_BASE.$t.$n`
 done
 done

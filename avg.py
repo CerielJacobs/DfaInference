@@ -9,4 +9,6 @@ for line in sys.stdin:
     sum += float(line)
     count += 1
 
-print sum / count
+foo_string = '%2.4f' % (sum*100/count)
+
+print foo_string

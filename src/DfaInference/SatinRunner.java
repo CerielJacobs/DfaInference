@@ -13,17 +13,19 @@ public class SatinRunner extends SatinObject implements SatinRunnerInterface {
     public SatinRunner() {
     }
 
-    public void doRun(String command, String name) {
+    public long doRun(String command, String name) {
         Process p;
         String[] cmd = new String[2];
         cmd[0] = command;
         cmd[1] = name;
+        long time = System.currentTimeMillis();
         try {
             p = Runtime.getRuntime().exec(cmd);
             p.waitFor();
         } catch(Exception e) {
             logger.warn("Got exception", e);
         }
+        return System.currentTimeMillis() - time;
     }
 
     private String cvt(int cnt) {
@@ -36,11 +38,13 @@ public class SatinRunner extends SatinObject implements SatinRunnerInterface {
         return "" + cnt;
     }
 
-    public void run(String command, String size, int count) {
+    public long[] run(String command, String size, int count) {
+	long times[] = new long[count];
         for (int i = 0; i < count; i++) {
-            doRun(command, cvt(i) + "." + size);
+            times[i] = doRun(command, cvt(i) + "." + size);
         }
         sync();
+        return times;
     }
 
     public static void main(String[] args) {
@@ -79,7 +83,22 @@ public class SatinRunner extends SatinObject implements SatinRunnerInterface {
         }
 
         SatinRunner r = new SatinRunner();
-        r.run(command, size, count);
+        long[] times = r.run(command, size, count);
+        long sum = 0;
+        long min = Long.MAX_VALUE;
+        long max = 0;
+        for (int i = 0; i < count; i++) {
+            sum += times[i];
+            if (times[i] < min) {
+        	min = times[i];
+            }
+            if (times[i] > max) {
+        	max = times[i];
+            }
+        }
+        System.out.println("Command = " + command + ", size = " + size);
+        System.out.println("Average time = " + (((float) sum)/(count*1000))
+        	+ " sec, min = " + (min/1000.0) + " sec, max = " + (max/1000.0) + " sec.");
     }
 }
 

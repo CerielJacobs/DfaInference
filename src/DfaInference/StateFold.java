@@ -1,7 +1,8 @@
 package DfaInference;
 
-import sample.SampleReader;
-import sample.SampleString;
+import java.io.IOException;
+
+import sample.Samples;
 
 /**
  * This state folder implements a search strategy that first selects the merge
@@ -44,7 +45,7 @@ public class StateFold extends RedBlue implements java.io.Serializable {
     public static void main(String[] args) {
         String  learningSetFile = null;
         String outputfile = "LearnedDFA";
-        String reader = "abbadingo.AbbaDingoReader";
+        String reader = "abbadingo.AbbaDingoIO";
 
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
 
@@ -76,27 +77,17 @@ public class StateFold extends RedBlue implements java.io.Serializable {
                 System.exit(1);
             }
         }
-
-        SampleString[] samples = null;
+        
+        Samples learningSamples = null;
         try {
-            SampleReader sampleReader = new SampleReader(reader);
-            if (learningSetFile != null) {
-                samples = sampleReader.getStrings(learningSetFile);
-            }
-            else {
-                samples = sampleReader.getStrings(System.in);
-            }
-        } catch(java.io.IOException e) {
-            logger.fatal("IO Exception", e);
-            System.exit(1);
-        }
-
-        Symbols symbols = new Symbols();
-        int[][] learningSamples = symbols.convert2learn(samples);
+	    learningSamples = new Samples(reader, learningSetFile);
+	} catch (IOException e) {
+	    logger.error("got IO exception", e);
+	    System.exit(1);
+	}
 
         StateFold m = new StateFold();
-        DFA bestDFA = m.doFold(new Samples(symbols, learningSamples, null),
-                new Guidance(), 0);
+        DFA bestDFA = m.doFold(learningSamples, new Guidance(), 0);
 
         if (logger.isInfoEnabled()) {
             logger.info("The winner DFA has complexity "

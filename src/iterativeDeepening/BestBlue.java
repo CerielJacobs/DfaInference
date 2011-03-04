@@ -18,11 +18,11 @@ import DfaInference.Helpers;
 import DfaInference.IntGuidance;
 import DfaInference.PickBlueStrategy;
 import DfaInference.RedBlue;
-import DfaInference.Samples;
-import DfaInference.Symbols;
 
-import sample.SampleReader;
+import sample.SampleIO;
 import sample.SampleString;
+import sample.Samples;
+import sample.Symbols;
 
 /**
  * This class implements a search strategy that, up to a certain depth,
@@ -242,7 +242,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         String outputfile = "LearnedDFA";
         String folder = "DfaInference.EdFold";
         String blueStrategy = "DfaInference.ChoiceCountStrategy";
-        String reader = "abbadingo.AbbaDingoReader";
+        String reader = "abbadingo.AbbaDingoIO";
         boolean printInfo = false;
         int mindepth = 5;
         int maxdepth = -1;
@@ -363,7 +363,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
 
         SampleString[] samples = null;
         try {
-            SampleReader sampleReader = new SampleReader(reader);
+            SampleIO sampleReader = new SampleIO(reader);
             if (learningSetFile != null) {
                 samples = sampleReader.getStrings(learningSetFile);
             }

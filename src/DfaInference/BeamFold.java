@@ -1,12 +1,11 @@
 package DfaInference;
 
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.BitSet;
 
 import org.apache.log4j.Logger;
 
-import sample.SampleReader;
-import sample.SampleString;
+import sample.Samples;
 
 public class BeamFold {
 
@@ -124,7 +123,7 @@ public class BeamFold {
         String  learningSetFile = null;
         String outputfile = "LearnedDFA";
         String folder = "DfaInference.EdFold";
-        String reader = "abbadingo.AbbaDingoReader";
+        String reader = "abbadingo.AbbaDingoIO";
         int maxX = 5;
 
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
@@ -171,23 +170,15 @@ public class BeamFold {
                 System.exit(1);
             }
         }
-
-        SampleString[] samples = null;
+        
+        
+        Samples learningSamples = null;
         try {
-            SampleReader sampleReader = new SampleReader(reader);
-            if (learningSetFile != null) {
-                samples = sampleReader.getStrings(learningSetFile);
-            }
-            else {
-                samples = sampleReader.getStrings(System.in);
-            }
-        } catch(java.io.IOException e) {
-            logger.fatal("IO Exception", e);
-            System.exit(1);
-        }
-
-        Symbols symbols = new Symbols();
-        int[][] iSamples = symbols.convert2learn(samples);
+	    learningSamples = new Samples(reader, learningSetFile);
+	} catch (IOException e) {
+	    logger.error("got IO exception", e);
+	    System.exit(1);
+	}
 
         Class<?> cl;
         try {
@@ -204,10 +195,8 @@ public class BeamFold {
             throw new Error("Could not instantiate " + folder, e);
         }
 
-        Samples sl = new Samples(symbols, iSamples, null);
-        DFA dfa = new DFA(sl);
-        BitSet[] conflicts = dfa.computeConflicts();
-        Samples learningSamples = new Samples(symbols, iSamples, conflicts);
+        DFA dfa = new DFA(learningSamples);
+        learningSamples.setConflicts(dfa.computeConflicts());
 
         BeamFold b = new BeamFold(learningSamples, f);
 

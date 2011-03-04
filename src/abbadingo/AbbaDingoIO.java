@@ -3,12 +3,14 @@ package abbadingo;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StreamTokenizer;
+import java.io.Writer;
 
-import sample.ReadSample;
+import sample.SampleIOInterface;
 import sample.SampleString;
+import sample.Symbols;
 
 /**
- * Reads a file of strings in AbbaDingo format.
+ * Reads or writes a file of strings in AbbaDingo format.
  *
  * The first line states the number of sequences in the file, the number of
  * token classes, and optionally the nominal number of states in the target
@@ -24,17 +26,13 @@ import sample.SampleString;
  * 1 15 1 0 0 1 1 1 1 1 1 0 0 0 1 1 0
  * </pre>
  */
-public class AbbaDingoReader implements ReadSample {
+public class AbbaDingoIO implements SampleIOInterface {
 
     /** This StreamTokenizer splits the input into words. */
     private StreamTokenizer d;
 
     /** Number of sentences in the input. */
     private int numSentences;
-
-    public AbbaDingoReader() {
-    }
-
 
     /**
      * Reads an integer from the stream tokenizer.
@@ -124,12 +122,6 @@ public class AbbaDingoReader implements ReadSample {
         }
     }
 
-    /**
-     * Reads the specified reader, which should be in AbbaDingo format.
-     * @param in the reader.
-     * @return the sentences read.
-     * @exception IOException on I/O error.
-     */
     public SampleString[] readStrings(Reader in)
             throws java.io.IOException {
         
@@ -158,4 +150,22 @@ public class AbbaDingoReader implements ReadSample {
 
         return strs;
     }
+
+    public void writeStrings(int nsym, SampleString[] s, Writer w) throws IOException {
+        // Print number of strings and number of symbols.
+        w.write("" + s.length + " " + nsym + "\n");
+        for (int i = 0; i < s.length; i++) {
+            w.write(s[i].toString() + "\n");
+        }
+    }
+
+    public SampleString convert2Sample(Symbols symbols, int[] sentence) {
+	AbbaDingoString s = new AbbaDingoString(sentence.length - 1, sentence[0]);
+	for (int i = 1; i < sentence.length; i++) {
+	    s.addToken(symbols.getSymbol(sentence[i]));
+	}
+	return s;
+    }
+    
+    
 }

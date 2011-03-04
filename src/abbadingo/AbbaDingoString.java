@@ -11,7 +11,7 @@ import sample.SampleString;
  * <li>test string.
  * </ul>
  */
-public class AbbaDingoString implements SampleString {
+public class AbbaDingoString extends SampleString {
 
     /** The tokens in the string. */
     private String[] words;

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 import sample.SampleString;
 
-public class StaminaString implements SampleString {
+public class StaminaString extends SampleString {
 
     private final ArrayList<String> sample = new ArrayList<String>(); 
 

@@ -1,5 +1,7 @@
 package DfaInference;
 
+import sample.Samples;
+
 /**
  * This interface specifies the spawnable methods in a Satin application.
  */

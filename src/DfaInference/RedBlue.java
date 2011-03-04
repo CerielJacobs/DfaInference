@@ -11,6 +11,8 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import sample.Samples;
+
 /**
  * This class implements a red-blue search strategy. The red states of a
  * DFA are the states that will not be merged with each other anymore. The

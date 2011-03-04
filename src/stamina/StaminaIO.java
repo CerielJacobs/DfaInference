@@ -3,10 +3,12 @@ package stamina;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StreamTokenizer;
+import java.io.Writer;
 import java.util.ArrayList;
 
-import sample.ReadSample;
+import sample.SampleIOInterface;
 import sample.SampleString;
+import sample.Symbols;
 
 /**
  * Reads strings in Stamina format.
@@ -20,12 +22,12 @@ import sample.SampleString;
  * + 0 0
  * </pre>
  */
-public class StaminaReader implements ReadSample {
+public class StaminaIO implements SampleIOInterface {
 
     /** This StreamTokenizer splits the input into words. */
     private StreamTokenizer d;
 
-    public StaminaReader() {
+    public StaminaIO() {
     }
     
     public SampleString[] readStrings(Reader r) throws IOException {
@@ -118,5 +120,20 @@ public class StaminaReader implements ReadSample {
         }
 
         return strings.toArray(new SampleString[strings.size()]);
+    }
+    
+    public void writeStrings(int nsym, SampleString[] s, Writer w) throws IOException {
+        for (int i = 0; i < s.length; i++) {
+            w.write(s[i].toString() + "\n");
+        }
+    }
+    
+
+    public SampleString convert2Sample(Symbols symbols, int[] sentence) {
+	StaminaString s = new StaminaString(sentence[0] == -1 ? '?' : (sentence[0] == 1 ? '+' : '-'));
+	for (int i = 1; i < sentence.length; i++) {
+	    s.addToken(symbols.getSymbol(sentence[i]));
+	}
+	return s;
     }
 }

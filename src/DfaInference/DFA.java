@@ -21,6 +21,8 @@ import org.apache.commons.math.special.Gamma;
 import org.apache.commons.math.distribution.NormalDistributionImpl;
 import org.apache.commons.math.distribution.NormalDistribution;
 
+import sample.Samples;
+import sample.Symbols;
 import viz.TouchGraphDFAPanel;
 
 
@@ -246,16 +248,16 @@ public final class DFA implements java.io.Serializable, Configuration {
      * @param samples the samples
      */
     public DFA(Samples samples) {
-        this(samples.symbols.nSymbols());
+        this(samples.getSymbols().nSymbols());
         if (USE_ADJACENCY) {
             startState.entrySyms.set(nsym);
         }
-        this.symbols = samples.symbols;
+        this.symbols = samples.getSymbols();
         if (USE_ADJACENCY) {
-            this.adjacencyComplement = samples.adjacencyComplement;
+            this.adjacencyComplement = samples.getAdjacencyComplement();
         }
 
-        addSample(samples.learningSamples);
+        addSample(samples.getLearningSamples());
 
         if (logger.isDebugEnabled()) {
             if (! checkDFA()) {
@@ -283,7 +285,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     + approximate2LogNoverK(nsentences, this.samples.size()));
         }
 
-        conflicts = samples.conflicts;
+        conflicts = samples.getConflicts();
     }
 
     private void staminaPreprocess(State s) {

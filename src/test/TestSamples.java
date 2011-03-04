@@ -16,7 +16,7 @@ public class TestSamples {
 
         String size = "1500";
         String version = "V1";
-        String reader = "abbadingo.AbbaDingoReader";
+        String reader = "abbadingo.AbbaDingoIO";
 
 
         for (int i = 0; i < args.length; i++) {

@@ -1,13 +1,14 @@
 package DfaInference;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
 
-import sample.SampleReader;
-import sample.SampleString;
+import sample.Samples;
+import sample.Symbols;
 
 public class Sampler2 extends EdFold {
 
@@ -231,7 +232,7 @@ public class Sampler2 extends EdFold {
         int randomDepth = 5000;
         int diversityThreshold = 200;
         int populationRoot = 8;
-        String reader = "abbadingo.AbbaDingoReader";
+        String reader = "abbadingo.AbbaDingoIO";
 
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
 
@@ -291,28 +292,19 @@ public class Sampler2 extends EdFold {
                 System.exit(1);
             }
         }
-
-        SampleString[] samples = null;
+        
+        Samples learningSamples = null;
         try {
-            SampleReader sampleReader = new SampleReader(reader);
-            if (learningSetFile != null) {
-                samples = sampleReader.getStrings(learningSetFile);
-            }
-            else {
-                samples = sampleReader.getStrings(System.in);
-            }
-        } catch(java.io.IOException e) {
-            logger.fatal("IO Exception", e);
-            System.exit(1);
-        }
+	    learningSamples = new Samples(reader, learningSetFile);
+	} catch (IOException e) {
+	    logger.error("got IO exception", e);
+	    System.exit(1);
+	}
 
-        Symbols symbols = new Symbols();
-        int[][] learningSamples = symbols.convert2learn(samples);
-
-        Choice[] bestChoice = compete(symbols, learningSamples, depth, randomDepth,
+        Choice[] bestChoice = compete(learningSamples.getSymbols(), learningSamples.getLearningSamples(), depth, randomDepth,
                 populationRoot, diversityThreshold);
 
-        Sampler2 s = new Sampler2(symbols, learningSamples, bestChoice);
+        Sampler2 s = new Sampler2(learningSamples.getSymbols(), learningSamples.getLearningSamples(), bestChoice);
         s.fold(randomDepth);
         int nstates = s.dfa.nProductiveStates;
 

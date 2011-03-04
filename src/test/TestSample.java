@@ -4,7 +4,7 @@ import java.io.FileReader;
 
 import org.apache.log4j.Logger;
 
-import sample.SampleReader;
+import sample.SampleIO;
 import sample.SampleString;
 
 import DfaInference.DFA;
@@ -24,7 +24,7 @@ public class TestSample {
         String machinefile = "LearnedDFA";
         String testInput = "TestSample";
         String baseDFAFile = null;
-        String reader = "abbadingo.AbbaDingoReader";
+        String reader = "abbadingo.AbbaDingoIO";
 
         for (int i = 0; i < args.length; i++) {
             if (false) {
@@ -95,7 +95,7 @@ public class TestSample {
 
         SampleString[] samples = null;
         try {
-            SampleReader sampleReader = new SampleReader(reader);
+            SampleIO sampleReader = new SampleIO(reader);
             samples = sampleReader.getStrings(testInput);
         } catch(java.io.IOException e) {
             logger.fatal("IO Exception", e);

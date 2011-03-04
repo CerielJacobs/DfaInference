@@ -1,26 +1,25 @@
-package abbadingo;
+package sample;
 
 import java.io.BufferedWriter;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
 
-import sample.SampleString;
+import abbadingo.AbbaDingoString;
+
 
 import DfaInference.DFA;
-import DfaInference.Symbols;
 
 /**
  * Utility to generate learning set and test for a specified DFA.
  */
-public class GenerateSampleAndTest {
+public class GenerateSample {
 
     /** Log4j logger. */
     private static Logger logger
-            = Logger.getLogger(GenerateSampleAndTest.class.getName());
+            = Logger.getLogger(GenerateSample.class.getName());
 
     private static BufferedWriter learn;
     private static BufferedWriter test;
@@ -36,9 +35,10 @@ public class GenerateSampleAndTest {
      * @param count the number of strings to generate
      * @param maxl the maximum length
      * @param nsym the number of symbols
+     * @param samplesToAvoid samples to avoid, because they are for instance in the test set
      * @return the generated strings.
      */
-    private static int[][] generateStrings(int count, int maxl, int nsym) {
+    private static int[][] generateStrings(int count, int maxl, int nsym, int[][] samplesToAvoid) {
         int[][] samples = new int[count][];
 
         // Uniform distribution over the total string space.
@@ -70,21 +70,42 @@ public class GenerateSampleAndTest {
                     attempt[j] = randomizer.nextInt(nsym);
                 }
                 boolean present = false;
-                for (int k = 0; k < i; k++) {
-                    boolean equal = true;
-                    if (samples[k].length == attempt.length) {
-                        for (int l = 0; l < attempt.length; l++) {
-                            if (samples[k][l] != attempt[l]) {
-                                equal = false;
-                                break;
+                if (samplesToAvoid != null) {
+                    for (int k = 0; k < samplesToAvoid.length; k++) {
+                	boolean equal = true;
+                        if (samplesToAvoid[k].length == attempt.length + 1) {
+                            for (int l = 0; l < attempt.length; l++) {
+                                if (samplesToAvoid[k][l+1] != attempt[l]) {
+                                    equal = false;
+                                    break;
+                                }
                             }
+                        } else {
+                            equal = false;
                         }
-                    } else {
-                        equal = false;
+                        if (equal) {
+                            present = true;
+                            break;
+                        }
                     }
-                    if (equal) {
-                        present = true;
-                        break;
+                }
+                if (! present) {
+                    for (int k = 0; k < i; k++) {
+                	boolean equal = true;
+                	if (samples[k].length == attempt.length) {
+                	    for (int l = 0; l < attempt.length; l++) {
+                		if (samples[k][l] != attempt[l]) {
+                		    equal = false;
+                		    break;
+                		}
+                	    }
+                	} else {
+                	    equal = false;
+                	}
+                	if (equal) {
+                	    present = true;
+                	    break;
+                	}
                     }
                 }
                 if (! present) {
@@ -114,12 +135,14 @@ public class GenerateSampleAndTest {
     }
 
     public static void main(String[] args) {
-        String  machinefile = "machine";
+        String  machinefile = null;
         int maxl = 15;
         int count = 2000;
-        int testcount = 0;
+        String testfile = null;
         boolean negativeSamples = true;
-        String prefix = "data";
+        int nsym = 2;
+        String output = "data";
+        String sampleIOClassname = "abbadingo.AbbaDingoIO";
 
         for (int i = 0; i < args.length; i++) {
             if (false) {
@@ -130,20 +153,34 @@ public class GenerateSampleAndTest {
                     System.exit(1);
                 }
                 machinefile = args[i];
-            } else if (args[i].equals("-maxl")) {
+            } else if (args[i].equals("-maxlength")) {
                 i++;
                 if (i >= args.length) {
                     logger.fatal("-maxl option requires length");
                     System.exit(1);
                 }
                 maxl = new Integer(args[i]).intValue();
-            } else if (args[i].equals("-testcount")) {
+            } else if (args[i].equals("-nsym")) {
                 i++;
                 if (i >= args.length) {
-                    logger.fatal("-testcount option requires testcount");
+                    logger.fatal("-nsym option requires length");
                     System.exit(1);
                 }
-                testcount = new Integer(args[i]).intValue();
+                nsym = new Integer(args[i]).intValue();
+            } else if (args[i].equals("-testfile")) {
+                i++;
+                if (i >= args.length) {
+                    logger.fatal("-testfile option requires testfile");
+                    System.exit(1);
+                }
+                testfile = args[i];
+            } else if (args[i].equals("-sampleio")) {
+                i++;
+                if (i >= args.length) {
+                    logger.fatal("-sampleio option requires classname");
+                    System.exit(1);
+                }
+                sampleIOClassname = args[i];
             } else if (args[i].equals("-count")) {
                 i++;
                 if (i >= args.length) {
@@ -155,48 +192,53 @@ public class GenerateSampleAndTest {
                 negativeSamples = false;
             } else if (args[i].equals("-negatives")) {
                 negativeSamples = true;
-            } else if (args[i].equals("-prefix")) {
+            } else if (args[i].equals("-output")) {
                 i++;
                 if (i >= args.length) {
-                    logger.fatal("-prefix option requires prefix");
+                    logger.fatal("-output option requires filename");
                     System.exit(1);
                 }
-                prefix = args[i];
+                output = args[i];
             } else {
-                logger.fatal("Usage: java generate.GenerateSampleAndTest [ -m <machine ] [ -count <count>] [ -testcount <testcount>] [-prefix <prefix>] [-negatives|-no-negatives]");
+                logger.fatal("Usage: java sample.GenerateSample [ -m <machine> ] [ -nsym <nsym> ] [-maxlength <maxlength> ][ -sampleio <implementation> ][ -count <count> ] [ -testfile <testfile> ] [-output <output> ] [-negatives|-no-negatives]");
                 System.exit(1);
             }
         }
 
+        DFA dfa = null;
+        
+        if (machinefile != null) {
+            FileReader fr = null;
 
-        FileReader fr = null;
+            // Read the DFA.
+            try {
+        	fr = new FileReader(machinefile);
+            } catch(Exception e) {
+        	logger.fatal("Could not open input file");
+        	System.exit(1);
+            }
 
-        // Read the DFA.
-        try {
-            fr = new FileReader(machinefile);
-        } catch(Exception e) {
-            logger.fatal("Could not open input file");
-            System.exit(1);
+            dfa = new DFA(fr);
+            Symbols symbols = dfa.symbols;
+            nsym = symbols.nSymbols();
         }
-
-        DFA dfa = new DFA(fr);
-        Symbols symbols = dfa.symbols;
-        int nsym = symbols.nSymbols();
-
-        try {
-            learn = new BufferedWriter(new FileWriter(prefix + "." + count));
-        } catch(IOException e) {
-            logger.fatal("Could not open output", e);
-            System.exit(1);
+        
+        SampleIO sampleIO = new SampleIO(sampleIOClassname);
+        int[][] samplesToAvoid = null;
+        if (testfile != null) {
+            try {
+		samplesToAvoid = (new Samples(sampleIO, testfile)).getLearningSamples();
+	    } catch (IOException e) {
+	        logger.fatal("Could not read samples to avoid", e);
+	       System.exit(1);
+	    }
         }
-
         int[][] samples = new int[count][];
 
         // Generate enough strings. If we don't want negatives in the learn
         // sample, we don't know what is enough ...
-        int numSentences = (! negativeSamples ? 5 * count : count )
-                + testcount;
-        int[][] sentences = generateStrings(numSentences, maxl, nsym);
+        int numSentences = (! negativeSamples && dfa != null) ? 5 * count : count;
+        int[][] sentences = generateStrings(numSentences, maxl, nsym, samplesToAvoid);
         int sentenceIndex = 0;
 
         for (int i = 0; i < count; i++) {
@@ -207,55 +249,27 @@ public class GenerateSampleAndTest {
                 int[] s = new int[sentences[sentenceIndex].length+1];
                 System.arraycopy(sentences[sentenceIndex++], 0, s, 1, s.length-1);
                 s[0] = -1;
-                boolean recognize = dfa.recognize(s);
-                if (! recognize && ! negativeSamples) {
-                    continue;
+                if (dfa != null) {
+                    boolean recognize = dfa.recognize(s);
+                    if (! negativeSamples && ! recognize) {
+                	continue;
+                    }
+                    s[0] = recognize ? 1 : 0;
                 }
+                samples[i] = s;
                 break;
             } while (true);
-            samples[i] = sentences[sentenceIndex-1];
         }
-
-        if (sentences.length - sentenceIndex < testcount) {
-            logger.fatal("Not enough sentences generated. Try again");
-        }
+        
+        Samples s = new Samples(nsym, samples, null);
+        s.setSampleIO(sampleIO);
+        SampleString[] strings = s.getStrings();
 
         try {
-            // Print number of strings and number of symbols.
-            learn.write("" + count + " " + nsym);
-            learn.newLine();
-            for (int i = 0; i < count; i++) {
-                int[] s = new int[samples[i].length+1];
-                System.arraycopy(samples[i], 0, s, 1, s.length-1);
-                s[0] = -1;
-                boolean recognize = dfa.recognize(s);
-                learn.write("" + cvt2AbbaDingo(symbols, samples[i], recognize ? 1 : 0));
-                learn.newLine();
-            }
-            learn.close();
+            sampleIO.putStrings(nsym, strings, output);
         } catch(IOException e) {
-            logger.fatal("Could not write learn-set", e);
+            logger.fatal("Could not write samples", e);
             System.exit(1);
-        }
-
-        if (testcount > 0) {
-            int[][] tests = new int[testcount][];
-            System.arraycopy(sentences, sentenceIndex, tests, 0, testcount);
-
-            try {
-                // Print number of strings and number of symbols.
-                test = new BufferedWriter(new FileWriter(prefix + ".test"));
-                test.write("" + testcount + " " + nsym);
-                test.newLine();
-                for (int i = 0; i < testcount; i++) {
-                    test.write("" + cvt2AbbaDingo(symbols, tests[i], -1));
-                    test.newLine();
-                }
-                test.close();
-            } catch(IOException e) {
-                logger.fatal("Could not write test-set", e);
-                System.exit(1);
-            }
         }
     }
 }

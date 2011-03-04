@@ -9,7 +9,7 @@
 
     <property name="satinc-flags" value="-keep"/>
 
-    <property name="satin-classes" value="DfaInference.SatinFolder iterativeDeepening.BestBlue iterativeDeepening.BestBlueMW, DfaInference.SatinRunner, DfaInference.Samples, iterativeDeepening.ControlResultPairTable"/>
+    <property name="satin-classes" value="DfaInference.SatinFolder iterativeDeepening.BestBlue iterativeDeepening.BestBlueMW, DfaInference.SatinRunner, sample.Samples, iterativeDeepening.ControlResultPairTable"/>
 
     <!--
         Requires definition of 'satin-classes': a comma-separated list of class
@@ -101,7 +101,7 @@
     </target>
 
     <target name="set-satinc-classes" if="satin-classes">
-	<property name="satin-classes.value" value="-satin &quot;${satin-classes}&quot;"/>
+	<property name="satin-classes.value" value="-syncrewriter &quot;${satin-classes}&quot; -satin &quot;${satin-classes}&quot;"/>
     </target>
 
     <target name="set-satinc-classes-notset" unless="satin-classes">

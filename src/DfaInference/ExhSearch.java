@@ -5,8 +5,10 @@ import java.util.HashSet;
 
 import org.apache.log4j.Logger;
 
-import sample.SampleReader;
+import sample.SampleIO;
 import sample.SampleString;
+import sample.Samples;
+import sample.Symbols;
 
 public class ExhSearch implements java.io.Serializable {
 
@@ -146,7 +148,7 @@ public class ExhSearch implements java.io.Serializable {
         String  learningSetFile = null;
         String outputfile = "LearnedDFA";
         int max = Integer.MAX_VALUE;
-        String reader = "abbadingo.AbbaDingoReader";
+        String reader = "abbadingo.AbbaDingoIO";
 
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
 
@@ -188,7 +190,7 @@ public class ExhSearch implements java.io.Serializable {
 
         SampleString[] samples = null;
         try {
-            SampleReader sampleReader = new SampleReader(reader);
+            SampleIO sampleReader = new SampleIO(reader);
             if (learningSetFile != null) {
                 samples = sampleReader.getStrings(learningSetFile);
             }

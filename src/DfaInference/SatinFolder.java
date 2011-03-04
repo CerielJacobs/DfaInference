@@ -14,8 +14,7 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
-import sample.SampleReader;
-import sample.SampleString;
+import sample.Samples;
 
 /**
  * This class implements a "top N" search strategy. The current best N
@@ -353,7 +352,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
         String  learningSetFile = null;
         String outputfile = "LearnedDFA";
         String folder = "DfaInference.EdFold";
-        String reader = "abbadingo.AbbaDingoReader";
+        String reader = "abbadingo.AbbaDingoIO";
         String dump = null;
         int window = 1;
         int depth = 0;
@@ -473,24 +472,15 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
         } catch(Exception e) {
             throw new Error("Could not instantiate " + folder, e);
         }
-
-        SampleString[] samples = null;
-        try { 
-            SampleReader sampleReader = new SampleReader(reader);
-            if (learningSetFile != null) {
-                samples = sampleReader.getStrings(learningSetFile);
-            }
-            else {
-                samples = sampleReader.getStrings(System.in);
-            }           
-         } catch(java.io.IOException e) {
-            logger.fatal("IO Exception", e);
-            System.exit(1);
-        }
-
-        Symbols symbols = new Symbols();
-        int[][] iSamples = symbols.convert2learn(samples);
-
+        
+        Samples learningSamples = null;
+        try {
+	    learningSamples = new Samples(reader, learningSetFile);
+	} catch (IOException e) {
+	    logger.error("got IO exception", e);
+	    System.exit(1);
+	}
+	
         SatinFolder b = new SatinFolder(f, dump, random, bestf, mw);
 
         long initializationTime = System.currentTimeMillis();
@@ -498,7 +488,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
         BitSet[] conflicts = null;
         // DFA dfa = new DFA(iSamples);
         // conflicts = dfa.computeConflicts();
-        Samples learningSamples = new Samples(symbols, iSamples, conflicts);
+        learningSamples.setConflicts(conflicts);
 
         ControlResultPair p = b.doSearch(window, depth, percentage,
                 scorePercentage, learningSamples);

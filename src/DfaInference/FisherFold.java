@@ -1,9 +1,10 @@
 package DfaInference;
 
+import java.io.IOException;
+
 import org.apache.commons.math.special.Gamma;
 
-import sample.SampleReader;
-import sample.SampleString;
+import sample.Samples;
 
 public class FisherFold extends RedBlue implements java.io.Serializable {
 
@@ -71,7 +72,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
     public static void main(String[] args) {
         String  learningSetFile = null;
         String outputfile = "LearnedDFA";
-        String reader = "abbadingo.AbbaDingoReader";
+        String reader = "abbadingo.AbbaDingoIO";
 
         // Print Java version and system.
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
@@ -109,30 +110,19 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
                 System.exit(1);
             }
         }
-
-        SampleString[] samples = null;
+                
+        Samples learningSamples = null;
         try {
-            SampleReader sampleReader = new SampleReader(reader);
-            if (learningSetFile != null) {
-                samples = sampleReader.getStrings(learningSetFile);
-            }
-            else {
-                samples = sampleReader.getStrings(System.in);
-            }
-        } catch(java.io.IOException e) {
-            logger.fatal("IO Exception", e);
-            System.exit(1);
-        }
-
-        Symbols symbols = new Symbols();
-        int[][] learningSamples = symbols.convert2learn(samples);
-
+	    learningSamples = new Samples(reader, learningSetFile);
+	} catch (IOException e) {
+	    logger.error("got IO exception", e);
+	    System.exit(1);
+	}
 
         FisherFold m = new FisherFold();
         m.printInfo = true;
         logger.info("Starting fold ...");
-        DFA bestDFA = m.doFold(new Samples(symbols, learningSamples, null),
-                new Guidance(), 0);
+        DFA bestDFA = m.doFold(learningSamples, new Guidance(), 0);
 
         if (logger.isInfoEnabled()) {
             logger.info("The winner DFA has complexity "

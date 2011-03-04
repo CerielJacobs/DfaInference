@@ -1,11 +1,10 @@
-package DfaInference;
+package sample;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 
-import sample.SampleString;
 
 
 /**
@@ -100,29 +99,7 @@ public class Symbols implements java.io.Serializable {
     }
 
     /**
-     * Extracts the tokens from the specified <code>AbbaDingoString</code>
-     * and converts them to token numbers.
-     * The first element of the resulting array is 1 for accept, 0 for reject,
-     * and -1 for unknown. The other elements represent the symbols in the
-     * string.
-     * @param s the string to convert.
-     * @return an array with token numbers.
-     */
-    public int[] abbaToSym(SampleString s) {
-        String[] str = s.getString();
-        int[] tokens = new int[str.length+1];
-        
-        tokens[0] = s.isAccepted() ? 1 : s.isNotAccepted() ? 0 : -1;
-        for (int i = 0; i < str.length; i++) {
-            tokens[i+1] = addSymbol(str[i]);
-        }
-
-        return tokens;
-    }
-
-    /**
-     * Converts the samples, which are in AbbaDingoString format,
-     * to a suitable representation for DFA learning, which is
+     * Converts the samples to a suitable representation for DFA learning, which is
      * an array of strings which are represented as an array of
      * symbol numbers.
      * @param samples the samples as they are read.
@@ -134,7 +111,7 @@ public class Symbols implements java.io.Serializable {
         int[][] result = new int[len][];
         len = 0;
         for (int i = 0; i < samples.length; i++) {
-            result[len++] = abbaToSym(samples[i]);
+            result[len++] = samples[i].convert2Learn(this);
         }
 
         return result;

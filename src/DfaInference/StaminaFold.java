@@ -1,15 +1,9 @@
 package DfaInference;
 
-import sample.SampleReader;
-import sample.SampleString;
+import java.io.IOException;
 
-/**
- * This class implements an evidence-driven state folder.
- * Evidence consists of the number of corresponding state labels that result
- * when doing a merge and making the resulting DFA deterministic by collapsing
- * states. Corresponding means: both states are rejecting or both states are
- * accepting.
- */
+import sample.Samples;
+
 public class StaminaFold extends RedBlue implements java.io.Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -99,7 +93,7 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
     public static void main(String[] args) {
         String  learningSetFile = null;
         String outputfile = "LearnedDFA";
-        String reader = "abbadingo.AbbaDingoReader";
+        String reader = "abbadingo.AbbaDingoIO";
         boolean full = false;
 
         // Print Java version and system.
@@ -140,36 +134,26 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
                 System.exit(1);
             }
         }
-
-        SampleString[] samples = null;
+        
+        Samples learningSamples = null;
         try {
-            SampleReader sampleReader = new SampleReader(reader);
-            if (learningSetFile != null) {
-                samples = sampleReader.getStrings(learningSetFile);
-            }
-            else {
-                samples = sampleReader.getStrings(System.in);
-            }
-        } catch(java.io.IOException e) {
-            logger.fatal("IO Exception", e);
-            System.exit(1);
-        }
-
-        Symbols symbols = new Symbols();
-        int[][] learningSamples = symbols.convert2learn(samples);
+	    learningSamples = new Samples(reader, learningSetFile);
+	} catch (IOException e) {
+	    logger.error("got IO exception", e);
+	    System.exit(1);
+	}
 
         StaminaFold m = new StaminaFold();
         m.printInfo = true;
         
         DFA bestDFA;
         if (full) {
-            DFA dfa = new DFA(new Samples(symbols, learningSamples, null));
+            DFA dfa = new DFA(learningSamples);
             m.dfa = dfa;
             bestDFA = m.fullBlownLearn();
         } else {            
             logger.info("Starting fold ...");
-            bestDFA = m.doFold(new Samples(symbols, learningSamples, null),
-        	    new Guidance(), 0);
+            bestDFA = m.doFold(learningSamples, new Guidance(), 0);
         }
         bestDFA.write(outputfile);
     }

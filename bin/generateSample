@@ -1,8 +1,9 @@
 #! /bin/sh
 
-# generateSample <DFA> <count> <maxlength>
+# generateSample <DFA> <count> <maxlength>.
 # Generates a sample from <DFA>, with <count> sentences, of maximum length
 # <maxlength>.
+# Assumes that a test file has already been generated.
 
 # Check setting of DFA_HOME
 if [ -z "$DFA_HOME" ];  then
@@ -10,4 +11,4 @@ if [ -z "$DFA_HOME" ];  then
 fi
 export DFA_HOME
 
-$DFA_HOME/bin/satin-run -Xmx256M abbadingo.GenerateSampleAndTest -m $1 -count $2 -maxl $3 -prefix $1
+$DFA_HOME/bin/satin-run -Xmx256M sample.GenerateSample -m $1 -count $2 -maxlength $3 -output $1.$2 -testfile $1.test

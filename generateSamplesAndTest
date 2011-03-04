@@ -1,6 +1,8 @@
-# generates samples for 1000 DFAs, each existing of 1500 strings,
+# generates samples for 1000 DFAs
 # maximum length = 15.
 
+for size in 1500 2000 2500 3000 3500 4000
+do
 for i in 0 1 2 3 4 5 6 7 8 9
 do
 for j in 0 1 2 3 4 5 6 7 8 9
@@ -10,7 +12,9 @@ do
     name=$i$j$k
     dfa=DFAs/DFA-$name
     echo generating sample and test for DFA $dfa
-    bin/generateSampleAndTest $dfa 1500 15
+    bin/generateTest 2 1800 15 $dfa.test
+    bin/generateSample $dfa $size 15
+done
 done
 done
 done

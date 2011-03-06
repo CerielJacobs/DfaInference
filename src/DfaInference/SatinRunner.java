@@ -28,20 +28,22 @@ public class SatinRunner extends SatinObject implements SatinRunnerInterface {
         return System.currentTimeMillis() - time;
     }
 
-    private String cvt(int cnt) {
-        if (cnt < 10) {
-            return "00" + cnt;
+    private String cvt(int cnt, int size) {
+        String result = "" + cnt;
+        int v = 10;
+        while (size > v) {
+            if (cnt < v) {
+                result = "0" + result;
+            }
+            v *= 10;
         }
-        if (cnt < 100) {
-            return "0" + cnt;
-        }
-        return "" + cnt;
+        return result;
     }
 
     public long[] run(String command, String size, int count) {
 	long times[] = new long[count];
         for (int i = 0; i < count; i++) {
-            times[i] = doRun(command, cvt(i) + "." + size);
+            times[i] = doRun(command, cvt(i, count) + "." + size);
         }
         sync();
         return times;

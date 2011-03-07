@@ -1,6 +1,7 @@
 package DfaInference;
 
 import java.io.IOException;
+import java.util.BitSet;
 
 import sample.Samples;
 
@@ -78,6 +79,11 @@ public class MDLFold extends RedBlue implements java.io.Serializable {
 	    logger.error("got IO exception", e);
 	    System.exit(1);
 	}
+	
+        DFA dfa = new DFA(learningSamples);
+        BitSet[] conflicts = dfa.computeConflicts();
+
+        learningSamples = new Samples(learningSamples.getSymbols(), learningSamples.getLearningSamples(), conflicts);
 
         MDLFold m = new MDLFold();
         m.printInfo = true;

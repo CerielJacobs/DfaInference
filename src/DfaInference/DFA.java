@@ -1978,6 +1978,7 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         if ((n1.accepting | n2.accepting) == MASK) {
+            n2.addConflict(n1);
             conflict = true;
             /*
             if (undo != null) {
@@ -2115,6 +2116,10 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (v2 != null) {
                 State v1 = n1.children[i];
                 if (v1 != null) {
+                    if (v2.hasConflict(v1)) {
+                	conflict = true;
+                	return;
+                    }
                     // System.out.println("    v1 = " + v1.id + ", v2 = " + v2.id);
                     nEdges--;
                     if ((v1.productive & ACCEPTING) != 0 &&
@@ -2137,6 +2142,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     }
                     walkTreeMerge(v1, v2, undo);
                     if (conflict) {
+                	v2.addConflict(v1);
                         return;
                     }
                 } else {

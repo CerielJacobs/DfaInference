@@ -10,5 +10,4 @@ if [ -z "$DFA_HOME" ];  then
 fi
 export DFA_HOME
 
-
 $DFA_HOME/bin/satin-run -Xmx256M generate.GenerateDFA -states $1 -syms $2 -f $3

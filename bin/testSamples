@@ -1,6 +1,6 @@
 #! /bin/sh
  
-# testSample <size> <version>
+# testSample <size> <version> <dfaprefix> <count>
 # Runs samples through the LearnedDFAs and the GeneratingDFAs, and prints
 # the correctness ratio.
 
@@ -10,4 +10,4 @@ if [ -z "$DFA_HOME" ];  then
 fi
 export DFA_HOME
 
-$DFA_HOME/bin/satin-run -Xmx256M test.TestSamples -s $1 -v $2
+$DFA_HOME/bin/satin-run -Xmx256M test.TestSamples -s $1 -v $2 -prefix $3 -count $4

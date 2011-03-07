@@ -4,4 +4,10 @@
 # Runs the sample through the LearnedDFA and prints a 1 or 0
 # for each sentence.
 
-bin/satin-run -Xmx256M test.TestSample -m $1 -s $2 -reader stamina.StaminaReader
+# Check setting of DFA_HOME
+if [ -z "$DFA_HOME" ];  then
+    DFA_HOME=`pwd`
+fi
+export DFA_HOME
+
+$DFA_HOME/bin/satin-run -Xmx256M test.TestSample -m $1 -s $2 -reader stamina.StaminaReader

@@ -249,6 +249,11 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * </code>false</code> otherwise.
      */
     private boolean doTestMerge(State r, State b) {
+	if (USE_MDL && ! NEGATIVES && ! MDL_COMPLEMENT) {
+	    if (! r.isProductive() && ! b.isProductive()) {
+		return false;
+	    }
+	}
         if (! mayMerge(r, b)) {
             return false;
         }

@@ -2,16 +2,4 @@
 
 # learn-Fisher <name>
 
-ARGS=
-ARGS="$ARGS -DIncrementalCounts"
-ARGS="$ARGS -DUseProductive"
-ARGS="$ARGS -DChiSquare"
-ARGS="$ARGS -DUniqueSamples=false"
-ARGS="$ARGS -DNegatives"
-
-name=$1
-
-mkdir -p learned.Fisher out.Fisher
-
-bin/satin-run -server -Xmx512M $ARGS DfaInference.FisherFold \
-    -input DFAs/DFA-$name -output learned.Fisher/Learned-$name > out.Fisher/out-$name 2>&1
+exec ./learn-version Fisher $1

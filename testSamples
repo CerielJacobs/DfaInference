@@ -4,7 +4,7 @@ for n in 1500 2000 2500 3000 3500 4000
 do
 for t in EDSM V1 V2 V3 V4 V5
 do
-    sh bin/testSamples $n $t | grep generalization | sed 's/.*= //' > $OUT_BASE.$t.$n
+    sh bin/testSamples $n $t DFAs/DFA- 1000 | grep generalization | sed 's/.*= //' > $OUT_BASE.$t.$n
     n1=`grep '\.99' $OUT_BASE.$t.$n | wc -l`
     n2=`grep '1\.0' $OUT_BASE.$t.$n | wc -l`
     echo Version: $t	Size: $n	Sol: `expr $n1 + $n2`	Rate `./avg.py < $OUT_BASE.$t.$n`

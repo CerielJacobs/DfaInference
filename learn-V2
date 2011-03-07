@@ -2,12 +2,4 @@
 
 # learn-V2 <name>
 
-ARGS=
-ARGS="$ARGS -DIncrementalCounts"
-ARGS="$ARGS -DUseProductive"
-ARGS="$ARGS -DNegatives"
-
-name=$1
-
-bin/satin-run -server -Xmx512M $ARGS DfaInference.MDLFold \
-    -input DFAs/DFA-$name -output learned.V2/Learned-$name > out.V2/out-$name 2>&1
+exec ./learn-version V2 $1

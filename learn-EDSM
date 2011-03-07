@@ -2,11 +2,4 @@
 
 # learn-EDSM <name>
 
-ARGS=
-ARGS="$ARGS -DIncrementalCounts"
-ARGS="$ARGS -DUseProductive"
-
-name=$1
-
-bin/satin-run -server -Xmx512M $ARGS DfaInference.EdFold \
-    -input DFAs/DFA-$name -output learned.EDSM/Learned-$name > out.EDSM/out-$name 2>&1
+exec ./learn-version EDSM $1

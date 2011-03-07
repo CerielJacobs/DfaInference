@@ -2,12 +2,4 @@
 
 # learn-V5 <name>
 
-ARGS=
-ARGS="$ARGS -DUseProductive"
-ARGS="$ARGS -DRefinedMDL"
-ARGS="$ARGS -DNegatives"
-
-name=$1
-
-bin/satin-run -server -Xmx512M $ARGS DfaInference.MDLFold \
-    -input DFAs/DFA-$name -output learned.V5/Learned-$name > out.V5/out-$name 2>&1
+exec ./learn-version V5 $1

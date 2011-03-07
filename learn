@@ -1,0 +1,63 @@
+#! /bin/sh
+
+# learn <version> <sample> <dfa> <output>
+
+case $# in
+    4)	;;
+    *)	echo "Usage: learn <version> <sample> <resultdfa> <output>" 1>&2
+        exit 1
+	;;
+esac
+
+version=$1
+sample=$2
+resultdfa=$3
+output=$4
+app=DfaInference.MDLFold
+
+ARGS=
+
+case $version in
+    EDSM)
+	ARGS="$ARGS -DIncrementalCounts"
+	ARGS="$ARGS -DUseProductive"
+	app=DfaInference.EdFold
+	;;
+    V1)
+	ARGS="$ARGS -DIncrementalCounts"
+	ARGS="$ARGS -DUseProductive"
+	;;
+    V2)
+	ARGS="$ARGS -DIncrementalCounts"
+	ARGS="$ARGS -DUseProductive"
+	ARGS="$ARGS -DNegatives"
+	;;
+    V3)
+	ARGS="$ARGS -DIncrementalCounts"
+	ARGS="$ARGS -DUseProductive"
+	ARGS="$ARGS -DComplement"
+	;;
+    V4)
+	ARGS="$ARGS -DUseProductive"
+	ARGS="$ARGS -DRefinedMDL"
+	;;
+    V5)
+	ARGS="$ARGS -DUseProductive"
+	ARGS="$ARGS -DRefinedMDL"
+	ARGS="$ARGS -DNegatives"
+	;;
+    Fisher)
+	ARGS="$ARGS -DIncrementalCounts"
+	ARGS="$ARGS -DUseProductive"
+	ARGS="$ARGS -DChiSquare"
+	ARGS="$ARGS -DUniqueSamples=false"
+	ARGS="$ARGS -DNegatives"
+	;;
+    *)
+	echo "Unrecognized version: $version" 1>&2
+	exit 1
+	;;
+esac
+
+exec bin/satin-run -server -Xmx512M $ARGS $app \
+    -input $sample -output $resultdfa > $output 2>&1

@@ -1,0 +1,10 @@
+#! /bin/sh
+
+# learn-version <version> <name>
+
+version=$1
+name=$2
+
+mkdir -p learned.$version out.$version
+
+./learn $version DFAs/DFA-$name learned.$version/Learned-$name out.$version/out-$name

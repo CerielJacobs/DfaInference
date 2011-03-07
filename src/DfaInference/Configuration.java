@@ -65,6 +65,8 @@ public interface Configuration {
      */
     static final int DFA_SCORING =
         tp.getIntProperty("DFAScoring", 3);
+    
+    static final boolean USE_MDL = tp.getBooleanProperty("MDL", false);
 
     static final boolean USE_ADJACENCY =
         tp.getBooleanProperty("Adjacency", false);

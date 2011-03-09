@@ -618,7 +618,7 @@ public final class State implements java.io.Serializable, Configuration,
     }
 
     /**
-     * Initializes for another run of {@link #doCount(int, double[][])}.
+     * Initializes for another run of {@link #doCount(int, int[][])}.
      */
     public void initCount() {
         maxLenComputed = 0;
@@ -638,7 +638,7 @@ public final class State implements java.io.Serializable, Configuration,
      * @param counts the counts array, first index is length, second index is
      *   state number.
      */
-    public void doCount(int maxlen, double[][] counts) {
+    public void doCount(int maxlen, int[][] counts) {
         if (maxlen > maxLenComputed) {
             for (int i = 0; i < children.length; i++) {
                 State s = children[i];
@@ -650,7 +650,7 @@ public final class State implements java.io.Serializable, Configuration,
             }
 
             for (int j = maxLenComputed; j < maxlen; j++) {
-                double cnt = 0;
+                int cnt = 0;
                 for (int i = 0; i < children.length; i++) {
                     State s = children[i];
                     if (s != null) {
@@ -672,11 +672,10 @@ public final class State implements java.io.Serializable, Configuration,
      *   state number.
      * @param mrk mark of the states for which we must recompute.
      */
-    public void computeUpdate(int maxlen, double[][] counts, double[][] temps, int mrk) {
+    public void computeUpdate(int maxlen, int[][] counts, int[][] temps, int mrk) {
         if (maxlen > maxLenComputed) {
             if (maxlen > 1) {
-                for (int i = 0; i < children.length; i++) {
-                    State s = children[i];
+        	for (State s : children) {
                     if (s != null && s.mark >= mrk) {
                         // Note: this may affect the value of maxLenComputed of the
                         // current state: we may recurse into the same state,
@@ -687,9 +686,8 @@ public final class State implements java.io.Serializable, Configuration,
             }
 
             for (int j = maxLenComputed; j < maxlen; j++) {
-                double cnt = 0;
-                for (int i = 0; i < children.length; i++) {
-                    State s = children[i];
+                int cnt = 0;
+                for (State s : children) {
                     if (s != null) {
                         if (s.mark >= mrk && j != 0) {
                             cnt += temps[s.mark - mrk][j];

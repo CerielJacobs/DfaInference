@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 
 import org.apache.log4j.Logger;
@@ -105,18 +104,18 @@ public final class DFA implements java.io.Serializable, Configuration {
      * Counts for number of strings recognized by each state, for
      * all lengths from 0 to maxlen.
      */
-    double[][] counts;
+    int[][] counts;
 
     /**
      * Counts for number of strings recognized by each state of the rejecting
      * dfa, for all lengths from 0 to maxlen.
      */
-    double[][] xCounts;
+    int[][] xCounts;
 
     /**
      * Temporary for counts, for computing updates.
      */
-    private double[][] tempCounts;
+    private int[][] tempCounts;
 
     /** Set when counts are initialized. Used for incremental computations. */
     private boolean counts_done = false;
@@ -1635,7 +1634,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                     }
 
                     if (tempCounts == null || tempCounts.length < states.length) {
-                        tempCounts = new double[states.length][maxlen + 1];
+                        tempCounts = new int[states.length][maxlen + 1];
                     }
 
                     undo.saveCounts();
@@ -2530,9 +2529,6 @@ public final class DFA implements java.io.Serializable, Configuration {
         } else {
             retval = sumLogs[(int)c];
         }
-        if (logger.isDebugEnabled()) {
-            logger.debug("sumlog(" + c + ") = " + retval);
-        }
         return retval;
     }
 
@@ -2544,7 +2540,7 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     public double computeTotalRecognized(int maxlength, int acceptOrReject) {
-        double[][] counts = new double[maxlength+1][getIdMap().length];
+        int[][] counts = new int[maxlength+1][getIdMap().length];
         return computeNStrings(maxlength, counts, acceptOrReject, false);
     }
 
@@ -2559,44 +2555,32 @@ public final class DFA implements java.io.Serializable, Configuration {
 
         if (MDLScore == 0) {
             if (counts == null) {
-                counts = new double[maxlen+1][];
+                counts = new int[maxlen+1][];
                 for (int i = 0; i < counts.length; i++) {
-                    counts[i] = new double[getIdMap().length];
+                    counts[i] = new int[getIdMap().length];
                 }
             }
             if (NEGATIVES) {
                 if (xCounts == null) {
-                    xCounts = new double[maxlen+1][];
+                    xCounts = new int[maxlen+1][];
                     for (int i = 0; i < xCounts.length; i++) {
-                        xCounts[i] = new double[getIdMap().length];
+                        xCounts[i] = new int[getIdMap().length];
                     }
                 }
             }
             if (REFINED_MDL) {
                 double score = 0;
-                State[] myStates = reachCount();
-                int totalCount = 0;
-                for (State s : myStates) {
+                BitSet myStates = reachCount();
+                
+                for (int id = myStates.nextSetBit(0); id >= 0; id = myStates.nextSetBit(id + 1)) {
+                    State s = getState(id);
+
                     double cnt = 0;
-                    int id = s.getId();
                     for (int j = 0; j <= maxlen; j++) {
                         cnt += counts[j][id];
                     }
-                    int weight = s.getWeight();
-                    if (!(MDL_COMPLEMENT || NEGATIVES) && s.isRejecting()) {
-                        weight = 0;
-                    }
-                    double sc = approximate2LogNoverK(cnt, weight);
-                    if (logger.isDebugEnabled()) {
-                        totalCount += cnt;
-                        logger.debug("State " + id + ", weight = "
-                                + s.getWeight() + ", cnt = " + cnt
-                                + ", sc  = " + sc);
-                    }
+                    double sc = approximate2LogNoverK(cnt, s.getWeight());
                     score += sc;
-                }
-                if (logger.isDebugEnabled()) {
-                    logger.debug("totalCount = " + totalCount);
                 }
                 MDLScore = score;
             } else {
@@ -2853,12 +2837,12 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
     }
 
-    private void computeCounts(State[] states, double[][] counts) {
+    private void computeCounts(State[] states, int[][] counts) {
         for (int j = 1; j <= maxlen; j++) {
-            double[] countjm1 = counts[j - 1];
+            int[] countjm1 = counts[j - 1];
             for (int i = 0; i < states.length; i++) {
                 State s = states[i];
-                double cnt = 0;
+                int cnt = 0;
                 for (int k = 0; k < nsym; k++) {
                     State sk = s.children[k];
                     if (sk != null) {
@@ -2882,7 +2866,7 @@ public final class DFA implements java.io.Serializable, Configuration {
      *            count either from the rejecting DFA or the accepting DFA.
      * @return the number of strings recognized.
      */
-    private double computeNStrings(int l, double[][] count, int acceptOrReject,
+    private double computeNStrings(int l, int[][] count, int acceptOrReject,
             boolean incremental) {
         BitSet h = null;
         if (!incremental || !counts_done) {
@@ -2949,17 +2933,17 @@ public final class DFA implements java.io.Serializable, Configuration {
         return n;
     }
 
-    private static State[] l1;
-    private static State[] l2;
-
+    private State[] l1;
+    private State[] l2;
+    
     /**
      * Computes in how many ways each state can be reached from the startstate
      * with in input of length less than or equal to <code>maxlen</code>.
-     * @return an array containing the endstates.
+     * @return a bitset containing the endstate ids.
      */
-    private State[] reachCount() {
+    private BitSet reachCount() {
         int c1;
-        HashSet<State> h = new HashSet<State>();
+        BitSet h = new BitSet(getIdMap().length);
         if (l1 == null) {
             l1 = new State[getIdMap().length];
             l2 = new State[getIdMap().length];
@@ -2968,40 +2952,41 @@ public final class DFA implements java.io.Serializable, Configuration {
         // Initialize. Only initialize count fields that we are going to use.
         l1[0] = startState;
         c1 = 1;
-        counts[0][startState.getId()] = 1;
+        int startStateId = startState.getId();
+        counts[0][startStateId] = 1;
         if (startState.getWeight() > 0) {
             for (int i = 1; i <= maxlen; i++) {
-                counts[i][startState.getId()] = 0;
+                counts[i][startStateId] = 0;
             }
-            h.add(startState);
+            h.set(startStateId);
         }
 
         // Compute counts
         for (int k = 1; k <= maxlen; k++) {
             int mark = getMark();
             int c2 = 0;
-            double[] countk = counts[k];
-            double[] countkm1 = counts[k - 1];
+            int[] countk = counts[k];
+            int[] countkm1 = counts[k - 1];
             for (int i = 0; i < c1; i++) {
                 State s = l1[i];
                 double km1 = countkm1[s.getId()];
-                for (int j = 0; j < s.children.length; j++) {
-                    State sj = s.children[j];
+                for (State sj : s.children) {
                     if (sj != null) {
-                        if (sj.mark != mark) {
-                            l2[c2++] = sj;
-                            sj.mark = mark;
-                            countk[sj.getId()] = 0;
-                            if (sj.getWeight() > 0) {
-                                if (!h.contains(sj)) {
-                                    h.add(sj);
-                                    for (int l = 0; l <= maxlen; l++) {
-                                        counts[l][sj.getId()] = 0;
-                                    }
-                                }
-                            }
-                        }
-                        countk[sj.getId()] += km1;
+                	int jid = sj.getId();
+                	if (sj.mark != mark) {
+                	    l2[c2++] = sj;
+                	    sj.mark = mark;
+                	    countk[jid] = 0;
+                	    if (sj.getWeight() > 0 && (MDL_COMPLEMENT || NEGATIVES || !sj.isRejecting())) {
+                		if (!h.get(jid)) {
+                		    h.set(jid);
+                		    for (int l = 0; l <= maxlen; l++) {
+                			counts[l][jid] = 0;
+                		    }
+                		}
+                	    }
+                	}
+                	countk[jid] += km1;
                     }
                 }
             }
@@ -3010,7 +2995,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             l1 = l2;
             l2 = temp;
         }
-        return h.toArray(new State[h.size()]);
+        return h;
     }
 
     /**

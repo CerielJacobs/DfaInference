@@ -339,7 +339,7 @@ public final class UndoInfo implements Configuration {
     private ParentSetInfo savedSets;
 
     /** Storage for saving counts. */
-    private double[] counts;
+    private int[] counts;
 
     /** Set when counts field is initialized. */
     private boolean countsInitialized;
@@ -386,7 +386,7 @@ public final class UndoInfo implements Configuration {
             // Only saves the counts from the start symbol, as these are
             // the only ones that are modified when there is Undo info.
             if (counts == null || counts.length < len_needed) {
-                counts = new double[len_needed];
+                counts = new int[len_needed];
             }
             if (dfa.counts != null) {
                 for (int i = 0; i <= dfa.maxlen; i++) {

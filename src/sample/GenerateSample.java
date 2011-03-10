@@ -3,12 +3,11 @@ package sample;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Random;
+import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
-
-import abbadingo.AbbaDingoString;
-
 
 import DfaInference.DFA;
 
@@ -26,7 +25,24 @@ public class GenerateSample {
 
     /** Random number generator for generating strings. */
     private static Random randomizer = new Random();
+    
+    private static class SampleComparator implements Comparator<int[]> {
 
+	public int compare(int[] arg0, int[] arg1) {
+	    if (arg0.length != arg1.length) {
+		return arg1.length - arg0.length;
+	    }
+	    for (int i = 0; i < arg0.length; i++) {
+		if (arg0[i] != arg1[i]) {
+		    return arg1[i] - arg0[i];
+		}
+	    }
+	    return 0;
+	}
+    }
+
+    private static TreeSet<int[]> toAvoid = new TreeSet<int[]>(new SampleComparator());
+    
     /**
      * Generates the specified number of random strings with the specified
      * maximum length and the specified number of symbols.
@@ -40,6 +56,16 @@ public class GenerateSample {
      */
     private static int[][] generateStrings(int count, int maxl, int nsym, int[][] samplesToAvoid) {
         int[][] samples = new int[count][];
+        
+        if (samplesToAvoid != null) {
+            for (int[] s : samplesToAvoid) {
+        	int[] sample = new int[s.length-1];
+        	for (int i = 0; i < sample.length; i++) {
+        	    sample[i] = s[i+1];
+        	}
+        	toAvoid.add(sample);
+            }
+        }
 
         // Uniform distribution over the total string space.
         // There are nsym^maxl + nsym^(maxl-1) + .... + nsym + 1 such strings.
@@ -69,69 +95,14 @@ public class GenerateSample {
                 for (int j = 0; j < len; j++) {
                     attempt[j] = randomizer.nextInt(nsym);
                 }
-                boolean present = false;
-                if (samplesToAvoid != null) {
-                    for (int k = 0; k < samplesToAvoid.length; k++) {
-                	boolean equal = true;
-                        if (samplesToAvoid[k].length == attempt.length + 1) {
-                            for (int l = 0; l < attempt.length; l++) {
-                                if (samplesToAvoid[k][l+1] != attempt[l]) {
-                                    equal = false;
-                                    break;
-                                }
-                            }
-                        } else {
-                            equal = false;
-                        }
-                        if (equal) {
-                            present = true;
-                            break;
-                        }
-                    }
-                }
-                if (! present) {
-                    for (int k = 0; k < i; k++) {
-                	boolean equal = true;
-                	if (samples[k].length == attempt.length) {
-                	    for (int l = 0; l < attempt.length; l++) {
-                		if (samples[k][l] != attempt[l]) {
-                		    equal = false;
-                		    break;
-                		}
-                	    }
-                	} else {
-                	    equal = false;
-                	}
-                	if (equal) {
-                	    present = true;
-                	    break;
-                	}
-                    }
-                }
-                if (! present) {
+                if (! toAvoid.contains(attempt)) {
+                    toAvoid.add(attempt);
                     break;
                 }
-                // no new states means sentence has already been added.
-                // Generate another one.
             } while (true);
             samples[i] = attempt;
         }
         return samples;
-    }
-
-    /**
-     * Converts a string consisting of token numbers to an AbbaDingoString.
-     * @param str the string to be converted
-     * @param flag the flag.
-     * @return the AbbaDingoString.
-     */
-    private static SampleString cvt2AbbaDingo(Symbols symbols, int[] str, int flag) {
-        SampleString s = new AbbaDingoString(str.length, flag);
-
-        for (int i = 0; i < str.length; i++) {
-            s.addToken(symbols.getSymbol(str[i]));
-        }
-        return s;
     }
 
     public static void main(String[] args) {

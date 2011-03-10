@@ -101,8 +101,8 @@ public class GenerateSample {
 			    continue;
 			}
 			attempt[0] = recognize ? 1 : 0;
-			break;
 		    }
+		    break;
 		}
 	    } while (true);
 	    samples[i] = attempt;

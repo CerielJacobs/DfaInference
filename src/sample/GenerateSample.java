@@ -32,7 +32,7 @@ public class GenerateSample {
 	    if (arg0.length != arg1.length) {
 		return arg1.length - arg0.length;
 	    }
-	    for (int i = 0; i < arg0.length; i++) {
+	    for (int i = 1; i < arg0.length; i++) {
 		if (arg0[i] != arg1[i]) {
 		    return arg1[i] - arg0[i];
 		}
@@ -54,55 +54,60 @@ public class GenerateSample {
      * @param samplesToAvoid samples to avoid, because they are for instance in the test set
      * @return the generated strings.
      */
-    private static int[][] generateStrings(int count, int maxl, int nsym, int[][] samplesToAvoid) {
-        int[][] samples = new int[count][];
-        
-        if (samplesToAvoid != null) {
-            for (int[] s : samplesToAvoid) {
-        	int[] sample = new int[s.length-1];
-        	for (int i = 0; i < sample.length; i++) {
-        	    sample[i] = s[i+1];
-        	}
-        	toAvoid.add(sample);
-            }
-        }
+    private static int[][] generateStrings(int count, int maxl, int nsym, int[][] samplesToAvoid, DFA dfa, boolean negatives) {
+	int[][] samples = new int[count][];
 
-        // Uniform distribution over the total string space.
-        // There are nsym^maxl + nsym^(maxl-1) + .... + nsym + 1 such strings.
-        double[] nStrings = new double[maxl+1];
-        double[] sums = new double[maxl+1];
-        nStrings[0] = 1.0;
-        sums[0] = 1.0;
-        for (int i = 1; i <= maxl; i++) {
-            nStrings[i] = nsym * nStrings[i-1];
-            sums[i]= sums[i-1] + nStrings[i];
-        }
+	if (samplesToAvoid != null) {
+	    for (int[] s : samplesToAvoid) {
+		toAvoid.add(s);
+	    }
+	}
 
-        // Generate count strings
-        for (int i = 0; i < count; i++) {
-            int[] attempt;
-            do {
-                int len = maxl;
-                double rand = sums[maxl] * randomizer.nextDouble();
-                for (int j = 0; j <= maxl; j++) {
-                    if (sums[j] > rand) {
-                        len = j;
-                        break;
-                    }
-                }
+	// Uniform distribution over the total string space.
+	// There are nsym^maxl + nsym^(maxl-1) + .... + nsym + 1 such strings.
+	double[] nStrings = new double[maxl+1];
+	double[] sums = new double[maxl+1];
+	nStrings[0] = 1.0;
+	sums[0] = 1.0;
+	for (int i = 1; i <= maxl; i++) {
+	    nStrings[i] = nsym * nStrings[i-1];
+	    sums[i]= sums[i-1] + nStrings[i];
+	}
 
-                attempt = new int[len];
-                for (int j = 0; j < len; j++) {
-                    attempt[j] = randomizer.nextInt(nsym);
-                }
-                if (! toAvoid.contains(attempt)) {
-                    toAvoid.add(attempt);
-                    break;
-                }
-            } while (true);
-            samples[i] = attempt;
-        }
-        return samples;
+	// Generate count strings
+	for (int i = 0; i < count; i++) {
+	    int[] attempt;
+	    do {
+		int len = maxl;
+		double rand = sums[maxl] * randomizer.nextDouble();
+		for (int j = 0; j <= maxl; j++) {
+		    if (sums[j] > rand) {
+			len = j;
+			break;
+		    }
+		}
+
+		attempt = new int[len+1];
+		for (int j = 1; j < attempt.length; j++) {
+		    attempt[j] = randomizer.nextInt(nsym);
+		}
+		if (! toAvoid.contains(attempt)) {
+		    toAvoid.add(attempt);
+		    if (dfa != null) {
+			attempt[0] = -1;
+
+			boolean recognize = dfa.recognize(attempt);
+			if (! negatives && ! recognize) {
+			    continue;
+			}
+			attempt[0] = recognize ? 1 : 0;
+			break;
+		    }
+		}
+	    } while (true);
+	    samples[i] = attempt;
+	}
+	return samples;
     }
 
     public static void main(String[] args) {
@@ -204,35 +209,12 @@ public class GenerateSample {
 	       System.exit(1);
 	    }
         }
-        int[][] samples = new int[count][];
 
         // Generate enough strings. If we don't want negatives in the learn
         // sample, we don't know what is enough ...
-        int numSentences = (! negativeSamples && dfa != null) ? 5 * count : count;
-        int[][] sentences = generateStrings(numSentences, maxl, nsym, samplesToAvoid);
-        int sentenceIndex = 0;
-
-        for (int i = 0; i < count; i++) {
-            do {
-                if (sentenceIndex >= sentences.length) {
-                    logger.fatal("Not enough sentences generated. Try again");
-                }
-                int[] s = new int[sentences[sentenceIndex].length+1];
-                System.arraycopy(sentences[sentenceIndex++], 0, s, 1, s.length-1);
-                s[0] = -1;
-                if (dfa != null) {
-                    boolean recognize = dfa.recognize(s);
-                    if (! negativeSamples && ! recognize) {
-                	continue;
-                    }
-                    s[0] = recognize ? 1 : 0;
-                }
-                samples[i] = s;
-                break;
-            } while (true);
-        }
+        int[][] sentences = generateStrings(count, maxl, nsym, samplesToAvoid, dfa, negativeSamples);
         
-        Samples s = new Samples(nsym, samples, null);
+        Samples s = new Samples(nsym, sentences, null);
         s.setSampleIO(sampleIO);
         SampleString[] strings = s.getStrings();
 

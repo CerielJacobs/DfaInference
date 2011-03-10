@@ -6,6 +6,7 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import DfaInference.Configuration;
 import DfaInference.DFA;
 import DfaInference.State;
 
@@ -31,9 +32,9 @@ public class GenerateDFA {
      * @param nSyms the number of symbols
      * @return the reduced, minimized DFA.
      */
-    private static DFA generate(int n, int nSyms) {
+    private static DFA generate(int n, int nSyms, int acceptingThreshold) {
 
-        // Generating an initial random DFA of (5/4)n states is emperically
+        // Generating an initial random DFA of (5/4)n states is empirically
         // determined to result in a DFA of approximately n states (at least,
         // when the number of symbols is 2).
         int nStates = 5 * n/4;
@@ -147,6 +148,18 @@ public class GenerateDFA {
         if (depth != requiredDepth) {
             return null;
         }
+        
+        if (acceptingThreshold > 0) {
+            int len = 2 * log + 3;
+            double recognized = dfa.computeTotalRecognized(len, Configuration.ACCEPTING);
+            if (recognized < acceptingThreshold) {
+                if (logger.isInfoEnabled()) {
+                    logger.info("Generated DFA that only accepts " + recognized + " sentences of length max " + len
+                	    + ", required " + acceptingThreshold);
+                }
+        	return null;
+            }
+        }
 
         return dfa;
     }
@@ -155,6 +168,7 @@ public class GenerateDFA {
         int nStates = 64;
         int nSyms = 2;
         String filename = "machine";
+        int acceptingThreshold = 0;
 
         for (int i = 0; i < args.length; i++) {
             if (false) {
@@ -172,6 +186,13 @@ public class GenerateDFA {
                     System.exit(1);
                 }
                 nSyms = new Integer(args[i]).intValue();
+            } else if (args[i].equals("-acceptingThreshold")) {
+                i++;
+                if (i >= args.length) {
+                    logger.fatal("-acceptingThreshold option requires a number");
+                    System.exit(1);
+                }
+                acceptingThreshold = new Integer(args[i]).intValue();
             } else if (args[i].equals("-f")) {
                 i++;
                 if (i >= args.length) {
@@ -185,7 +206,7 @@ public class GenerateDFA {
         DFA dfa = null;
         
         while (dfa == null) {
-            dfa = generate(nStates, nSyms);
+            dfa = generate(nStates, nSyms, acceptingThreshold);
         }
 
         dfa.write(filename);

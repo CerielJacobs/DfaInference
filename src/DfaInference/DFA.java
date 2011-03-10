@@ -2882,7 +2882,7 @@ public final class DFA implements java.io.Serializable, Configuration {
                 for (int j = 0; j < count.length; j++) {
                     count[j][s.getId()] = 0;
                 }
-                if ((s.accepting & acceptOrReject) != 0 && s.getWeight() != 0) {
+                if ((s.accepting & acceptOrReject) != 0) {
                     if (USE_PARENT_SETS) {
                         h.set(s.getId());
                     }

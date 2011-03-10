@@ -9,7 +9,11 @@
 
     <property name="satinc-flags" value="-keep"/>
 
-    <property name="satin-classes" value="DfaInference.SatinFolder iterativeDeepening.BestBlue iterativeDeepening.BestBlueMW DfaInference.SatinRunner sample.Samples iterativeDeepening.ControlResultPairTable"/>
+    <property name="satin-so-classes" value="sample.Samples iterativeDeepening.ControlResultPairTable"/>
+
+    <property name="satin-spawn-classes" value="DfaInference.SatinFolder iterativeDeepening.BestBlue iterativeDeepening.BestBlueMW DfaInference.SatinRunner"/>
+
+    <property name="satin-classes.value" value="-syncrewriter &quot;${satin-spawn-classes}&quot; -satin &quot;${satin-spawn-classes} ${satin-so-classes}&quot;"/>
 
     <property environment="env"/>
     <property name="myclasspath" value="${env.CLASSPATH}"/>
@@ -54,37 +58,17 @@
         </javac>
     </target>
 
-    <target name="satin-internal">
+    <target name="satin">
 	<java	classname="ibis.compile.Ibisc"
 		taskname="Ibisc"
 		dir="${tmp}"
 		failonerror="true"
 		maxmemory="512M"
 		fork="true">
-		<arg line="${satinc-flags.value} ${satin-classes.value} ."/>
+		<arg line="${satinc-flags} ${satin-classes.value} ."/>
 		<classpath refid="default.classpath"/>
 	</java>
 
-    </target>
-
-    <target name="set-satinc-flags-set" if="satinc-flags">
-	<property name="satinc-flags.value" value="${satinc-flags}"/>
-    </target>
-
-    <target name="set-satinc-flags-notset" unless="satinc-flags">
-	<property name="satinc-flags.value" value=""/>
-    </target>
-
-    <target name="set-satinc-classes" if="satin-classes">
-	<property name="satin-classes.value" value="-syncrewriter &quot;${satin-classes}&quot; -satin &quot;${satin-classes}&quot;"/>
-    </target>
-
-    <target name="set-satinc-classes-notset" unless="satin-classes">
-	<property name="satin-classes.value" value=""/>
-    </target>
-
-    <target name="satin"
-	depends="set-satinc-flags-set,set-satinc-flags-notset,set-satinc-classes,set-satinc-classes-notset,satin-internal">
     </target>
 
     <!-- copy external dependancies to lib, including provided Satin -->

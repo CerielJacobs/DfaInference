@@ -497,6 +497,9 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
 
     public Choice[] applyBluePicker() {
         if (pickBlueStrategy != null) {
+            if (numCandidates == 0) {
+        	return new Choice[0];
+            }
             Choice[] candidates = new Choice[numCandidates];
             System.arraycopy(mergeCandidates, 0, candidates, 0, numCandidates);
             int blue = pickBlueStrategy.getBlue(dfa, candidates);

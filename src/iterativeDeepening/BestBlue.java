@@ -88,7 +88,11 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             // p = randomShooter(p.control, learningSamples);
             p.score = tryControl(p.control, learningSamples);
         } else {
-            p = tryExtending(fixOffset, p, depth, learningSamples, table);
+            ControlResultPair p1 = tryExtending(fixOffset, p, depth, learningSamples, table);
+            if (p1 == null) {
+        	return p;
+            }
+            p = p1;
         }
         if (tableManager != null) {
             try {
@@ -130,6 +134,10 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             for (int i = 0; i < choice.length; i++) {
         	logger.info("" + choice[i].verboseString());
             }
+        }
+        
+        if (choice.length == 0) {
+            return null;
         }
 
         pairs = new ControlResultPair[choice.length];
@@ -209,6 +217,9 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
 
             pop = tryExtending(control.length, new ControlResultPair(Integer.MAX_VALUE, control, 0, 0),
                     i - minD, samples, table);
+            if (pop == null) {
+        	return result;
+            }
             
             if (result == null || result.score >= pop.score) {
                 result = new ControlResultPair(pop);

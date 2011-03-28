@@ -617,6 +617,9 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
         System.arraycopy(blueStates, 0, oldBlueStates, 0, numBlueStates);
 
         dfa.treeMerge(red, blue, false, redStates, numRedStates);
+        if (dfa.conflict) {
+            logger.error("OOPS: something wrong: made a decision that gave a conflict");
+        }
 
         if (printInfo && logger.isInfoEnabled()) {
             logger.info("Merging blue state " + blue.getId() + " into " + red.getId()

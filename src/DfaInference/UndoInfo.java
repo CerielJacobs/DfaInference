@@ -47,6 +47,7 @@ public final class UndoInfo implements Configuration {
          * @param s the state to save.
          */
         private void set(State s) {
+            // System.out.println("Saving state " + s.getId() + ", accepting = " + s.accepting);
             orig = s;
             accepting = s.accepting;
             productive = s.productive;
@@ -93,7 +94,6 @@ public final class UndoInfo implements Configuration {
             do {
                 last = n;
                 State orig = last.orig;
-                orig.accepting = last.accepting;
 
                 if (! REFINED_MDL) {
                     if (dfa.counts != null) {
@@ -106,6 +106,8 @@ public final class UndoInfo implements Configuration {
                     }
                 }
 
+                // System.out.println("Restoring state " + orig.getId() + ", accepting = " + last.accepting);
+                orig.accepting = last.accepting;
                 orig.productive = last.productive;
                 orig.setDepth(last.depth);
                 orig.setWeight(last.weight);

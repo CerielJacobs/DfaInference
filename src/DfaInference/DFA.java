@@ -1675,6 +1675,11 @@ public final class DFA implements java.io.Serializable, Configuration {
                 System.exit(1);
             }
         }
+        if (undo == null) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("After merge: dfa =\n" + dumpDFA());
+            }
+        }
         return undo;
     }
 
@@ -1976,8 +1981,12 @@ public final class DFA implements java.io.Serializable, Configuration {
         }
 
         if ((n1.accepting | n2.accepting) == MASK) {
-            n2.addConflict(n1);
+            // n2.addConflict(n1);
+            // No, not good, n1 may already been changed by an earlier merge in the same treewalk.
             conflict = true;
+            if (undo == null) {
+                logger.error("Conflicting merge: accepting " + n1.getId() + ", " + n2.getId());
+            }
             /*
             if (undo != null) {
                 System.out.println("CONFLICT!");
@@ -1990,6 +1999,9 @@ public final class DFA implements java.io.Serializable, Configuration {
         
         if ((n1.productiveForbidden && n2.isProductive()) || (n2.productiveForbidden && n1.isProductive())) {
             conflict = true;
+            if (undo == null) {
+                logger.error("Conflicting merge: productive " + n1.getId() + ", " + n2.getId());
+            }
             return;
         }
 
@@ -1998,6 +2010,9 @@ public final class DFA implements java.io.Serializable, Configuration {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Merge of state " + n1 + ", " + n2
                             + " rejected because of adjacency");
+                }
+                if (undo == null) {
+                    logger.error("Conflicting merge: adjacency " + n1.getId() + ", " + n2.getId());
                 }
                 conflict = true;
                 return;
@@ -2140,7 +2155,8 @@ public final class DFA implements java.io.Serializable, Configuration {
                     }
                     walkTreeMerge(v1, v2, undo);
                     if (conflict) {
-                	v2.addConflict(v1);
+                	// v2.addConflict(v1);
+                        // No, not good, v1 may already been changed by an earlier merge in the same treewalk.
                         return;
                     }
                 } else {

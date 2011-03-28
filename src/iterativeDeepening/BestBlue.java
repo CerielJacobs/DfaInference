@@ -148,7 +148,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
             control[p.control.length] = k;
             ControlResultPair t = table.getResult(control);
             if (t == null) {
-                t = new ControlResultPair(-1, control, 0, 0);
+                t = new ControlResultPair(p.score, control, 0, 0);
                 pairs[k] = buildPair(fixOffset, t, learningSamples, table, depth+1);
             } else {
                 pairs[k] = t;
@@ -189,6 +189,9 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
      */
     double tryControl(int[] control, Samples learningSamples) {
         folder.doFold(learningSamples, new IntGuidance(control), 0);
+        if (folder.getScore() < 0) {
+            (new Throwable()).printStackTrace();
+        }
         return folder.getScore();
     }
 

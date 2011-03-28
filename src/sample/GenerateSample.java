@@ -3,6 +3,7 @@ package sample;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Random;
 import java.util.TreeSet;
@@ -223,6 +224,15 @@ public class GenerateSample {
         } catch(IOException e) {
             logger.fatal("Could not write samples", e);
             System.exit(1);
+        }
+        if (dfa != null) {
+            ArrayList<int[]> list = new ArrayList<int[]>();
+            for (int[] x : sentences) {
+        	list.add(x);
+            }
+            dfa.setSamples(list);
+            System.out.println("MDL score: " + dfa.getMDLComplexity());
+            
         }
     }
 }

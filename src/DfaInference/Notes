@@ -7,3 +7,31 @@ on MDL complexity:
   
 on weights:
 - maybe administer them per link, rather than per state?
+
+on DFA score:
+  nStates = number of States, states are numbered 0..nStates-1
+  nSym = number of different symbols
+  nEdges = number of edges
+
+  Method 1:
+    two-dimensional array: nStates x nSym, values are 0..nStates. nStates value
+    means an absent edge. Also need a single bit per state indicating end-state
+    or not. If we assume the startstate is State 0, there is a redundancy of
+    (nStates-1)!, because the order of the other states does not matter.
+    So, number of bits needed is:
+    nStates * nSym * 2log(nStates+1) + nStates - 2log((nStates-1)!)
+  Method 2:
+    for each state: number of outgoing edges (0..nSym)
+    for each edge the symbol + the destination state.
+    Again for each state a bit indicating end-state or not. Again redundancy
+    as above.
+    So, number of bits needed is:
+    nStates * 2log(nSym+1) + nEdges * (2log(nSym) + 2log(nStates)) + nStates - 2log((nStates-1)!)
+    This encoding is much much better for sparse DFAs (like Prefix Tree Acceptors :-).
+  Method 3:
+    for each state: nsym bits, each indicating presence/absence of edge.
+        for each present edge: destination state (2log(nStates) bits).
+    Also a single bit per state indicating end-state or not. Again redundancy
+    as above.
+    So, number of bits needed is
+    nStates*nSym + nEdges*2log(nStates) + nStates - 2log((nStates-1)!)

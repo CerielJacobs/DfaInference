@@ -38,21 +38,17 @@ public final class DFA implements java.io.Serializable, Configuration {
     /** Precomputed sums of logs. */
     private static double[] sumLogs;
 
-    static {
-        sumLogs = new double[65536];
-        sumLogs[0] = 0.0;
-        for (int i = 1; i < sumLogs.length; i++) {
-            sumLogs[i] = Math.log(i) + sumLogs[i-1];
-        }
-    }
-
     /** Precomputed 2logs. */
     private static double[] logs;
 
     static {
+        sumLogs = new double[65536];
         logs = new double[65536];
-        for (int i = 1; i < logs.length; i++) {
-            logs[i] = Math.log(i) / LOG2;
+        sumLogs[0] = 0.0;
+        for (int i = 1; i < sumLogs.length; i++) {
+            double log = Math.log(i);
+            sumLogs[i] = log + sumLogs[i-1];
+            logs[i] = log / LOG2;
         }
     }
 
@@ -222,6 +218,8 @@ public final class DFA implements java.io.Serializable, Configuration {
     private ArrayList<State> entranceStates;
 
     double chance;
+    
+    double MDLWeight = 1.0;
 
     /**
      * Basic constructor, creates an empty DFA.
@@ -277,12 +275,15 @@ public final class DFA implements java.io.Serializable, Configuration {
         } else {
             nsentences = (Math.pow(nsym, maxlen + 1) - 1) / (nsym - 1);
         }
+        
+        double PTAScore = getMDLComplexity();
+        double trivialScore = approximate2LogNoverK(nsentences, this.samples.size());
 
         if (logger.isInfoEnabled()) {
-            logger.info("PTAScore = " + getMDLComplexity());
-            logger.info("trivialScore = "
-                    + approximate2LogNoverK(nsentences, this.samples.size()));
+            logger.info("PTAScore = " + PTAScore + ", trivialScore = " + trivialScore);
         }
+        
+        MDLWeight = PTAScore / trivialScore;
 
         conflicts = samples.getConflicts();
     }
@@ -645,12 +646,10 @@ public final class DFA implements java.io.Serializable, Configuration {
                     }
                 }
             }
-            if (s.getWeight() > 0) {
-                if (s.isRejecting()) {
-                    nRejecting++;
-                } else if (s.isAccepting()) {
-                    nAccepting++;
-                }
+            if (s.isRejecting()) {
+        	nRejecting++;
+            } else if (s.isAccepting()) {
+        	nAccepting++;
             }
             for (int i = 0; i < nsym; i++) {
                 if (s.children[i] != null) {
@@ -2418,27 +2417,27 @@ public final class DFA implements java.io.Serializable, Configuration {
     }
 
     /**
-     * Computes the number of bits needed to encode the DFA. Assumed is the presence
-     * of a special accepting state A, and a special rejecting state R, and
-     * a special end-marker symbol.
-     * There are three ways of encoding:
-     * 1. a two-dimensional array of (nStates * nsym) size, where each entry
-     * contains a destination state. Each entry needs enough bits to encode a state
-     * number. This assumes a fixed start state. Note that any permutation of
-     * the states will do, so there is a lot of redundancy in this
-     * representation. In fact, (nStates-1)! redundancy, so we deduct
-     * log2((nStates-1)!) (the start state is fixed).
-     * 2. for each state: number of outgoing edges,
-     * for each edge the symbol + the destination
-     * state. With redundancy compensation. N*(1+2log(S+1)) +
-     * E*(2log(S)+2log(N)) - 2log((N-1)!) This encoding is much much better for
-     * sparse DFAs (like Prefix Tree Acceptors :-).
-     * 3. a table of nsym * nstates consisting of single bits: either there is an
-     *    edge or there is not. Then, for each edge the destination state.
-     *
-     * In all representations, end states are encoded as a transition on a special
-     * symbol to a special state.
-     *
+     * Computes the number of bits needed to encode the DFA.
+     * Method 1:
+     * two-dimensional array: nStates x nSym, values are 0..nStates. nStates value
+     * means an absent edge. Also need a single bit per state indicating end-state
+     * or not. If we assume the startstate is State 0, there is a redundancy of
+     * (nStates-1)!, because the order of the other states does not matter.
+     * So, number of bits needed is:
+     *    nStates * nSym * 2log(nStates+1) + nStates - 2log((nStates-1)!)
+     * Method 2:
+     * for each state: number of outgoing edges (0..nSym)
+     * for each edge the symbol + the destination state.
+     * Again for each state a bit indicating end-state or not. Again redundancy
+     * as above. So, number of bits needed is:
+     *    nStates * 2log(nSym+1) + nEdges * (2log(nSym) + 2log(nStates)) + nStates - 2log((nStates-1)!)
+     * This encoding is much much better for sparse DFAs (like Prefix Tree Acceptors :-).
+     * Method 3:
+     * for each state: nsym bits, each indicating presence/absence of edge.
+     * For each present edge: destination state (2log(nStates) bits).
+     * Also a single bit per state indicating end-state or not. Again redundancy
+     * as above. So, number of bits needed is
+     *     nStates*nSym + nEdges*2log(nStates) + nStates - 2log((nStates-1)!)
      * @return the actual sum for the DFA.
      */
     public double getDFAComplexity() {
@@ -2449,38 +2448,35 @@ public final class DFA implements java.io.Serializable, Configuration {
             if (USE_PRODUCTIVE) {
                 double redundancy;
                 if ((NEGATIVES || MDL_COMPLEMENT) && nXProductiveStates > 0) {
-                    int nXs = nXProductiveStates + 1;   // number of states + special rejecting state.
-                    redundancy = sumLog(nXs - 1) / LOG2;
-                    score1 += nXs * (nsym+1) * log2(nXs) - redundancy;
-                    score2 += nXs * log2(nsym + 2)
-                                + (nXProductiveEdges + nRejecting) * (log2(nsym+1) + log2(nXs))
-                                - redundancy;
-                    score3 += nXs * (nsym+1)
-                                + (nXProductiveEdges + nRejecting) * log2(nXs) - redundancy;
+                    redundancy = sumLog(nXProductiveStates - 1) / LOG2;
+                    score1 += nXProductiveStates * nsym * log2(nXProductiveStates+1) + nXProductiveStates - redundancy;
+                    score2 += nXProductiveStates * log2(nsym + 1)
+                                + nXProductiveEdges * (log2(nsym) + log2(nXProductiveStates))
+                                + nXProductiveStates - redundancy;
+                    score3 += nXProductiveStates * nsym
+                                + nXProductiveEdges * log2(nXProductiveStates) + nXProductiveStates - redundancy;
                     // From a paper by Domaratzky, Kisman, Shallit
                     // DFAScore = nXs * (1.5 + log2(nXs)); (if nsym = 2).
                 }
-                int ns = nProductiveStates + 1; // number of states + special accepting state.
-                redundancy = sumLog(ns - 1) / LOG2;
-                score1 += ns * (nsym+1) * log2(ns) - redundancy;
-                score2 += ns * log2(nsym + 2)
-                            + (nProductiveEdges + nAccepting) * (log2(nsym+1) + log2(ns))
-                            - redundancy;
-                score3 += ns * (nsym+1)
-                            + (nProductiveEdges + nAccepting) * log2(ns) - redundancy;
+                redundancy = sumLog(nProductiveStates - 1) / LOG2;
+                score1 += nProductiveStates * nsym * log2(nProductiveStates+1) + nProductiveStates - redundancy;
+                score2 += nProductiveStates * log2(nsym + 1)
+                            + nProductiveEdges * (log2(nsym) + log2(nProductiveStates))
+                            + nProductiveEdges - redundancy;
+                score3 += nProductiveStates * nsym
+                            + nProductiveEdges * log2(nProductiveStates) + nProductiveStates - redundancy;
                 // DFAScore += ns * (1.5 + log2(ns));
             } else {
-                int ns = nStates + (nRejecting > 0 ? 2 : 1);   // number of states + special accepting/rejecting states.
-                double redundancy = sumLog(ns - 1) / LOG2;
-                // nsym+1 because of the transitions to special accepting/rejecting states.
-                // These transitions are transitions on a special, new, symbol.
-                score1 += ns * (nsym+1) * log2(ns) - redundancy;
-                // nsym+2 because the number of outgoing edges ranges from 0 to nsym+1.
-                score2 += ns * log2(nsym + 2)
-                            + (nEdges + nAccepting + nRejecting) * (log2(nsym+1) + log2(ns))
-                            - redundancy;
-                score3 += ns * (nsym+1)
-                            + (nEdges + nAccepting + nRejecting) * log2(ns) - redundancy;
+        	// If there are rejecting states, we need 2log(3) bits for each state to encode
+        	// accepting/rejecting/unknown.
+        	double acceptingCode = nRejecting > 0 ? log2(3) : 1;
+                double redundancy = sumLog(nStates - 1) / LOG2;
+                score1 += nStates * nsym * log2(nStates+1) + nStates*acceptingCode - redundancy;
+                score2 += nStates * log2(nsym + 1) 
+                	    + nEdges * (log2(nsym) + log2(nStates))
+                            + nStates*acceptingCode - redundancy;
+                score3 += nStates * nsym
+                            + nEdges * log2(nStates) + nStates*acceptingCode - redundancy;
                 // DFAScore = ns * (1.5 + log2(ns));
             }
             if (DFA_SCORING == 0) {
@@ -2603,7 +2599,7 @@ public final class DFA implements java.io.Serializable, Configuration {
             counts_done = true;
         }
 
-        double score = DFAScore + MDLScore;
+        double score = DFAScore + (USE_MDL_WEIGHT ? MDLWeight : 1.0) * MDLScore;
         if (logger.isDebugEnabled()) {
             logger.debug("getMDLComplexity: MDLscore = "
                     + MDLScore + ", DFAscore = " + DFAScore
@@ -3217,6 +3213,16 @@ public final class DFA implements java.io.Serializable, Configuration {
 
     public void setSamples(ArrayList<int[]> samples) {
         this.samples = samples;
+        for (int[] s : samples) {
+            if (s.length - 1 > maxlen) {
+        	maxlen = s.length - 1;
+            }
+            if (s[0] == 1) {
+        	numRecognized++;
+            } else if (s[0] == 0) {
+        	numRejected++;
+            }
+        }
     }
 
     /**

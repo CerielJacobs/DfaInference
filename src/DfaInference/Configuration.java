@@ -47,6 +47,12 @@ public interface Configuration {
     
     static final int CHI_MIN =
         tp.getIntProperty("ChiMin", 5);
+    
+    /**
+     * If set to a number > 0, search paths are cut off when the number of reds
+     * is larger than the specified number.
+     */
+    static final int MAX_NUM_REDS = tp.getIntProperty("MaxReds", 0);
 
     static final boolean PRINT_DFA =
         tp.getBooleanProperty("PrintDFA", false);

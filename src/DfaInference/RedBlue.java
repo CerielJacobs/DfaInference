@@ -811,6 +811,9 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
                 */
             }
             count++;
+            if (MAX_NUM_REDS > 0 && numRedStates > MAX_NUM_REDS) {
+        	return null;
+            }
         }
 
         dfa.minimize();

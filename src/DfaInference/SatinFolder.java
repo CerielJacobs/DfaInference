@@ -226,7 +226,9 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
      * @return the resulting score.
      */
     double tryControl(int[] control, Samples learningSamples) {
-        folder.doFold(learningSamples, new IntGuidance(control), 0);
+	if (folder.doFold(learningSamples, new IntGuidance(control), 0) == null) {
+	    return Double.MAX_VALUE;
+	}
         double score = folder.getScore();
         /* TODO: look at this.
         if (maxSteps != 0) {

@@ -226,7 +226,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
      * @return the resulting score.
      */
     double tryControl(int[] control, Samples learningSamples) {
-	if (folder.doFold(learningSamples, new IntGuidance(control), 0) == null) {
+	if (folder.doFold(learningSamples, new IntGuidance(control), 0, 0) == null) {
 	    return Double.MAX_VALUE;
 	}
         double score = folder.getScore();
@@ -500,7 +500,7 @@ public class SatinFolder extends SatinObject implements SatinFolderInterface, Co
 
             f.printInfo = true;
 
-            DFA bestDFA = f.doFold(learningSamples, new IntGuidance(p.control), 0);
+            DFA bestDFA = f.doFold(learningSamples, new IntGuidance(p.control), 0, 0);
 
             long endTime = System.currentTimeMillis();
 

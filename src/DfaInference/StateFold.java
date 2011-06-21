@@ -87,7 +87,7 @@ public class StateFold extends RedBlue implements java.io.Serializable {
 	}
 
         StateFold m = new StateFold();
-        DFA bestDFA = m.doFold(learningSamples, new Guidance(), 0);
+        DFA bestDFA = m.doFold(learningSamples, new Guidance(), 0, 0);
 
         if (logger.isInfoEnabled()) {
             logger.info("The winner DFA has complexity "

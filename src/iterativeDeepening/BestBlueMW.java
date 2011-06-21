@@ -97,7 +97,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
      * @return the resulting score.
      */
     double tryControl(int[] control, Samples learningSamples) {
-        folder.doFold(learningSamples, new IntGuidance(control), 0);
+        folder.doFold(learningSamples, new IntGuidance(control), 0, 0);
         return folder.getScore();
     }
 
@@ -421,7 +421,7 @@ public class BestBlueMW extends SatinObject implements BestBlueMWInterface {
 
         long searchTime = System.currentTimeMillis();
 
-        DFA bestDFA = f.doFold(learningSamples, new IntGuidance(p.control), 0);
+        DFA bestDFA = f.doFold(learningSamples, new IntGuidance(p.control), 0, 0);
 
         long endTime = System.currentTimeMillis();
 

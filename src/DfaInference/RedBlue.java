@@ -747,7 +747,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * @param maxSteps if != 0, a threshold for the number of steps.
      * @return the resulting DFA.
      */
-    protected DFA doFold(Guidance guide, int maxSteps) {
+    protected DFA doFold(Guidance guide, int maxSteps, int maxNumReds) {
 
         if (printInfo && logger.isDebugEnabled()) {
             logger.debug("Initial DFA has score " + getScore()
@@ -811,7 +811,7 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
                 */
             }
             count++;
-            if (MAX_NUM_REDS > 0 && numRedStates > MAX_NUM_REDS) {
+            if (maxNumReds > 0 && numRedStates > maxNumReds) {
         	return null;
             }
         }
@@ -950,9 +950,9 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * @param maxSteps if != 0, a threshold for the number of steps.
      * @return the resulting DFA.
      */
-    public DFA doFold(Samples learningSamples, Guidance guide, int maxSteps) {
+    public DFA doFold(Samples learningSamples, Guidance guide, int maxSteps, int maxNumReds) {
         init(learningSamples);
-        return doFold(guide, maxSteps);
+        return doFold(guide, maxSteps, maxNumReds);
     }
 
     /**
@@ -965,9 +965,9 @@ public abstract class RedBlue implements java.io.Serializable, Configuration {
      * @param maxSteps if != 0, a threshold for the number of steps.
      * @return the resulting DFA.
      */
-    public DFA doFold(DFA dfa, Guidance guide, int maxSteps) {
+    public DFA doFold(DFA dfa, Guidance guide, int maxSteps, int maxNumReds) {
         init(dfa);
-        return doFold(guide, maxSteps);
+        return doFold(guide, maxSteps, maxNumReds);
     }
     
     /**

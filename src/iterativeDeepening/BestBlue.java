@@ -166,7 +166,7 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         ControlResultPair[] pairs = new ControlResultPair[64];        
         DFA dfa = new DFA(learningSamples);
         Guidance g = new IntGuidance(control);
-        dfa = folder.doFold(dfa, g, 0);
+        dfa = folder.doFold(dfa, g, 0, 0);
         
         Random r = new Random(12345);
         double score = folder.getScore();
@@ -188,7 +188,9 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
      * @return the resulting score.
      */
     double tryControl(int[] control, Samples learningSamples) {
-        folder.doFold(learningSamples, new IntGuidance(control), 0);
+        if (folder.doFold(learningSamples, new IntGuidance(control), 0, 0) == null) {
+            return Double.MAX_VALUE;
+        }
         if (folder.getScore() < 0) {
             (new Throwable()).printStackTrace();
         }
@@ -424,7 +426,11 @@ public class BestBlue extends SatinObject implements BestBlueInterface {
         long searchTime = System.currentTimeMillis();
 
         f.printInfo = true;
-        DFA bestDFA = f.doFold(learningSamples, new IntGuidance(p.control), 0);
+        DFA bestDFA = f.doFold(learningSamples, new IntGuidance(p.control), 0, 0);
+        if (bestDFA == null) {
+            System.err.println("No DFA found");
+            return;
+        }
         
         if (dumpfile != null) {
             table.doWrite();

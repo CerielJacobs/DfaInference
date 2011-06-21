@@ -76,7 +76,7 @@ public class BeamFold {
             }
             control = control1;
         }
-        DFA dfa = folder.doFold(learningSamples, new BitGuidance(control), 0);
+        DFA dfa = folder.doFold(learningSamples, new BitGuidance(control), 0, 0);
         if (dfa != null) {
             double score = folder.getScore();
             double dfascore = dfa.getDFAComplexity();

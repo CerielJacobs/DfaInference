@@ -74,7 +74,7 @@ public class MDLEdFold extends RedBlue implements java.io.Serializable {
 
 	MDLEdFold m = new MDLEdFold();
         m.printInfo = true;
-        DFA bestDFA = m.doFold(learningSamples, new Guidance(), 0);
+        DFA bestDFA = m.doFold(learningSamples, new Guidance(), 0, 0);
 
         if (logger.isInfoEnabled()) {
             logger.info("The winner DFA has complexity " + bestDFA.getMDLComplexity());

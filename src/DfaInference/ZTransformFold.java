@@ -111,7 +111,7 @@ public class ZTransformFold extends RedBlue implements java.io.Serializable {
         ZTransformFold m = new ZTransformFold();
         m.printInfo = true;
         logger.info("Starting fold ...");
-        DFA bestDFA = m.doFold(learningSamples, new Guidance(), 0);
+        DFA bestDFA = m.doFold(learningSamples, new Guidance(), 0, 0);
 
         if (logger.isInfoEnabled()) {
             logger.info("The winner DFA has complexity "

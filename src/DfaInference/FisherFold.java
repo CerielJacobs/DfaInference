@@ -122,7 +122,7 @@ public class FisherFold extends RedBlue implements java.io.Serializable {
         FisherFold m = new FisherFold();
         m.printInfo = true;
         logger.info("Starting fold ...");
-        DFA bestDFA = m.doFold(learningSamples, new Guidance(), 0);
+        DFA bestDFA = m.doFold(learningSamples, new Guidance(), 0, 0);
 
         if (logger.isInfoEnabled()) {
             logger.info("The winner DFA has complexity "

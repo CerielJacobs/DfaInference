@@ -90,7 +90,7 @@ public class Sampler2 extends EdFold {
             }
         }
 
-        doFold(new IntGuidance(new int[0]), 0);
+        doFold(new IntGuidance(new int[0]), 0, 0);
     }
 
     static boolean comparesEqual(Choice[] a, Choice[] b) {

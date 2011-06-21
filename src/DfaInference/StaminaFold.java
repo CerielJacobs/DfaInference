@@ -153,7 +153,7 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
             bestDFA = m.fullBlownLearn();
         } else {            
             logger.info("Starting fold ...");
-            bestDFA = m.doFold(learningSamples, new Guidance(), 0);
+            bestDFA = m.doFold(learningSamples, new Guidance(), 0, 0);
         }
         bestDFA.write(outputfile);
     }

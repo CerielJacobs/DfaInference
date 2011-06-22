@@ -276,15 +276,16 @@ public final class DFA implements java.io.Serializable, Configuration {
             nsentences = (Math.pow(nsym, maxlen + 1) - 1) / (nsym - 1);
         }
         
-        double PTAScore = getMDLComplexity();
-        double trivialScore = approximate2LogNoverK(nsentences, this.samples.size());
+        if (USE_MDL) {
+            double PTAScore = getMDLComplexity();
+            double trivialScore = approximate2LogNoverK(nsentences, this.samples.size());
+            MDLWeight = PTAScore / trivialScore;
 
-        if (logger.isInfoEnabled()) {
-            logger.info("PTAScore = " + PTAScore + ", trivialScore = " + trivialScore);
+            if (logger.isInfoEnabled()) {
+                logger.info("PTAScore = " + PTAScore + ", trivialScore = " + trivialScore);
+            }
         }
         
-        MDLWeight = PTAScore / trivialScore;
-
         conflicts = samples.getConflicts();
     }
 
@@ -2038,12 +2039,14 @@ public final class DFA implements java.io.Serializable, Configuration {
                 chance = c;
             }
             
+            /*
             if (undo == null && printInfo) {
                 System.out.println("Merge of state " + n1.getId() + " and " + n2.getId() + " gives score " + c
                         + " and penalty " + staminaPenalty);
                 System.out.println(n1.verboseString());
                 System.out.println(n2.verboseString());
             }
+            */
 
             /*
             if (c < THRESHOLD) {

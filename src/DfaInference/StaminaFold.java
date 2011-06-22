@@ -26,13 +26,13 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         UndoInfo u = dfa.treeMerge(r, b, true, redStates, numRedStates);
 
 
-        if (! dfa.conflict && dfa.chance > THRESHOLD) {
+        if (! dfa.conflict && dfa.chance >= THRESHOLD) {
             /* System.out.println("Red = " + r.getId() + ", blue = " + b.getId()
                     + ", chance = " + dfa.chance + ", penalty = " + dfa.staminaPenalty
                     + ", similarStates = " + dfa.similarStates + ", labelScore = " + dfa.labelScore);
             */
             
-            double score = -dfa.labelScore - dfa.similarStates + dfa.staminaPenalty;
+            // double score = -dfa.labelScore - dfa.similarStates + dfa.staminaPenalty;
             // double score = -b.getDepth();
             // score -= b.getTraffic() + b.getxTraffic();
             /*
@@ -49,8 +49,9 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
             }
             */
 
-            /*
             // double score = dfa.staminaPenalty - dfa.labelScore;
+            double score = -dfa.labelScore;
+            /*
             if (dfa.chance > SQ) {
                 score *= Math.pow(1.5, Math.log10(dfa.chance));
             } else {
@@ -75,10 +76,10 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         
         // return dfa.getNumStates();
         // if (Configuration.NEGATIVES) {
-            return dfa.getNumEdges() + dfa.getNumAcceptingStates() + dfa.getNumRejectingStates();
+            // return dfa.getNumEdges() + dfa.getNumAcceptingStates() + dfa.getNumRejectingStates();
         // }
         
-        // return dfa.getNumProductiveEdges() + dfa.getNumAcceptingStates();
+        return dfa.getNumProductiveEdges() + dfa.getNumAcceptingStates() + dfa.getNumProductiveStates();
     }
 
     public double getScore() {
@@ -99,11 +100,6 @@ public class StaminaFold extends RedBlue implements java.io.Serializable {
         // Print Java version and system.
         System.out.println(Helpers.getPlatformVersion() + "\n\n");
 
-        if (! Configuration.USE_STAMINA) {
-            System.err.println("Should set Stamina property!");
-            System.exit(1);
-        }
-        
         for (int i = 0; i < args.length; i++) {
             if (false) {
             } else if (args[i].equals("-full")) {

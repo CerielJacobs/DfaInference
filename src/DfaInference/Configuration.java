@@ -10,7 +10,7 @@ public interface Configuration {
     static final TypedProperties tp = new TypedProperties(System.getProperties());
 
     static final double THRESHOLD
-        = tp.getDoubleProperty("Threshold", 1e-20);
+        = tp.getDoubleProperty("Threshold", 0);
 
     /** The complement language must participate in the MDL score. */   
     static final boolean MDL_COMPLEMENT
@@ -45,6 +45,9 @@ public interface Configuration {
     static final boolean USE_STAMINA =
         tp.getBooleanProperty("Stamina", false);
     
+    static final boolean USE_MDL =
+        tp.getBooleanProperty("MDL", true);
+
     static final int CHI_MIN =
         tp.getIntProperty("ChiMin", 5);
     

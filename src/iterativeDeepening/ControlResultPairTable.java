@@ -72,13 +72,13 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
      */
     public synchronized ControlResultPair getResult(int[] control) {
         ArrayList<ControlResultPair> l = table;
-        System.out.print("GetResult {");
+        // System.out.print("GetResult {");
         for (int i = fixOffset; l != null && i < control.length; i++) {
-            System.out.print(" " + control[i]);
+            // System.out.print(" " + control[i]);
             if (control[i] < l.size()) {
                 ControlResultPair p = l.get(control[i]);
                 if (i == control.length - 1 && p.control != null) {
-                    System.out.println(" } found, score " + p.score);
+                    // System.out.println(" } found, score " + p.score);
                     return p;
                 }
                 l = p.getTable();
@@ -86,7 +86,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
                 break;
             }
         }
-        System.out.println("} not found");
+        // System.out.println("} not found");
         return null;
     }
     
@@ -103,10 +103,10 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
 
         ArrayList<ControlResultPair> l = table;
 
-        System.out.print("PutResult, depth = " + depth + ", control = {");
+        // System.out.print("PutResult, depth = " + depth + ", control = {");
 
         for (int i = fixOffset; i < depth; i++) {
-            System.out.print(" " + p.control[i]);
+            // System.out.print(" " + p.control[i]);
 
            while (p.control[i] >= l.size()) {
                 l.add(new ControlResultPair(0, null, 0, 0));
@@ -117,7 +117,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
             if (v.control != null) {
                 // Already have a result higher up. Ignore this one.
                 // This may happen if we get results out of order.
-                System.out.println("} ignored");
+                // System.out.println("} ignored");
                 return;
             }
             
@@ -134,7 +134,7 @@ public class ControlResultPairTable extends ibis.satin.SharedObject
                 l = v.getTable();
             }
         }
-        System.out.println("}, score = " + p.score);
+        // System.out.println("}, score = " + p.score);
     }
     
     /**

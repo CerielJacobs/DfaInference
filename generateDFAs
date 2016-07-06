@@ -1,4 +1,7 @@
 # Generates 1000 DFAs with about 64 states, alphabet of 2.
+#
+
+mkdir -p DFAs
 
 export DFA_HOME=`pwd`
 
